@@ -174,12 +174,91 @@ The CLI prints addresses with `0x`. The landing page, `link.mjs` and the mainnet
   - The Library's receipt doesn't yet lead with its publish date and cost (DEMO.md 3.5); that needs the date at publish time.
   - Start shows one card until the other sites exist.
 
+## Demo, step 1c: short names and the updated DEMO.md (done locally 2026-11-11; not deployed)
+
+DEMO.md was revised (short names, "Where this page came from", a new top line for Start). The parts that change the Start and Library archives are built, so the sites can be published.
+
+- **Short names in the loader** (`src/names.ts`, `src/host.ts`, `src/main.ts`):
+  - **Rules:** 1–32 characters of a–z, 0–9 and single hyphens, with a reserved list. `ant`, `p`, `i` and `name` are reserved too, because they would clash with the address paths.
+  - **Name hosts:** `library.<root>` looks the name up in `/_autonomi/names.json` and installs what it points to, on the name's own origin. The state record gains `name`, `nameSince` and `declaredName`.
+  - **Name links:** `/_autonomi/go/name/<name>/…` is answered by the service worker. `<root>/<name>`, `?open=<name>` and the address box work on the root domain.
+  - **Due checks:** a named site re-reads the directory first. A changed entry installs the new target; a removed name stops being served; an unreadable directory falls back to the cached site and retries in 10 minutes. A name on a pointer then does the pointer check as before.
+  - **Other pages:** an unknown name gets a plain page. The info page shows the chain and what the site calls itself.
+- **`names.json`** at the repository root is the live directory. `sites/build.mjs` writes it from `sites/addresses.json`. Production builds emit it at `_autonomi/names.json`; fixture builds use a test directory written by `tools/build-fixtures.mjs`.
+- **nginx:** `deploy/nginx/antnet.conf` has a new rule so `/_autonomi/names.json` serves the file, not the shell. **It must be copied to the VPS again** (deploy/README.md, "When the nginx config changes").
+- **Per-record detail:** the Autonomi source stores `recordList` (the DataMap with its serving node, and each chunk's address and size) and `arrivals` (when each chunk arrived, plus the peer when a later SDK reports it). The info page shows them as "Where this site came from".
+- **Site builds:**
+  - Links are by name, and each site's settings carry its `name`.
+  - Content sites carry their publish date, pinned so an unchanged site rebuilds to the same bytes.
+  - `record` notes the last build's hash rather than rebuilding, and takes `--cost`.
+- **Start:**
+  - the claim as its top line, with the tagline quieter beneath;
+  - the name line, with the full address on click;
+  - "Where this page came from" in place of the offline band;
+  - the publish command showing the loader in use;
+  - the fine-print line about names.
+- **The Library:** the footer leads with the publish date, and the offline clause is gone.
+- **Receipt fix:** it now counts the DataMap, so it agrees with the info page ("4 records").
+- **One change to DEMO.md's wording:** the developer-tools line said the Network tab shows no request for the site's content. It does list the files, marked as served by the service worker, so the line now says that.
+- **Tests:** 71 unit (14 new in `names.test.ts`) and 58 e2e (`names.spec.ts` is new; `demo.spec.ts` moved to name hosts), all passing. No console errors, CSP violations or sideways scrolling in light, dark and phone layouts.
+- **`tools/m4-mainnet.mjs`** runs M4 against the live loader once the sites are published.
+
+## Publishing Start and the Library (2026-11-11, evening)
+
+- **Done:**
+  - The nginx config was copied to the VPS and reloaded; `/_autonomi/names.json` returned 404 before the deploy.
+  - The loader was deployed with names support; `names.json` is served as `200 application/json`, with an empty directory at that point.
+  - **The Library** was uploaded: `9dd1fcae0e27248c4c3a87e3676e3ac03d100bab7a63eaa7b410c8c7abf785ae`, costing 0.3213 ANT plus 0.000004 ETH gas, and recorded.
+    - Checked on mainnet through the live loader, opened by its `i…` link in a fresh profile: 9.85 s in total (connect 1.50 s, download 8.22 s), 4 records.
+  - **Start's pointer key** is `publish/start.key` (gitignored; the user is to back it up). The pointer address is `797c42a3c98e910a027825f7f3785175d9c80750baa1e564e1401166354be5f1`, recorded.
+  - **Start v1** was uploaded: `e18cdc3620a70498e17f78b1d04eb0a7a7047a34147756eb767b6fa160748c90`, costing 0.3738 ANT plus 0.000004 ETH gas, and recorded.
+  - `names.json` now maps `start` to the pointer and `library` to the Library's archive. `sites/addresses.json` holds all of this.
+- **Given to the user, not yet confirmed:**
+  1. `ant pointer create --key publish\start.key e18cdc3620a70498e17f78b1d04eb0a7a7047a34147756eb767b6fa160748c90`
+  2. `.\deploy\deploy.ps1 -Server root@77.42.84.209`, so `names.json` with both names reaches the host.
+  3. `Remove-Item Env:SECRET_KEY`.
+- **None of today's short-names work is committed or pushed yet,** including `sites/addresses.json` and `names.json`. The user hasn't yet said whether to push.
+
+- **Confirmed:**
+  - Start's pointer (counter 0) targets `e18cdc36…8c90`.
+  - The live `names.json` lists `start` and `library`.
+
+## M4 (links between sites): done on mainnet, 2026-11-11
+
+`node tools/m4-mainnet.mjs` passed all 6 checks against https://antnet.autonomirror.com/, in a fresh profile:
+
+| Check | Result |
+| --- | --- |
+| Start opens by name, `start.antnet.autonomirror.com` | connect 1.89 s · resolve 14.32 s · download 3.28 s · total 19.60 s |
+| Start links to the Library by a name link | connect 1.85 s · download 8.33 s · total 10.30 s |
+| The Library links back to Start | pass |
+| Back and forward work across the two sites | pass |
+| A portable address link keeps its path, query and fragment | `/users/42?from=m4#top` on the M2 SPA |
+| The root-domain path form reaches the same site | pass |
+
+- **The live info page** shows the chain `start` → pointer `797c…5f1` → archive `e18c…8c90`, and the records. The DataMap's serving node is named (`e04804fc…ae0fda`); the chunk nodes aren't reported by SDK 0.1.5, as expected.
+- **Fixes to the tools:**
+  - `m4-mainnet.mjs` opened the info page in a separate browser session.
+  - `probe.mjs` read a named site's info page before it rendered.
+
 ### Next
 
-1. **The user reviews the look** (`npm run fixtures`, `npm run dev`).
-2. **Publish:** the user creates Start's key and runs `node sites/build.mjs record start-pointer <address>`, uploads the Library, then Start, then creates the pointer. This is M4 on mainnet.
-3. **Then, from DEMO.md section 10:**
+1. **Commit and push** this work (asked; awaiting the user's answer).
+2. **Then, in DEMO.md section 10's order:**
+   - warm-up and the front door;
+   - non-blocking updates (Start's hourly check holds the page for about 15–20 s);
+   - Cinema streaming;
+   - ColonySim and the Docs;
+   - the loading screen and "can't connect" page;
+   - the address bar;
+   - the claim form and Action.
+4. **Then, in DEMO.md section 10's order:**
    - warm-up and the front door;
    - non-blocking updates;
-   - ColonySim, Cinema and the Docs.
-4. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe` on the live host.
+   - Cinema streaming (section 5.8);
+   - ColonySim and the Docs;
+   - the loading screen and "can't connect" page;
+   - the address bar (5.7);
+   - the claim form and Action;
+   - the node list, when an SDK release reports it.
+5. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe` on the live host.

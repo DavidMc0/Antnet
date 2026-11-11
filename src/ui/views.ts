@@ -1,7 +1,8 @@
 // The shell's views: loading screen, landing page, info page and error page.
 
 import type { SiteLink } from "../host";
-import type { SiteState } from "../state";
+import type { NameEntry } from "../names";
+import { type SiteState, sameLink } from "../state";
 import { formatBytes, formatMs, formatTime, h, mount } from "./dom";
 
 function brand(): HTMLElement {
@@ -73,6 +74,8 @@ export function showError(
 export interface LandingOptions {
   onOpen(input: string, rawHexIsPointer: boolean): string | null;
   fixtures?: { name: string; href: string }[];
+  /** A message to show under the address box, such as why the page asked for wasn't opened. */
+  notice?: string;
   canRegisterHandler: boolean;
   onRegisterHandler(): void;
 }
@@ -81,13 +84,13 @@ export function showLanding(opts: LandingOptions): void {
   const input = h("input", {
     type: "text",
     name: "address",
-    placeholder: "64 hex characters, ant://…, or a site link",
+    placeholder: "A site name, 64 hex characters, ant://…, or a site link",
     autocomplete: "off",
     spellcheck: "false",
     "aria-label": "Site address",
   });
   const pointer = h("input", { type: "checkbox", name: "pointer" });
-  const err = h("p", { class: "form-error", role: "alert" });
+  const err = h("p", { class: "form-error", role: "alert" }, opts.notice ?? "");
   const form = h(
     "form",
     {
@@ -137,7 +140,10 @@ export function showLanding(opts: LandingOptions): void {
 }
 
 export interface InfoOptions {
-  link: SiteLink;
+  /** The link in use: from the hostname, or for a named site what the name resolves to. Null if unknown. */
+  link: SiteLink | null;
+  /** Set on a named site: the name and what the directory says now. */
+  name?: { name: string; entry: NameEntry | null | "unreadable" };
   label: string;
   state: SiteState | null;
   sourceName: string;
@@ -151,25 +157,91 @@ function row(name: string, value: Node | string, testid?: string): HTMLElement {
   return h("tr", {}, h("th", {}, name), h("td", testid ? { "data-testid": testid } : {}, value));
 }
 
+/** "Pointer ddab…, registered 2026-11-14", or why there is nothing to show. */
+function entryText(entry: NameEntry | null | "unreadable"): Node | string {
+  if (entry === "unreadable") return "The directory couldn't be read just now";
+  if (!entry) return "Not registered";
+  return h(
+    "span",
+    {},
+    entry.kind === "p" ? "Pointer " : "Archive ",
+    h("code", {}, entry.address),
+    entry.since ? `, registered ${entry.since}` : "",
+  );
+}
+
+/** The records an installed site arrived as, and the nodes that served them (DEMO.md 4.5). */
+function recordsSection(state: SiteState): HTMLElement | null {
+  const list = state.recordList;
+  if (!list?.length) return null;
+  const arrivals = state.arrivals ?? [];
+  const nodes = new Set([...list, ...arrivals].map((r) => r.node).filter((n): n is string => !!n));
+  const known = Math.max(list.filter((r) => r.node).length, arrivals.filter((a) => a.node).length + (list[0]?.node ? 1 : 0));
+  const summary =
+    known >= list.length
+      ? `This site arrived as ${list.length} records from ${nodes.size} ${nodes.size === 1 ? "computer" : "computers"} on the Autonomi network.`
+      : `This site arrived as ${list.length} records. The client named the serving node for ${known} of them; ` +
+        "the rest will be listed once the SDK reports them.";
+  const short = (s?: string) => (s ? (s.length > 20 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s) : "—");
+  return h(
+    "section",
+    { "data-testid": "records" },
+    h("h2", {}, "Where this site came from"),
+    h("p", { class: "small" }, summary),
+    h(
+      "table",
+      { class: "records" },
+      h("tr", {}, h("th", {}, "Record"), h("th", {}, "Size"), h("th", {}, "Address"), h("th", {}, "Served by")),
+      ...list.map((r) =>
+        h(
+          "tr",
+          {},
+          h("td", {}, r.kind === "datamap" ? "DataMap" : `Chunk ${(r.index ?? 0) + 1}`),
+          h("td", {}, r.bytes !== undefined ? formatBytes(r.bytes) : "—"),
+          h("td", {}, h("code", { title: r.address ?? "" }, short(r.address))),
+          h("td", {}, h("code", { title: r.node ?? "" }, short(r.node))),
+        ),
+      ),
+    ),
+    arrivals.length
+      ? h("p", { class: "small" }, `Chunks arrived ${arrivals.map((a) => formatMs(a.ms)).join(", ")} after the download began.`)
+      : null,
+  );
+}
+
 export function showInfo(opts: InfoOptions): void {
-  const { link, state } = opts;
+  const { link, state, name } = opts;
   const status = h("p", { class: "status", role: "status" }, opts.status ?? "");
   const t = state?.timings;
+  const moved = name && state && name.entry && name.entry !== "unreadable" && !sameLink(name.entry, state.link);
+  const canChange = link?.kind === "p" || !!name;
   const table = h(
     "table",
     {},
-    row("Link type", link.kind === "p" ? "Pointer (latest version)" : "Immutable (this exact version)"),
-    row(link.kind === "p" ? "Pointer address" : "Archive address", h("code", {}, link.address)),
+    name
+      ? [
+          row("Short name", name.name, "name"),
+          row("Directory entry", entryText(name.entry), "name-entry"),
+          moved ? row("Note", "The directory now points somewhere else. The next check installs it.") : null,
+        ]
+      : null,
+    link
+      ? [
+          row("Link type", link.kind === "p" ? "Pointer (latest version)" : "Immutable (this exact version)"),
+          row(link.kind === "p" ? "Pointer address" : "Archive address", h("code", {}, link.address)),
+        ]
+      : null,
     state
       ? [
-          link.kind === "p" ? row("Archive in use", h("code", {}, state.archive), "archive") : null,
+          link?.kind === "p" ? row("Archive in use", h("code", {}, state.archive), "archive") : null,
           state.title ? row("Title", state.title) : null,
+          state.declaredName ? row("Site calls itself", state.declaredName, "declared-name") : null,
           row("Content hash", h("code", {}, state.blake3)),
           row("Size", formatBytes(state.bytes)),
           row("Files", String(state.files), "files"),
           state.records !== undefined ? row("Records", `${state.records + 1} (${state.records} chunks + DataMap)`) : null,
           row("Installed", formatTime(state.installedAt)),
-          link.kind === "p" ? row("Last checked", formatTime(state.checkedAt)) : null,
+          canChange ? row("Last checked", formatTime(state.checkedAt)) : null,
           row(
             "Install timings",
             `connect ${formatMs(t?.connectMs)} · resolve ${formatMs(t?.resolveMs)} · download ${formatMs(
@@ -196,13 +268,22 @@ export function showInfo(opts: InfoOptions): void {
       "main",
       { class: "card", "data-view": "info" },
       h("h1", {}, "What's installed here"),
-      h("p", { class: "small" }, "The link address is read from this page's hostname, never from stored state."),
+      h(
+        "p",
+        { class: "small" },
+        name
+          ? "The name is read from this page's hostname and looked up in this loader's public directory " +
+              "(/_autonomi/names.json). The directory decides which site a name leads to. It can't change " +
+              "what a site contains: that is still fetched by address and checked in your browser."
+          : "The link address is read from this page's hostname, never from stored state.",
+      ),
       table,
+      state ? recordsSection(state) : null,
       ignored,
       h(
         "div",
         { class: "actions" },
-        link.kind === "p" && state ? h("button", { onclick: opts.onCheck }, "Check for a new version now") : null,
+        canChange && state ? h("button", { onclick: opts.onCheck }, "Check for a new version now") : null,
         h(
           "button",
           {

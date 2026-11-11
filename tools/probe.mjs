@@ -82,6 +82,8 @@ try {
   } else if (view === "site") {
     console.log(`${stamp()}  site loaded: ${await page.title()}`);
     await page.goto(new URL("/_autonomi/", page.url()).href);
+    // A named site's info page reads the name directory before it renders.
+    await page.waitForSelector("[data-view=info] tr", { timeout: 20_000 }).catch(() => {});
     const rows = await page.$$eval("[data-view=info] tr", (trs) =>
       trs.map((tr) => `${tr.querySelector("th")?.textContent}: ${tr.querySelector("td")?.textContent}`),
     );

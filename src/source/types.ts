@@ -1,5 +1,7 @@
 // The network boundary (spec 11.2). Only the shell uses a SiteSource.
 
+import type { Arrival, RecordDetail } from "../state";
+
 export interface FetchArchiveOptions {
   maxBytes: number;
   signal?: AbortSignal;
@@ -13,6 +15,10 @@ export interface FetchArchiveResult {
   blake3: string;
   /** Content chunks, not counting the DataMap record. */
   chunks: number;
+  /** Each record of the file, DataMap first, with what the source knows about it. */
+  recordList?: RecordDetail[];
+  /** When each chunk arrived, in arrival order. */
+  arrivals?: Arrival[];
 }
 
 export interface SiteSource {

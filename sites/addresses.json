@@ -1,0 +1,20 @@
+{
+  "startPointer": "797c42a3c98e910a027825f7f3785175d9c80750baa1e564e1401166354be5f1",
+  "sites": {
+    "library": {
+      "address": "9dd1fcae0e27248c4c3a87e3676e3ac03d100bab7a63eaa7b410c8c7abf785ae",
+      "sha256": "722da4e3980c7e68dbcbc102641daac40f8f8abc668c23e5f6f9a7e7fe745044",
+      "published": "2026-11-11",
+      "since": "2026-11-11",
+      "cost": "0.3213 ANT, plus 0.000004 ETH gas"
+    }
+  },
+  "start": [
+    {
+      "address": "e18cdc3620a70498e17f78b1d04eb0a7a7047a34147756eb767b6fa160748c90",
+      "sha256": "44eec577e3d9055f70fe07422fccb3ccdb31fd1b363c08d15d2999a763167f0b",
+      "date": "2026-11-11",
+      "cost": "0.3738 ANT, plus 0.000004 ETH gas"
+    }
+  ]
+}

@@ -61,7 +61,8 @@
     target.textContent = "";
     target.appendChild(document.createTextNode("No server sent this page. It arrived as "));
     if (state.records) {
-      target.appendChild(el("strong", null, state.records + " records"));
+      // The loader counts content chunks; the DataMap that lists them is one more record.
+      target.appendChild(el("strong", null, state.records + 1 + " records"));
       target.appendChild(document.createTextNode(" ("));
       target.appendChild(el("strong", null, formatBytes(state.bytes)));
       target.appendChild(document.createTextNode(")"));

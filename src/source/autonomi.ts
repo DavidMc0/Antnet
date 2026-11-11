@@ -1,6 +1,7 @@
 // SDK-backed source: AutonomiClient over WebRTC to mainnet (bundled seeds, no wallet needed).
 
 import { AutonomiClient, AutonomiError, type ProgressEvent } from "@withautonomi/ant-browser-sdk";
+import type { Arrival, RecordDetail } from "../state";
 import { type FetchArchiveOptions, type FetchArchiveResult, type SiteSource, SourceError } from "./types";
 
 /** Every message in the cause chain, for matching the core's error text. */
@@ -104,15 +105,27 @@ export class AutonomiSource implements SiteSource {
 
   async fetchArchive(address: string, opts: FetchArchiveOptions): Promise<FetchArchiveResult> {
     const client = await this.getClient(opts.signal);
+    const started = performance.now();
+    const at = () => Math.round(performance.now() - started);
+    const arrivals: Arrival[] = [];
+    let dataMapMs: number | undefined;
     const onProgress = (ev: ProgressEvent) => {
       if (ev.status !== "running" || ev.phase !== "downloading") return;
       if (ev.completed !== undefined && (ev.unit === "bytes" || ev.unit === "records")) {
         opts.onProgress?.(ev.completed, ev.total, ev.unit);
         return;
       }
+      if (/Verified public DataMap/.test(ev.message)) dataMapMs ??= at();
       // SDK 0.1.5 reports chunk progress only in the message text: "Downloaded chunk 2/3".
-      const m = /Downloaded chunk (\d+)\/(\d+)/.exec(ev.message);
-      if (m) opts.onProgress?.(Number(m[1]), Number(m[2]), "records");
+      // Clients built from ant-client #249 onwards add the serving node:
+      // "Downloaded chunk 3/147 from <peer> after 1 attempts".
+      const m = /Downloaded chunk (\d+)\/(\d+)(?: from (\S+))?/.exec(ev.message);
+      if (m) {
+        const n = Number(m[1]);
+        // "0/3" only announces the total; each later count is one more chunk arriving.
+        if (n > 0 && n > arrivals.length) arrivals.push({ ms: at(), ...(m[3] ? { node: m[3] } : {}) });
+        opts.onProgress?.(n, Number(m[2]), "records");
+      }
     };
     try {
       const result = await client.download(address, {
@@ -121,7 +134,19 @@ export class AutonomiSource implements SiteSource {
         signal: opts.signal,
         onProgress,
       });
-      return { bytes: result.bytes, blake3: result.hash, chunks: result.file.chunks.length };
+      const recordList: RecordDetail[] = [
+        {
+          kind: "datamap",
+          address,
+          bytes: result.file.dataMapSize,
+          ...(result.dataMapNode?.peerId ? { node: result.dataMapNode.peerId } : {}),
+          ...(dataMapMs !== undefined ? { ms: dataMapMs } : {}),
+        },
+        ...result.file.chunks.map(
+          (c): RecordDetail => ({ kind: "chunk", index: c.index, address: c.dstHash, bytes: c.srcSize }),
+        ),
+      ];
+      return { bytes: result.bytes, blake3: result.hash, chunks: result.file.chunks.length, recordList, arrivals };
     } catch (e) {
       throw wrap(e, opts.signal);
     }

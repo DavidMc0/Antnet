@@ -50,20 +50,27 @@ if (sites.plain) {
   const inner = await addPointer("plain (pointer, inner)", "chunk", sites.plain, false);
   await addPointer("plain (pointer chain)", "pointer", inner);
 }
-// 2b. The demo sites (sites/, DEMO.md), linked exactly as on mainnet but with fixture
-// addresses. Start's pointer address is known before Start exists, as on mainnet.
+// 2b. The demo sites (sites/, DEMO.md), built exactly as for mainnet and reached by short
+// name: a test directory at public/_autonomi/names.json maps start -> a pointer and each
+// content site -> its archive, as names.json does on the live loader.
 {
-  const { CONTENT_SITES, buildContentSite, buildStart } = await import("../sites/build.mjs");
-  const START = "demo: Antnet Start";
-  const links = { startPointer: pointerAddress(START), sites: {} };
+  const { CONTENT_SITES, buildContentSite, buildStart, namesFile } = await import("../sites/build.mjs");
+  const SINCE = "2026-11-11";
+  const names = {};
   const shown = [];
   for (const name of CONTENT_SITES) {
-    const built = await buildContentSite(name, links);
-    links.sites[name] = await addArchive(`demo: ${built.meta.title}`, built.tar);
-    shown.push({ name, meta: built.meta, bytes: built.bytes, address: links.sites[name] });
+    const built = await buildContentSite(name, { published: SINCE });
+    const address = await addArchive(`demo: ${built.meta.title}`, built.tar);
+    index[`demo: ${built.meta.title}`].name = name;
+    names[name] = { kind: "i", address, since: SINCE };
+    shown.push({ name, meta: built.meta, bytes: built.bytes });
   }
-  const start = await buildStart(links, shown, []);
-  await addPointer(START, "chunk", await addArchive("demo: Antnet Start (archive)", start.tar, false));
+  const start = await buildStart(shown, []);
+  const START = "demo: Antnet Start";
+  const pointer = await addPointer(START, "chunk", await addArchive("demo: Antnet Start (archive)", start.tar, false));
+  index[START].name = "start";
+  names.start = { kind: "p", address: pointer, since: SINCE };
+  await writeFile(join(OUT, "..", "names.json"), namesFile(names, `${SINCE}T00:00:00Z`));
 }
 
 await addPointer("pointer-not-chunk", "graph_entry", "00".repeat(32), false);

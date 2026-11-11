@@ -1,15 +1,20 @@
 #!/usr/bin/env node
-// Build the demo sites (DEMO.md) into archives ready to upload.
+// Build the demo sites (DEMO.md) into archives ready to upload, and the short-name directory.
 //
-//   node sites/build.mjs                       build everything that can be built; say what's next
-//   node sites/build.mjs record <site> <addr>  note the address an upload printed (0x is fine)
+//   node sites/build.mjs                          build every site; say what to do next
+//   node sites/build.mjs record <site> <address>  note the address an upload printed (0x is fine)
+//        [--cost "<what it cost>"]                 optionally, what the upload cost
+//   node sites/build.mjs record start-pointer <address>
 //
-// Links between sites are never typed by hand: they come from sites/addresses.json.
-// - startPointer: the address of Antnet Start's pointer, known as soon as its key exists
-//   (ant pointer keygen / ant pointer address). Every content site links back to it.
-// - sites.<name>: each content site's uploaded address, with the SHA-256 of the archive that
-//   was uploaded, so a later change to the site is noticed before Start links to a stale copy.
+// Sites link to each other by short name (/_autonomi/go/name/<name>/), so no archive contains
+// another site's address and they can be built and uploaded in any order. The addresses live
+// in sites/addresses.json:
+// - startPointer: the address of Antnet Start's pointer (ant pointer address --key …).
+// - sites.<name>: each content site's uploaded address, with the SHA-256 and publish date of
+//   the archive that was uploaded, so a later change to the site is noticed.
 // - start: every uploaded version of Start, oldest first. Start lists them as earlier versions.
+// From those, this script writes names.json at the repository root: the directory the loader
+// serves at /_autonomi/names.json. Deploy the loader after it changes.
 //
 // Archives go to publish/sites/, which is gitignored. The same inputs always give the same
 // bytes, so rebuilding an unchanged site gives the same archive and the same address.
@@ -23,9 +28,10 @@ import { packFiles, readDir } from "../tools/tar-writer.mjs";
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = join(HERE, "..");
 const ADDRESSES = join(HERE, "addresses.json");
+const NAMES = join(ROOT, "names.json");
 const OUT = join(ROOT, "publish", "sites");
 
-/** Content sites, in upload order. Start is built last, from their addresses. */
+/** Content sites, in the order Start lists them. Start itself is built from their sizes. */
 export const CONTENT_SITES = ["library"];
 
 /** The CSP every demo site declares: nothing from outside its own archive. */
@@ -36,36 +42,39 @@ const CSP =
 const enc = new TextEncoder();
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const isHex = (s) => typeof s === "string" && /^[0-9a-f]{64}$/.test(s);
+const today = () => new Date().toISOString().slice(0, 10);
 
 export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** Portable links (spec 7): resolved by whichever loader the visitor is using, even offline. */
+/** "2026-11-14" -> "14 November 2026". */
+export function longDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][m - 1];
+  return `${d} ${month} ${y}`;
+}
+
+/** Portable links (spec 7, DEMO.md 5.9): resolved by whichever loader the visitor is using. */
 export const goLink = {
+  name: (name, path = "/") => `/_autonomi/go/name/${name}${path}`,
   immutable: (address, path = "/") => `/_autonomi/go/ant/${address}${path}`,
-  pointer: (address, path = "/") => `/_autonomi/go/p/ant/${address}${path}`,
 };
 
 async function loadSite(name) {
   return import(pathToFileURL(join(HERE, name, "site.mjs")).href);
 }
 
-/**
- * What a site's build() gets: links, shared markup and helpers.
- * `links.startPointer` is required; `links.sites` maps content site names to addresses.
- */
-function context(links, extra = {}) {
-  const startHref = goLink.pointer(links.startPointer);
+/** What a site's build() gets: links, shared markup and helpers. */
+function context(extra = {}) {
+  const startHref = goLink.name("start");
   return {
     esc: escapeHtml,
+    longDate,
     startHref,
-    hrefFor(name, path) {
-      const address = links.sites?.[name];
-      if (!isHex(address)) throw new Error(`No address for "${name}" yet.`);
-      return goLink.immutable(address, path);
-    },
-    /** For <head>: the shared stylesheet and the receipt script. */
+    /** A link to another demo site, by its short name. */
+    hrefFor: (name, path) => goLink.name(name, path),
+    /** For <head>, before the site's own stylesheet: the shared stylesheet and the receipt script. */
     headTags: '<link rel="stylesheet" href="/antnet/antnet.css">\n<script src="/antnet/receipt.js" defer></script>',
     startLink: `<a class="antnet-start" href="${startHref}">Antnet Start</a>`,
     receipt: '<p class="antnet-receipt" data-antnet-receipt hidden></p>',
@@ -82,6 +91,9 @@ async function assemble(name, mod, built) {
   files.set("antnet/receipt.js", await readFile(join(HERE, "shared", "receipt.js")));
   const settings = {
     format: "autonomi-site/1",
+    // The site names itself. Only its publisher can put this here, which is what proves a
+    // claim to the short name (DEMO.md 5.9).
+    name,
     title: mod.meta.title,
     ...mod.settings,
     headers: { "/*": { "Content-Security-Policy": CSP }, ...mod.settings?.headers },
@@ -91,146 +103,192 @@ async function assemble(name, mod, built) {
   return { name, meta: mod.meta, files, tar, sha256: sha256(tar), bytes: tar.length };
 }
 
-export async function buildContentSite(name, links) {
+/** Build a content site. `published` is its publish date (YYYY-MM-DD), shown on the site. */
+export async function buildContentSite(name, { published }) {
   const mod = await loadSite(name);
-  return assemble(name, mod, await mod.build(context(links)));
+  return assemble(name, mod, await mod.build(context({ published })));
 }
 
 /**
- * Build Start. `sites` is the list of content sites to show (name, meta, bytes, address);
+ * Build Start. `sites` is the list of content sites to show (name, meta, bytes, cost?);
  * `versions` the addresses of Start's earlier uploaded versions, oldest first.
  */
-export async function buildStart(links, sites, versions = []) {
+export async function buildStart(sites, versions = []) {
   const mod = await loadSite("start");
-  const ctx = context(links, {
-    sites: sites.map((s) => ({ ...s, href: goLink.immutable(s.address) })),
+  const ctx = context({
+    sites: sites.map((s) => ({ ...s, href: goLink.name(s.name) })),
     versions: versions.map((v, i) => ({ ...v, number: i + 1, href: goLink.immutable(v.address) })),
   });
   return assemble("start", mod, await mod.build(ctx));
+}
+
+/** The directory file's content for a set of entries: { name: { kind, address, since } }. */
+export function namesFile(names, updated) {
+  return JSON.stringify({ v: 1, updated, names }, null, 2) + "\n";
 }
 
 // ---------------------------------------------------------------------------------------
 // Command line
 
 async function readAddresses() {
+  let a = {};
   try {
-    return JSON.parse(await readFile(ADDRESSES, "utf8"));
+    a = JSON.parse(await readFile(ADDRESSES, "utf8"));
   } catch {
-    return { startPointer: "", sites: {}, start: [] };
+    // First run.
+  }
+  return { startPointer: "", ...a, sites: a.sites ?? {}, start: a.start ?? [] };
+}
+
+const saveAddresses = (a) => writeFile(ADDRESSES, JSON.stringify(a, null, 2) + "\n");
+const hex = (s) => s?.toLowerCase().replace(/^0x/, "");
+const kb = (n) => `${(n / 1024).toFixed(0).padStart(6)} KiB`;
+
+/** The archive and details of the last build of a site, as written to publish/sites/. */
+async function lastBuild(name) {
+  try {
+    const info = JSON.parse(await readFile(join(OUT, `${name}.json`), "utf8"));
+    const tar = await readFile(join(OUT, `${name}.tar`));
+    return sha256(tar) === info.sha256 ? info : null;
+  } catch {
+    return null;
   }
 }
 
-async function saveAddresses(a) {
-  await writeFile(ADDRESSES, JSON.stringify(a, null, 2) + "\n");
+async function writeBuild(built, extra = {}) {
+  await writeFile(join(OUT, `${built.name}.tar`), built.tar);
+  await writeFile(join(OUT, `${built.name}.json`), JSON.stringify({ sha256: built.sha256, ...extra }, null, 2) + "\n");
 }
 
-const hex = (s) => s?.toLowerCase().replace(/^0x/, "");
+function startSites(addresses, builds) {
+  return CONTENT_SITES.map((name) => ({
+    name,
+    meta: builds[name].meta,
+    bytes: builds[name].bytes,
+    cost: addresses.sites[name]?.cost,
+  }));
+}
+
+/** Write names.json from what has been uploaded. Returns true if the file changed. */
+async function writeNames(addresses) {
+  const names = {};
+  // Start's name needs its pointer to exist, which it does once a version has been uploaded.
+  if (isHex(addresses.startPointer) && addresses.start.length) {
+    names.start = { kind: "p", address: addresses.startPointer, since: addresses.start[0].date };
+  }
+  for (const name of CONTENT_SITES) {
+    const rec = addresses.sites[name];
+    if (rec?.address) names[name] = { kind: "i", address: rec.address, since: rec.since ?? rec.published };
+  }
+  let old = null;
+  try {
+    old = JSON.parse(await readFile(NAMES, "utf8"));
+  } catch {
+    // No directory yet.
+  }
+  if (old && JSON.stringify(old.names) === JSON.stringify(names)) return false;
+  await writeFile(NAMES, namesFile(names, new Date().toISOString().replace(/\.\d+Z$/, "Z")));
+  return true;
+}
+
+async function record(addresses, args) {
+  const costAt = args.indexOf("--cost");
+  const cost = costAt >= 0 ? args.splice(costAt, 2)[1] : undefined;
+  const [, name, raw] = args;
+  const address = hex(raw);
+  if (!isHex(address)) throw new Error("Usage: node sites/build.mjs record <site> <64-hex address> [--cost \"…\"]");
+
+  if (name === "start-pointer") {
+    addresses.startPointer = address;
+  } else if (name === "start" || CONTENT_SITES.includes(name)) {
+    // Record what was built last (the archive in publish/sites/), not a fresh build, so the
+    // recorded hash and date are those of the file that was uploaded.
+    const built = await lastBuild(name);
+    if (!built) throw new Error(`No build of ${name} in publish/sites/. Run "node sites/build.mjs" first, then upload that file.`);
+    if (name === "start") {
+      addresses.start.push({ address, sha256: built.sha256, date: today(), ...(cost ? { cost } : {}) });
+    } else {
+      const since = addresses.sites[name]?.since ?? today();
+      addresses.sites[name] = { address, sha256: built.sha256, published: built.published, since, ...(cost ? { cost } : {}) };
+    }
+  } else {
+    throw new Error(`Unknown site "${name}". Sites: start-pointer, ${CONTENT_SITES.join(", ")}, start.`);
+  }
+  await saveAddresses(addresses);
+  console.log(`Recorded ${name}: ${address}`);
+  if (await writeNames(addresses)) console.log("names.json updated. Deploy the loader so the name works: .\\deploy\\deploy.ps1 -Server …");
+}
 
 async function main(args) {
   const addresses = await readAddresses();
-  addresses.sites ??= {};
-  addresses.start ??= [];
-
-  if (args[0] === "record") {
-    const [, name, raw] = args;
-    const address = hex(raw);
-    if (!isHex(address)) throw new Error("Usage: node sites/build.mjs record <site> <64-hex address>");
-    if (name === "start-pointer") {
-      addresses.startPointer = address;
-    } else if (name === "start") {
-      // The archive just uploaded lists the versions recorded before it.
-      const built = await buildStartFromAddresses(addresses, addresses.start);
-      addresses.start.push({ address, sha256: built.sha256, date: new Date().toISOString().slice(0, 10) });
-    } else if (CONTENT_SITES.includes(name)) {
-      if (!isHex(addresses.startPointer)) throw new Error("Record the start pointer first.");
-      const built = await buildContentSite(name, linksFrom(addresses));
-      addresses.sites[name] = { address, sha256: built.sha256 };
-    } else {
-      throw new Error(`Unknown site "${name}". Sites: start-pointer, ${CONTENT_SITES.join(", ")}, start.`);
-    }
-    await saveAddresses(addresses);
-    console.log(`Recorded ${name}: ${address}`);
-    return;
-  }
-
-  if (!isHex(addresses.startPointer)) {
-    console.log("No start pointer yet. Create Start's key and record its address first:");
-    console.log("  ant pointer keygen --output publish/start.key");
-    console.log("  ant pointer address --key publish/start.key");
-    console.log("  node sites/build.mjs record start-pointer <address>");
-    return;
-  }
+  if (args[0] === "record") return record(addresses, args);
 
   await mkdir(OUT, { recursive: true });
-  const links = linksFrom(addresses);
-  const todo = [];
+  const builds = {};
+  const upload = [];
+
   for (const name of CONTENT_SITES) {
-    const built = await buildContentSite(name, links);
-    await writeFile(join(OUT, `${name}.tar`), built.tar);
     const rec = addresses.sites[name];
-    const status = !rec
-      ? "not uploaded yet"
-      : rec.sha256 === built.sha256
-        ? `uploaded at ${rec.address}`
-        : "CHANGED since it was uploaded; upload again";
-    if (!rec || rec.sha256 !== built.sha256) todo.push(name);
+    // An uploaded site keeps its publish date, so an unchanged site rebuilds to the same bytes.
+    let published = rec?.published;
+    let built = rec ? await buildContentSite(name, { published }) : null;
+    let status;
+    if (built && built.sha256 === rec.sha256) {
+      status = `uploaded at ${rec.address}`;
+    } else {
+      published = today();
+      built = await buildContentSite(name, { published });
+      status = rec ? "CHANGED since it was uploaded; upload again" : "not uploaded yet";
+      upload.push(name);
+    }
+    await writeBuild(built, { published });
+    builds[name] = built;
     console.log(`${name.padEnd(10)} ${kb(built.bytes)}  ${status}`);
   }
 
-  if (todo.length) {
-    console.log("\nUpload these, then record each address:");
-    for (const name of todo) {
-      console.log(`  ant file upload publish/sites/${name}.tar --public`);
-      console.log(`  node sites/build.mjs record ${name} <address>`);
-    }
-    console.log("\nStart is built once every content site is uploaded.");
-    return;
-  }
-
-  // Up to date if rebuilding the latest version (which lists the versions before it) gives
-  // the archive that was uploaded. Otherwise build a new version listing all of them.
+  // Start is up to date if rebuilding its latest version (which lists the versions before
+  // it) gives the archive that was uploaded. Otherwise this is a new version.
+  const sites = startSites(addresses, builds);
   const latest = addresses.start.at(-1);
-  if (latest) {
-    const current = await buildStartFromAddresses(addresses, addresses.start.slice(0, -1));
-    if (current.sha256 === latest.sha256) {
-      await writeFile(join(OUT, "start.tar"), current.tar);
-      console.log(`start      ${kb(current.bytes)}  uploaded at ${latest.address} (version ${addresses.start.length})`);
-      return;
-    }
-  }
-  const start = await buildStartFromAddresses(addresses, addresses.start);
-  await writeFile(join(OUT, "start.tar"), start.tar);
-  console.log(`start      ${kb(start.bytes)}  new version ${addresses.start.length + 1}, ready to upload`);
-  console.log("\nUpload it, record it, then point the pointer at it:");
-  console.log("  ant file upload publish/sites/start.tar --public");
-  console.log("  node sites/build.mjs record start <address>");
+  let start = latest ? await buildStart(sites, addresses.start.slice(0, -1)) : null;
+  const startCurrent = start !== null && start.sha256 === latest.sha256;
+  if (!startCurrent) start = await buildStart(sites, addresses.start);
+  await writeBuild(start);
   console.log(
-    addresses.start.length
-      ? "  ant pointer update --key publish/start.key <address>"
-      : "  ant pointer create --key publish/start.key <address>",
+    `${"start".padEnd(10)} ${kb(start.bytes)}  ` +
+      (startCurrent
+        ? `uploaded at ${latest.address} (version ${addresses.start.length})`
+        : `version ${addresses.start.length + 1}, ${latest ? "changed; upload again" : "not uploaded yet"}`),
   );
-}
 
-function linksFrom(addresses) {
-  return {
-    startPointer: addresses.startPointer,
-    sites: Object.fromEntries(Object.entries(addresses.sites).map(([n, r]) => [n, r.address])),
-  };
-}
+  if (await writeNames(addresses)) console.log("\nnames.json updated. Deploy the loader so the names work.");
 
-async function buildStartFromAddresses(addresses, versions) {
-  const links = linksFrom(addresses);
-  const sites = [];
-  for (const name of CONTENT_SITES) {
-    const rec = addresses.sites[name];
-    if (!rec) throw new Error(`${name} isn't uploaded yet.`);
-    const built = await buildContentSite(name, links);
-    sites.push({ name, meta: built.meta, bytes: built.bytes, address: rec.address });
+  const next = [];
+  for (const name of upload) {
+    next.push(`ant file upload publish/sites/${name}.tar --public`, `node sites/build.mjs record ${name} <address>`);
   }
-  return buildStart(links, sites, versions);
+  if (!startCurrent) {
+    if (!isHex(addresses.startPointer)) {
+      next.push(
+        "ant pointer keygen --output publish/start.key      (once; back the key up)",
+        "ant pointer address --key publish/start.key",
+        "node sites/build.mjs record start-pointer <address>",
+      );
+    }
+    next.push(
+      "ant file upload publish/sites/start.tar --public",
+      "node sites/build.mjs record start <address>",
+      `ant pointer ${addresses.start.length ? "update" : "create"} --key publish/start.key <address>`,
+    );
+  }
+  if (next.length) {
+    console.log("\nNext:");
+    for (const line of next) console.log(`  ${line}`);
+    console.log("Then deploy the loader, so names.json reaches the host.");
+  } else {
+    console.log("\nEverything is uploaded.");
+  }
 }
-
-const kb = (n) => `${(n / 1024).toFixed(0).padStart(6)} KiB`;
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main(process.argv.slice(2)).catch((e) => {

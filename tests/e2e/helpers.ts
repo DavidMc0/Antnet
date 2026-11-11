@@ -26,6 +26,17 @@ export function siteUrl(name: string, path = "/"): string {
 
 export const ROOT_URL = `http://localhost:${PORT}/`;
 
+/** A site reached by short name, from the test directory the fixtures build writes. */
+export function nameUrl(name: string, path = "/"): string {
+  return `http://${name}.localhost:${PORT}${path}`;
+}
+
+/** Open a named site and wait until the installed site (not the shell) is showing. */
+export async function openName(page: Page, name: string, ready: string, path = "/"): Promise<void> {
+  await page.goto(nameUrl(name, path));
+  await expect(page.locator(ready)).toBeAttached({ timeout: 15_000 });
+}
+
 /** Open a fixture site and wait until the installed site (not the shell) is showing. */
 export async function install(page: Page, name: string, ready: string, path = "/"): Promise<void> {
   await page.goto(siteUrl(name, path));

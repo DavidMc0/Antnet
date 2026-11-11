@@ -14,14 +14,18 @@ import {
   type SiteLink,
   classifyHost,
   goLinkTarget,
+  nameOrigin,
   parseAddressInput,
+  parseRootNamePath,
   pathFormTarget,
   siteOrigin,
+  targetOrigin,
 } from "./host";
-import { NotASiteError, installArchive } from "./install";
+import { NotASiteError, deleteOtherSiteCaches, installArchive } from "./install";
+import { type NameEntry, fetchNames } from "./names";
 import { createSource } from "./source";
 import { type SiteSource, SourceError } from "./source/types";
-import { type SiteState, type Timings, checkDue, readState, sameLink, writeState } from "./state";
+import { type SiteState, type Timings, checkDue, clearState, readState, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
 import { formatBytes } from "./ui/dom";
 import { showError, showInfo, showLanding, showLoading } from "./ui/views";
@@ -135,8 +139,17 @@ function since(t: number): number {
   return Math.round(performance.now() - t);
 }
 
-async function install(link: SiteLink, root: string): Promise<void> {
-  const view = showLoading(link, link.kind === "p" ? "Opening the latest version of a site" : "Opening a site");
+/** A short name and when the directory says it was registered. */
+interface Named {
+  name: string;
+  since?: string;
+}
+
+async function install(link: SiteLink, root: string, named?: Named): Promise<void> {
+  const view = showLoading(
+    link,
+    named ? `Opening ${named.name}` : link.kind === "p" ? "Opening the latest version of a site" : "Opening a site",
+  );
   const started = performance.now();
   const timings: Timings = {};
   let source: SiteSource | null = null;
@@ -168,10 +181,14 @@ async function install(link: SiteLink, root: string): Promise<void> {
     await installArchive({
       origin: location.origin,
       link,
+      name: named?.name,
+      nameSince: named?.since,
       archive,
       blake3: result.blake3,
       bytes: result.bytes,
       records: result.chunks,
+      recordList: result.recordList,
+      arrivals: result.arrivals,
       timings,
       startedAt: started,
     });
@@ -251,10 +268,14 @@ async function updateCheck(state: SiteState, link: SiteLink, root: string): Prom
       const installed = await installArchive({
         origin: location.origin,
         link,
+        name: state.name,
+        nameSince: state.nameSince,
         archive: target,
         blake3: result.blake3,
         bytes: result.bytes,
         records: result.chunks,
+        recordList: result.recordList,
+        arrivals: result.arrivals,
         timings,
         startedAt: started,
       });
@@ -281,14 +302,107 @@ async function updateCheck(state: SiteState, link: SiteLink, root: string): Prom
 }
 
 // ---------------------------------------------------------------------------------------------
+// Short names (DEMO.md 5.9)
+
+function unknownName(name: string, root: string): void {
+  showError(
+    `No site is called “${name}” here yet`,
+    "Short names come from this loader's public directory, and this one isn't in it. " +
+      "Check the spelling, or open the site by its full address.",
+    [homeAction(root)],
+  );
+}
+
+/** Open a named site: use what is installed, or look the name up and install what it points to. */
+async function openByName(name: string, state: SiteState | null, root: string): Promise<void> {
+  if (state && state.name === name) {
+    if (checkDue(state, Date.now())) return nameCheck(state, name, root);
+    // Installed and current, yet the host answered: one ordinary reload hands over to the worker.
+    return guardedReload(state.link, root);
+  }
+  let entry: NameEntry | undefined;
+  try {
+    entry = (await fetchNames()).get(name);
+  } catch (e) {
+    showError("The name directory couldn't be read", e instanceof Error ? e.message : String(e), [
+      { label: "Try again", run: () => location.reload() },
+      homeAction(root),
+    ]);
+    return;
+  }
+  if (!entry) return unknownName(name, root);
+  return install({ kind: entry.kind, address: entry.address }, root, { name, since: entry.since });
+}
+
+/**
+ * A due check on a named site. Re-read the directory first (an ordinary request to the host,
+ * so it is quick): if the name now points somewhere else, install that. Otherwise carry on
+ * with the pointer check, or for a fixed address just record that the check ran.
+ */
+async function nameCheck(state: SiteState, name: string, root: string): Promise<void> {
+  const view = showLoading(state.link, "Checking for a new version…");
+  view.step("Reading the name directory…");
+  const started = performance.now();
+  const now = Date.now();
+  let entry: NameEntry | undefined;
+  try {
+    entry = (await fetchNames()).get(name);
+  } catch (e) {
+    console.warn("[autonomi-loader] name check failed", e);
+    await writeState(location.origin, {
+      ...state,
+      checkedAt: now - CHECK_INTERVAL_MS + CHECK_RETRY_MS,
+      lastCheck: { at: now, ms: since(started), outcome: `failed: ${e instanceof Error ? e.message : String(e)}` },
+    });
+    return guardedReload(state.link, root);
+  }
+  if (!entry) {
+    // The name was removed from the directory: stop serving what it used to lead to.
+    await deleteOtherSiteCaches(null);
+    await clearState(location.origin);
+    return unknownName(name, root);
+  }
+  if (!sameLink(entry, state.link)) {
+    return install({ kind: entry.kind, address: entry.address }, root, { name, since: entry.since });
+  }
+  const current: SiteState = { ...state, nameSince: entry.since };
+  if (state.link.kind === "p") return updateCheck(current, state.link, root);
+  await writeState(location.origin, {
+    ...current,
+    checkedAt: now,
+    lastCheck: { at: now, ms: since(started), outcome: "no change" },
+  });
+  guardedReload(state.link, root);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Info page (spec 3.6)
 
-async function info(link: SiteLink, label: string, status?: string): Promise<void> {
+type Ident = { link: SiteLink } | { name: string };
+
+async function info(ident: Ident, label: string, status?: string): Promise<void> {
   const stored = await readState(location.origin);
-  const state = stored && sameLink(stored.link, link) ? stored : null;
   const source = import.meta.env.VITE_SOURCE === "fixture" ? "fixture (test files over HTTP)" : "Autonomi mainnet";
+  let state: SiteState | null;
+  let link: SiteLink | null;
+  let name: { name: string; entry: NameEntry | null | "unreadable" } | undefined;
+  if ("name" in ident) {
+    state = stored && stored.name === ident.name ? stored : null;
+    let entry: NameEntry | null | "unreadable";
+    try {
+      entry = (await fetchNames()).get(ident.name) ?? null;
+    } catch {
+      entry = "unreadable";
+    }
+    name = { name: ident.name, entry };
+    link = state?.link ?? (entry && entry !== "unreadable" ? { kind: entry.kind, address: entry.address } : null);
+  } else {
+    state = stored && !stored.name && sameLink(stored.link, ident.link) ? stored : null;
+    link = ident.link;
+  }
   showInfo({
     link,
+    name,
     label,
     state,
     sourceName: source,
@@ -303,7 +417,7 @@ async function info(link: SiteLink, label: string, status?: string): Promise<voi
       const regs = (await navigator.serviceWorker?.getRegistrations()) ?? [];
       await Promise.all(regs.map((r) => r.unregister()));
       resetReloadGuard();
-      await info(link, label, "Cleared. Opening the site will download it again.");
+      await info(ident, label, "Cleared. Opening the site will download it again.");
     },
   });
 }
@@ -312,7 +426,8 @@ async function info(link: SiteLink, label: string, status?: string): Promise<voi
 // Landing page (root domain)
 
 interface FixtureIndex {
-  [name: string]: { kind: "i" | "p"; address: string; listed?: boolean };
+  /** `name` is set on fixtures that have a short name in the test directory. */
+  [name: string]: { kind: "i" | "p"; address: string; listed?: boolean; name?: string };
 }
 
 async function loadFixtures(root: string): Promise<{ name: string; href: string }[] | undefined> {
@@ -325,7 +440,10 @@ async function loadFixtures(root: string): Promise<{ name: string; href: string 
       .filter(([, f]) => f.listed !== false)
       .map(([name, f]) => ({
         name,
-        href: siteOrigin({ kind: f.kind, address: f.address }, root, location.protocol, location.port) + "/",
+        href:
+          (f.name
+            ? nameOrigin(f.name, root, location.protocol, location.port)
+            : siteOrigin({ kind: f.kind, address: f.address }, root, location.protocol, location.port)) + "/",
       }));
   } catch {
     return undefined;
@@ -339,11 +457,28 @@ async function landing(url: URL, root: string): Promise<void> {
     return;
   }
 
+  // <root>/<name>[/path] goes to the named site, when the directory has that name.
+  let notice: string | undefined;
+  const byName = parseRootNamePath(url.pathname);
+  if (byName) {
+    try {
+      if ((await fetchNames()).has(byName.name)) {
+        location.replace(
+          nameOrigin(byName.name, root, location.protocol, location.port) + byName.rest + url.search + url.hash,
+        );
+        return;
+      }
+      notice = `No site is called “${byName.name}” here yet.`;
+    } catch {
+      notice = "The name directory couldn't be read, so this path wasn't opened.";
+    }
+  }
+
   const open = url.searchParams.get("open");
   if (open !== null) {
     const parsed = parseAddressInput(open, root);
-    if ("link" in parsed) {
-      location.replace(siteOrigin(parsed.link, root, location.protocol, location.port) + parsed.rest);
+    if (!("error" in parsed)) {
+      location.replace(targetOrigin(parsed, root, location.protocol, location.port) + parsed.rest);
       return;
     }
   }
@@ -352,10 +487,11 @@ async function landing(url: URL, root: string): Promise<void> {
     onOpen(input: string, rawHexIsPointer: boolean): string | null {
       const parsed = parseAddressInput(input, root, rawHexIsPointer ? "p" : "i");
       if ("error" in parsed) return parsed.error;
-      location.assign(siteOrigin(parsed.link, root, location.protocol, location.port) + parsed.rest);
+      location.assign(targetOrigin(parsed, root, location.protocol, location.port) + parsed.rest);
       return null;
     },
     fixtures,
+    notice,
     canRegisterHandler: typeof navigator.registerProtocolHandler === "function",
     onRegisterHandler() {
       try {
@@ -391,7 +527,9 @@ async function boot(): Promise<void> {
     return;
   }
 
-  const { link, label, root } = host;
+  const { label, root } = host;
+  const ident: Ident = host.view === "name" ? { name: host.name } : { link: host.link };
+  const shownLink = host.view === "site" ? host.link : undefined;
 
   // Portable links, when the worker isn't active yet (spec 3.5).
   const go = goLinkTarget(url, root);
@@ -399,21 +537,24 @@ async function boot(): Promise<void> {
     location.replace(go);
     return;
   }
-  if (url.pathname === "/_autonomi" || url.pathname === "/_autonomi/") return info(link, label);
+  if (url.pathname === "/_autonomi" || url.pathname === "/_autonomi/") return info(ident, label);
   if (url.pathname.startsWith("/_autonomi/")) {
-    showError("Not found", "This path belongs to the loader and has nothing here.", [homeAction(root)], link);
+    showError("Not found", "This path belongs to the loader and has nothing here.", [homeAction(root)], shownLink);
     return;
   }
 
   try {
     await registerWorker();
   } catch (e) {
-    showError("The loader can't run here", e instanceof Error ? e.message : String(e), [homeAction(root)], link);
+    showError("The loader can't run here", e instanceof Error ? e.message : String(e), [homeAction(root)], shownLink);
     return;
   }
 
   const state = await readState(location.origin);
-  if (!state || !sameLink(state.link, link)) return install(link, root);
+  if (host.view === "name") return openByName(host.name, state, root);
+
+  const link = host.link;
+  if (!state || state.name || !sameLink(state.link, link)) return install(link, root);
   if (checkDue(state, Date.now())) return updateCheck(state, link, root);
   // Installed and current, yet the host answered: a hard reload, or the worker wasn't
   // controlling this page yet. One ordinary reload hands over to the worker.

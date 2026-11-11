@@ -1,6 +1,7 @@
 node_modules/
 dist/
 public/_autonomi/fixtures/
+public/_autonomi/names.json
 test-results/
 playwright-report/
 *.key

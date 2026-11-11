@@ -1,7 +1,10 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { type Plugin, build, defineConfig, loadEnv } from "vite";
 
+const NAMES_FILE = fileURLToPath(new URL("./names.json", import.meta.url));
+const NAMES_OUT = "_autonomi/names.json";
 const SW_FILE = "autonomi-loader-sw.js";
 const SW_ENTRY = fileURLToPath(new URL("./src/sw.ts", import.meta.url));
 
@@ -74,6 +77,35 @@ function serviceWorker(loaderRoot: string): Plugin {
   };
 }
 
+/**
+ * The short-name directory (DEMO.md 5.9): names.json at the repository root, served at
+ * /_autonomi/names.json. Fixture builds use the test directory in public/ instead.
+ */
+function nameDirectory(enabled: boolean): Plugin {
+  const read = () => {
+    try {
+      return readFileSync(NAMES_FILE, "utf8");
+    } catch {
+      return JSON.stringify({ v: 1, names: {} }) + "\n";
+    }
+  };
+  return {
+    name: "autonomi-loader-names",
+    configureServer(server) {
+      if (!enabled) return;
+      server.middlewares.use((req, res, next) => {
+        if ((req.url ?? "").split("?")[0] !== "/" + NAMES_OUT) return next();
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(read());
+      });
+    },
+    generateBundle() {
+      if (enabled) this.emitFile({ type: "asset", fileName: NAMES_OUT, source: read() });
+    },
+  };
+}
+
 /** index.html and the worker must always be revalidated (spec 11.1). */
 function noCacheShell(): Plugin {
   const isShellPath = (url: string | undefined) => {
@@ -118,7 +150,7 @@ export default defineConfig(({ mode }) => {
     appType: "spa",
     // public/ holds only the generated test fixtures; keep them out of mainnet builds.
     publicDir: fixtureSource ? "public" : false,
-    plugins: [serviceWorker(loaderRoot), noCacheShell(), shellCsp()],
+    plugins: [serviceWorker(loaderRoot), nameDirectory(!fixtureSource), noCacheShell(), shellCsp()],
     server: { allowedHosts: [".localhost"] },
     preview: { allowedHosts: [".localhost"] },
     build: {

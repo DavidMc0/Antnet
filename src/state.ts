@@ -12,9 +12,35 @@ export interface Timings {
   totalMs?: number;
 }
 
+/** One network record of an installed archive, for "Where this page came from". */
+export interface RecordDetail {
+  kind: "datamap" | "chunk";
+  /** Chunk position in the file, from 0. */
+  index?: number;
+  /** Size in bytes (for a chunk, of the plaintext it holds). */
+  bytes?: number;
+  /** The record's network address. */
+  address?: string;
+  /** Peer ID of the node that served it, when the client reports it. */
+  node?: string;
+  /** Milliseconds from the start of the download until it arrived, when known for this record. */
+  ms?: number;
+}
+
+/** When the nth chunk arrived. The client reports arrival order, not which chunk each was. */
+export interface Arrival {
+  ms: number;
+  node?: string;
+}
+
 export interface SiteState {
   v: 1;
+  /** The link the site was installed from. For a named site, what the name resolved to. */
   link: SiteLink;
+  /** The short name this origin is, when the site was opened by name. */
+  name?: string;
+  /** When the directory says the name was registered. */
+  nameSince?: string;
   archive: string;
   blake3: string;
   bytes: number;
@@ -26,6 +52,10 @@ export interface SiteState {
   title?: string;
   ignored?: string[];
   records?: number;
+  /** The name the site gives itself in its settings file, if any. */
+  declaredName?: string;
+  recordList?: RecordDetail[];
+  arrivals?: Arrival[];
   timings?: Timings;
   lastCheck?: { at: number; ms: number; outcome: string };
 }
@@ -66,6 +96,10 @@ export function sameLink(a: SiteLink, b: SiteLink): boolean {
   return a.kind === b.kind && a.address === b.address;
 }
 
+/**
+ * Whether a navigation should go through the shell for an update check. Pointer links can
+ * move, and so can a name's directory entry; a plain immutable link never changes.
+ */
 export function checkDue(state: SiteState, now: number, interval = CHECK_INTERVAL_MS): boolean {
-  return state.link.kind === "p" && now - state.checkedAt >= interval;
+  return (state.link.kind === "p" || state.name !== undefined) && now - state.checkedAt >= interval;
 }

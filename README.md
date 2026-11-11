@@ -24,7 +24,13 @@ mainnet.
   - `i<address>.<loader root>` is an immutable link to one version, fixed forever.
   - `p<address>.<loader root>` is a pointer link. It follows an Autonomi pointer that the publisher can move to new
     versions, and the loader checks for a new version at most once an hour.
-- **Links between sites are ordinary links.** One site links to another by its loader URL.
+- **Short names.** The loader carries a small public directory, [names.json](names.json), that maps a name to an
+  address, so a site can be `library.<loader root>`. The directory decides which site a name leads to. It can't
+  change what a site contains, which is still fetched by address and verified. Each site's info page shows the
+  whole chain.
+- **Links between sites are ordinary links.** One site links to another by its loader URL, or portably with
+  `/_autonomi/go/name/<name>/` or `/_autonomi/go/ant/<address>/`, which work on whichever loader the visitor is
+  using.
 - **Every info page is at `/_autonomi/`.** It shows the address in use, the content hash, sizes and timings. It also
   has actions to check for a new version and to clear the site's data.
 

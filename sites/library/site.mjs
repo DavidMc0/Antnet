@@ -94,7 +94,7 @@ ${ctx.headTags}
 </header>
 ${body}
 <footer class="colophon">
-  <p class="colophon-line">Published once. Paid for once. No renewal.</p>
+  <p class="colophon-line">${ctx.published ? `Published ${ctx.longDate(ctx.published)}.` : "Published once."} Paid for once. No renewal.</p>
   ${ctx.receipt}
 </footer>
 </body>
@@ -138,7 +138,7 @@ ${shelf}
 </ul>
 <section class="note">
   <p class="note-lead">This shelf has no server behind it.</p>
-  <p>It was published to the Autonomi network once and paid for once. There is no hosting bill to renew, and nobody has to keep a machine running for these pages to stay here. Your browser fetched the whole shelf, checked every byte, and now keeps it: the books open instantly, and still open with your connection switched off.</p>
+  <p>It was published to the Autonomi network once and paid for once. There is no hosting bill to renew, and nobody has to keep a machine running for these pages to stay here. Your browser fetched the whole shelf from the network and checked every byte itself.</p>
 </section>
 <p class="credit">The texts are the <a href="https://standardebooks.org/">Standard Ebooks</a> editions, which their editors dedicate to the public domain. Every author here died more than seventy years ago. Set in Literata.</p>
 </main>`,

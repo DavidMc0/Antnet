@@ -1,10 +1,14 @@
 // Site settings, path resolution (spec 5.2), response headers and MIME types (spec 5.3).
 
+import { isValidName } from "./host";
+
 export interface SiteSettings {
   index: string;
   notFound: string;
   spa: boolean;
   title?: string;
+  /** The short name the site claims for itself. */
+  name?: string;
   /** Pattern ("/exact", "/*" or "/dir/*") -> allowed header name -> value. */
   headers: Record<string, Record<string, string>>;
 }
@@ -69,6 +73,12 @@ export function parseSettings(bytes: Uint8Array | undefined): ParsedSettings {
     else ignored.push("spa: not a boolean");
   }
   if (typeof o.title === "string") settings.title = o.title.slice(0, 200);
+  // The short name the site claims for itself (DEMO.md 5.9). It proves a name claim, because
+  // only the publisher can put it in the archive; it doesn't give the site that name.
+  if (o.name !== undefined) {
+    if (typeof o.name === "string" && isValidName(o.name)) settings.name = o.name;
+    else ignored.push(`name: ${JSON.stringify(o.name)} is not a valid short name`);
+  }
 
   if (o.headers !== undefined) {
     if (typeof o.headers !== "object" || o.headers === null || Array.isArray(o.headers)) {

@@ -89,3 +89,22 @@ th, td { text-align: left; vertical-align: top; padding: 8px 0; border-top: 1px 
 th { width: 34%; padding-right: 12px; font-weight: 500; color: var(--muted); }
 ul { padding-left: 20px; }
 a { color: var(--accent); }
+
+/* Info page: the records a site arrived as. */
+table.records {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+table.records th,
+table.records td {
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  text-align: left;
+}
+/* Long addresses and hashes wrap rather than widen the page on a phone. */
+td,
+td code {
+  overflow-wrap: anywhere;
+}
+table.records th {
+  font-weight: 600;
+}

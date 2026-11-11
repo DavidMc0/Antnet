@@ -40,7 +40,8 @@ const STEPS = [
 const COMMANDS = [
   ["Pack a folder that has an index.html", "node tools/pack.mjs my-site/ my-site.tar"],
   ["Upload it. This is the one time you pay", "ant file upload my-site.tar --public"],
-  ["Turn the address it prints into a link", "node tools/link.mjs i &lt;address&gt; --root antnet.autonomirror.com"],
+  // start.js replaces the host with the loader the visitor is actually using.
+  ["Turn the address it prints into a link", 'node tools/link.mjs i &lt;address&gt; --root <span data-loader-root>antnet.autonomirror.com</span>'],
 ];
 
 const FINE_PRINT = [
@@ -49,6 +50,7 @@ const FINE_PRINT = [
   "These are static sites and apps. There is no server-side code.",
   "A small share of content on the network can't yet be reached from browsers.",
   "The first page (the loader) still comes from an ordinary web host. It is small and open source, and anyone can run their own.",
+  "Short names like “library” come from a directory kept by Antnet, in public. The address behind each one is shown on its info page.",
   "Antnet is an independent proof of concept, not an Autonomi Foundation product.",
 ];
 
@@ -60,11 +62,14 @@ export async function build(ctx) {
         <span class="card-icon">${ICONS[s.name] ?? ICONS.default}</span>
         <span class="card-title">${ctx.esc(s.meta.title)}</span>
         <span class="card-desc">${ctx.esc(s.meta.description)}</span>
-        <span class="card-meta"><span>${size(s.bytes)}</span><code title="${s.address}">${short(s.address)}</code><span class="card-go">Open ${ARROW}</span></span>
+        <span class="card-meta"><code>${ctx.esc(s.name)}</code><span>${size(s.bytes)}</span><span class="card-go">Open ${ARROW}</span></span>
       </a>
     </li>`,
     )
     .join("\n");
+
+  // What the most recently listed site cost to publish, when that was recorded.
+  const lastCost = [...ctx.sites].reverse().find((s) => s.cost);
 
   const steps = STEPS.map(
     ([id, label, detail], i) => `    <li data-step="${id}">
@@ -111,9 +116,13 @@ ${ctx.headTags}
 <main>
 <section class="hero">
   <h1>Antnet Start</h1>
+  <p class="claim"><span class="claim-a">This site wasn't sent by a web server.</span> <span class="claim-b">Your browser fetched it directly from Autonomi nodes and checked every piece itself.</span></p>
   <p class="tagline">A small web of sites that live on the Autonomi network.</p>
-  <p class="address-note">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>', "0 0 24 24", "up")}<span>That long name in the address bar is this site's address on the network. It is also how your browser knows nothing was changed.</span></p>
   ${ctx.receipt.replace('class="antnet-receipt"', 'class="antnet-receipt receipt-main"')}
+  <!-- Opened by its full address, the long name in the address bar is the story. Opened by
+       short name, start.js swaps in the line about what the name stands for. -->
+  <p class="address-note" data-note="address">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>', "0 0 24 24", "up")}<span>That long name in the address bar is this site's address on the network. It is also how your browser knows nothing was changed.</span></p>
+  <p class="address-note" data-note="name" hidden>${svg('<path d="M12 19V5M6 11l6-6 6 6"/>', "0 0 24 24", "up")}<span><code data-name></code> is a short name for this site's address on the network, <button type="button" class="address-toggle" aria-expanded="false" title="Show the full address"><code data-address-short></code></button>. That address is also how your browser knows nothing was changed.<code class="address-full" data-address-full hidden></code></span></p>
 </section>
 
 <section class="directory" aria-labelledby="directory-h">
@@ -136,13 +145,15 @@ ${steps}
   </ol>
 </section>
 
-<section class="try" aria-labelledby="try-h">
-  <span class="try-icon">${svg('<path d="M3 3l18 18M8.6 15.4a5 5 0 0 1 6.3-.4M5.3 12a9.6 9.6 0 0 1 3.3-2.2M12.8 8.4a9.6 9.6 0 0 1 5.9 3.6M2 8.6a14.4 14.4 0 0 1 3.4-2.4M9.6 4.7A14.4 14.4 0 0 1 22 8.6"/><circle cx="12" cy="19" r="0.9" fill="currentColor" stroke="none"/>')}</span>
-  <div>
-    <h2 id="try-h">Try this</h2>
-    <p class="try-lead">Turn off your wifi and keep browsing.</p>
-    <p>Open each site once first. Everything you've seen still works, because the sites are on your device now, checked and complete.</p>
-  </div>
+<!-- Where this page came from (DEMO.md 4.5). start.js fills it from the loader's record of
+     this visit; without a record it stays hidden. -->
+<section class="origin" aria-labelledby="origin-h" hidden>
+  <h2 id="origin-h">Where this page came from</h2>
+  <p class="origin-lead" data-origin="lead"></p>
+  <p class="origin-sub" data-origin="sub"></p>
+  <ul class="records" data-origin="records"></ul>
+  <p class="origin-sub" data-origin="arrivals"></p>
+  <p class="origin-tip">${svg('<path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"/>')}<span>Check it yourself: open your browser's developer tools and reload. In the Network tab, every file of this site is marked as served by the service worker, from your browser's own storage. None was requested from a web server: the site arrived over direct connections to the nodes.</span></p>
 </section>
 
 ${versions}
@@ -151,7 +162,7 @@ ${versions}
   <div class="publish-text">
     <h2 id="publish-h">What would you put here?</h2>
     <p>Any folder with an <code>index.html</code> can be a site. You pay once, when you upload, and there is nothing to renew.</p>
-    <p>The tools are in the <a href="https://github.com/DavidMc0/Antnet">Antnet repository</a>.</p>
+${lastCost ? `    <p>The last site published here, ${ctx.esc(lastCost.meta.title)}, cost ${ctx.esc(lastCost.cost)}.</p>\n` : ""}    <p>The tools are in the <a href="https://github.com/DavidMc0/Antnet">Antnet repository</a>.</p>
   </div>
   <ol class="commands">
 ${COMMANDS.map(([what, cmd]) => `    <li><span class="cmd-what">${what}</span><code>${cmd}</code></li>`).join("\n")}

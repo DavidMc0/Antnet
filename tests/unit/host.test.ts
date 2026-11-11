@@ -56,7 +56,8 @@ describe("classifyHost", () => {
     expect(classifyHost(`i${BODY.slice(1)}.localhost`).view).toBe("bad-label");
     expect(classifyHost(`i${BODY.slice(0, 51)}8.localhost`).view).toBe("bad-label");
     expect(classifyHost(`a.i${BODY}.localhost`).view).toBe("bad-label");
-    expect(classifyHost("hello.localhost").view).toBe("bad-label");
+    // One character too long for a label, and far too long for a short name.
+    expect(classifyHost(`i${BODY}a.localhost`).view).toBe("bad-label");
   });
 });
 
@@ -91,7 +92,7 @@ describe("parseAddressInput", () => {
   });
   it("rejects anything else", () => {
     expect(ok("")).toHaveProperty("error");
-    expect(ok("hello")).toHaveProperty("error");
+    expect(ok("hello world")).toHaveProperty("error");
     expect(ok(HEX.slice(1))).toHaveProperty("error");
   });
 });

@@ -3,7 +3,7 @@
 import { SITE_CACHE_PREFIX, siteCacheName } from "./config";
 import type { SiteLink } from "./host";
 import { SETTINGS_FILE, cachePathFor, headersFor, isReservedPath, parseSettings } from "./site";
-import { type SiteState, type Timings, writeState } from "./state";
+import { type Arrival, type RecordDetail, type SiteState, type Timings, writeState } from "./state";
 import { readTar } from "./tar";
 
 export class NotASiteError extends Error {
@@ -20,6 +20,11 @@ export interface InstallInput {
   blake3: string;
   bytes: Uint8Array;
   records?: number;
+  recordList?: RecordDetail[];
+  arrivals?: Arrival[];
+  /** The short name this origin is, with its registration date, when opened by name. */
+  name?: string;
+  nameSince?: string;
   timings?: Timings;
   /** performance.now() when the whole open started, for the total timing. */
   startedAt?: number;
@@ -66,6 +71,7 @@ export async function installArchive(input: InstallInput): Promise<SiteState> {
   const state: SiteState = {
     v: 1,
     link: input.link,
+    ...(input.name ? { name: input.name, nameSince: input.nameSince } : {}),
     archive: input.archive,
     blake3: input.blake3,
     bytes: input.bytes.length,
@@ -76,6 +82,9 @@ export async function installArchive(input: InstallInput): Promise<SiteState> {
     title: settings.title,
     ignored,
     records: input.records,
+    declaredName: settings.name,
+    recordList: input.recordList,
+    arrivals: input.arrivals,
     timings,
   };
   // State last: a half-finished install is never served.

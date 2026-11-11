@@ -205,24 +205,69 @@ main > .hero {
   text-transform: uppercase;
   color: var(--accent);
 }
-.tagline {
+/* The claim, said plainly: the largest type on the page after nothing. */
+.claim {
   margin: 0;
-  max-width: 15em;
-  font-size: clamp(2.3rem, 1.2rem + 5vw, 4.6rem);
+  max-width: 19em;
+  font-size: clamp(2rem, 1.1rem + 4.1vw, 3.75rem);
   font-weight: 550;
   font-stretch: 88%;
-  line-height: 1.04;
-  letter-spacing: -0.028em;
+  line-height: 1.07;
+  letter-spacing: -0.026em;
   text-wrap: balance;
+}
+.claim-b {
+  color: color-mix(in srgb, var(--ink) 52%, var(--bg));
+}
+.tagline {
+  margin: 1.6rem 0 0;
+  max-width: 34rem;
+  font-size: 1.25rem;
+  color: var(--muted);
+  text-wrap: pretty;
 }
 .address-note {
   display: flex;
   gap: 0.7rem;
   align-items: flex-start;
-  max-width: 34rem;
-  margin: 2rem 0 0;
+  max-width: 40rem;
+  margin: 1.5rem 0 0;
   color: var(--muted);
+  font-size: 0.9375rem;
   text-wrap: pretty;
+}
+.address-note[hidden] {
+  display: none;
+}
+.address-note code {
+  color: var(--ink);
+}
+/* The short address is a button: click it for the full one. */
+.address-toggle {
+  padding: 0 0.3em;
+  border: 0;
+  border-bottom: 1px dashed var(--accent);
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.address-toggle:hover code {
+  color: var(--accent);
+}
+.address-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.address-full {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.address-full[hidden] {
+  display: none;
 }
 .address-note .up {
   flex: none;
@@ -364,6 +409,10 @@ h2 {
   line-height: 1.45;
   text-wrap: pretty;
 }
+.card-meta code {
+  color: var(--ink);
+  font-size: 1em;
+}
 .card-meta {
   grid-area: meta;
   display: flex;
@@ -487,32 +536,18 @@ h2 {
   }
 }
 
-/* ---- Try this: the offline moment ---------------------------------------------------- */
+/* ---- Where this page came from: the tour-wide moment ----------------------------------- */
 
-main > .try {
-  display: flex;
-  gap: clamp(1.25rem, 4vw, 2.5rem);
-  align-items: flex-start;
+main > .origin {
   padding: clamp(1.75rem, 5vw, 3.25rem);
   background: var(--band);
   color: var(--band-ink);
   border-radius: 1.25rem;
 }
-.try-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--band-accent) 55%, transparent);
-  color: var(--band-accent);
+main > .origin[hidden] {
+  display: none;
 }
-.try-icon svg {
-  width: 1.7rem;
-  height: 1.7rem;
-}
-.try h2 {
+.origin h2 {
   font-family: var(--mono);
   font-size: 0.75rem;
   font-weight: 500;
@@ -521,8 +556,9 @@ main > .try {
   text-transform: uppercase;
   color: var(--band-accent);
 }
-.try-lead {
-  margin: 0.7rem 0 0.8rem;
+.origin-lead {
+  margin: 0.8rem 0 0.8rem;
+  max-width: 17em;
   font-size: clamp(1.7rem, 1.1rem + 2.6vw, 2.8rem);
   font-weight: 550;
   font-stretch: 88%;
@@ -530,16 +566,71 @@ main > .try {
   letter-spacing: -0.022em;
   text-wrap: balance;
 }
-.try p:last-child {
+.origin-sub {
   margin: 0;
-  max-width: 36rem;
+  max-width: 40rem;
   color: var(--band-muted);
   text-wrap: pretty;
 }
-@media (max-width: 34rem) {
-  main > .try {
-    flex-direction: column;
-  }
+.origin-sub[hidden] {
+  display: none;
+}
+/* One tile per record: what it was, how big, and the node that served it. */
+.records {
+  list-style: none;
+  margin: 1.75rem 0 1.25rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+}
+.record {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--band-ink) 16%, transparent);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--band-ink) 5%, transparent);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+.record-kind {
+  font-weight: 600;
+}
+.record-size {
+  color: var(--band-muted);
+}
+.record-node {
+  grid-column: 1 / -1;
+  color: var(--band-accent);
+  overflow-wrap: anywhere;
+}
+.record-label {
+  color: var(--band-muted);
+}
+.record-unknown {
+  color: var(--band-muted);
+  font-style: italic;
+}
+.origin-tip {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  max-width: 44rem;
+  margin: 1.75rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px dashed color-mix(in srgb, var(--band-ink) 22%, transparent);
+  color: var(--band-muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+.origin-tip svg {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-top: 0.15rem;
+  color: var(--band-accent);
 }
 
 /* ---- Earlier versions ---------------------------------------------------------------- */

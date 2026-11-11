@@ -3,6 +3,7 @@
 // for the BLAKE3 check the SDK does.
 
 import { bytesToHex } from "../base32";
+import type { RecordDetail } from "../state";
 import { type FetchArchiveOptions, type FetchArchiveResult, type SiteSource, SourceError } from "./types";
 
 const BASE = "/_autonomi/fixtures/";
@@ -64,6 +65,7 @@ export class FixtureSource implements SiteSource {
 
   async fetchArchive(address: string, opts: FetchArchiveOptions): Promise<FetchArchiveResult> {
     const url = `${BASE}${address}.tar`;
+    const started = performance.now();
     const head = await fetch(url, { method: "HEAD", signal: opts.signal, cache: "no-store" }).catch((e) => {
       throw networkError(e, opts.signal);
     });
@@ -102,7 +104,25 @@ export class FixtureSource implements SiteSource {
     }
     const hash = bytesToHex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)));
     if (hash !== address) throw new SourceError("Downloaded bytes do not match the address", "verify");
-    return { bytes, blake3: `sha256:${hash}`, chunks: Math.max(3, Math.ceil(bytes.length / FIXTURE_CHUNK)) };
+    // Stand-in record detail, shaped like the real source's: a DataMap and equal chunks,
+    // all "served" by the test host.
+    const chunks = Math.max(3, Math.ceil(bytes.length / FIXTURE_CHUNK));
+    const size = Math.ceil(bytes.length / chunks);
+    const ms = Math.round(performance.now() - started);
+    const recordList: RecordDetail[] = [
+      { kind: "datamap", address, bytes: 320, node: "fixture-host", ms },
+      ...Array.from(
+        { length: chunks },
+        (_, index): RecordDetail => ({
+          kind: "chunk",
+          index,
+          bytes: Math.min(size, bytes.length - index * size),
+          node: "fixture-host",
+        }),
+      ),
+    ];
+    const arrivals = Array.from({ length: chunks }, () => ({ ms, node: "fixture-host" }));
+    return { bytes, blake3: `sha256:${hash}`, chunks, recordList, arrivals };
   }
 
   close(): void {}

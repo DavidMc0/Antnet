@@ -160,6 +160,25 @@ It keeps the last five releases.
 Then open <https://antnet.autonomirror.com/>. The landing page should appear, and pasting an address should open the
 site at its own subdomain.
 
+## When the nginx config changes
+
+`deploy.ps1` only updates the loader's files. When `deploy/nginx/antnet.conf` changes in the repository, copy it
+again and reload. From PowerShell in the project folder:
+
+```powershell
+scp deploy\nginx\antnet.conf root@<vps address>:/etc/nginx/sites-available/antnet
+```
+
+Then on the VPS:
+
+```bash
+nginx -t && systemctl reload nginx
+```
+
+The config last changed on 11 November 2026, to serve the short-name directory at `/_autonomi/names.json`. Check
+it with `curl -s https://antnet.autonomirror.com/_autonomi/names.json`, which should print JSON, not the loader's
+HTML page.
+
 ## Rolling back
 
 ```bash
