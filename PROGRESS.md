@@ -293,13 +293,22 @@ The user agreed to the redesign after the Safari result.
   - the four directory-change tests (interception doesn't reach WebKit's service worker);
   - **two that need checking in real Safari:** after a script redirect from the root (`localhost`) to an installed site (`start.localhost`), WebKit shows the meta cache but no `state.json`, so it reinstalls. That covers a returning visitor at the root, and `?open=library` after visiting the Library. It may be specific to `localhost`.
 
+- **Deployed and confirmed (2026-11-11, late):**
+  - **Chromium, fresh profile (`tools/warm-live.mjs`):** root → door, ready after 25.8 s → Enter → Start in 116 ms.
+  - **Safari on the Mac mini, return visit:** the root goes straight to Start, in a new tab and in an existing one.
+  - **Safari, first visit** (after clearing Start's data on its info page): the loading screen and front door show, become ready, and Enter opens Start instantly.
+  - **So the front door works in Chrome, Brave, Firefox and Safari.** The WebKit return-visit failure seen locally was specific to `localhost`.
+
 ### Next
 
-1. **The user deploys** (`deploy.ps1`; no nginx change).
-2. **Safari on the Mac mini:**
-   - a first visit to https://antnet.autonomirror.com/ should go to Start's door, become ready, and Enter should open Start at once;
-   - a **second** visit to the root should go straight to Start, with no door and no fetching;
-   - also try `https://antnet.autonomirror.com/?open=library` after visiting the Library.
+1. **Optional Safari check:** `https://antnet.autonomirror.com/?open=library` after visiting the Library.
+2. **In DEMO.md section 10's order:**
+   - **Non-blocking updates:** Start's hourly check holds the page for about 15–20 s.
+   - **A design pass on the front door:** a good job for Fable.
+   - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
+   - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.
+   - **The address bar.**
+   - **The name claim form and Action.**
 3. **Then, in DEMO.md section 10's order:**
    - non-blocking updates (Start's hourly check holds the page for about 15–20 s);
    - Cinema streaming;
