@@ -1,0 +1,33 @@
+{
+  "name": "autonomi-site-loader",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "scripts": {
+    "dev": "cross-env VITE_SOURCE=fixture vite",
+    "dev:autonomi": "cross-env VITE_SOURCE=autonomi vite",
+    "build": "tsc --noEmit && vite build",
+    "build:fixture": "npm run fixtures && cross-env VITE_SOURCE=fixture vite build",
+    "preview": "vite preview",
+    "preview:fixture": "cross-env VITE_SOURCE=fixture vite preview --port 4173 --strictPort",
+    "fixtures": "node tools/build-fixtures.mjs",
+    "test": "vitest run",
+    "test:e2e": "npm run build:fixture && playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:mainnet": "playwright test -c playwright.mainnet.config.ts",
+    "publish:prepare": "node tools/prepare-publish.mjs",
+    "probe": "node tools/probe.mjs"
+  },
+  "dependencies": {
+    "@withautonomi/ant-browser-sdk": "0.1.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "cross-env": "10.1.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+public/_autonomi/fixtures/
+test-results/
+playwright-report/
+*.key
+*.tar
+dist-fixture/
+publish/
+# Kept private for now; README.md outlines the design.
+Autonomi_Site_Loader_SPEC.md

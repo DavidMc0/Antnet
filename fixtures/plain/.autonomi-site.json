@@ -1,0 +1,10 @@
+{
+  "format": "autonomi-site/1",
+  "title": "Plain fixture",
+  "headers": {
+    "/*": {
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'",
+      "X-Frame-Options": "DENY"
+    }
+  }
+}

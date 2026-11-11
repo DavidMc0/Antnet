@@ -1,0 +1,5 @@
+# LF everywhere: fixture and test archives are content-addressed, so their bytes must not
+# depend on the platform that checked them out.
+* text=auto eol=lf
+*.webm binary
+*.tar binary

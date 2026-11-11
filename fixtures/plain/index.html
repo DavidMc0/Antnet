@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Plain fixture: home</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body data-page="home">
+    <h1>Plain fixture</h1>
+    <p>A multi-page site served from one archive.</p>
+    <ul>
+      <li><a href="/docs/page.html">A nested page</a></li>
+      <li><a href="/about">A directory without a trailing slash</a></li>
+      <li><a href="/missing">A missing page</a></li>
+    </ul>
+    <p id="inline-status">Inline scripts blocked.</p>
+    <script>
+      // The site's CSP (script-src 'self') must block this.
+      document.getElementById("inline-status").textContent = "Inline scripts ran.";
+      document.body.dataset.inline = "ran";
+    </script>
+    <p id="sw-status">Service worker: not tried.</p>
+  </body>
+</html>
