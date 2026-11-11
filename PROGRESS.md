@@ -315,10 +315,18 @@ The user agreed to the redesign after the Safari result.
   - **Results:** Chromium 67/67, unit 74, and Firefox all pass. WebKit passes too, apart from the interception-based tests, which are skipped there with `INTERCEPT`.
 - **Not handled:** a site whose own CSP blocks same-origin frames, or the script, won't get background checks (there is no blocking fallback any more). The demo sites allow both.
 
+- **Deployed and checked live (`tools/checks-live.mjs`, fresh profiles):** the loader script is first in `<head>` on both sites. With a check due, each page showed at once and the check ran afterwards, with no notice (nothing had changed):
+
+| Site | Page shown | Background check |
+| --- | --- | --- |
+| Start, Chromium | 79 ms | no change, 15.2 s |
+| Start, Firefox | 111 ms | no change, 15.9 s |
+| Library, Chromium | 92 ms | no change, 0.1 s |
+| Library, Firefox | 138 ms | no change, under 0.1 s |
+
 ### Next
 
-1. **The user deploys** (`deploy.ps1`; no nginx change). Then check on the live loader that Start opens at once when a check is due, and that the check is recorded afterwards.
-2. **In DEMO.md section 10's order:**
+1. **In DEMO.md section 10's order:**
    - **A design pass on the front door:** a good job for Fable.
    - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
    - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.
