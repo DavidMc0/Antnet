@@ -71,6 +71,22 @@ test("without a site called start, the root shows the plain address page", async
   await expect(page.locator("h1")).toHaveText("Open a site stored on Autonomi");
 });
 
+test("both versions of the root page list the named sites as links", async ({ page }) => {
+  await page.goto(ROOT_URL);
+  const list = page.getByTestId("named-sites");
+  await expect(list.locator("a")).toHaveText(["library", "start"]);
+  await list.locator('a[data-name="library"]').click();
+  await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
+
+  // A loader whose directory has names but no "start": the plain page, with the same list.
+  const fixture = await (await page.request.get(`${ROOT_URL}_autonomi/names.json`)).json();
+  delete fixture.names.start;
+  await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: fixture }));
+  await page.goto(ROOT_URL);
+  await expect(page.locator("[data-door]")).toHaveCount(0);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
+});
+
 test("a site that is already installed reports ready without fetching", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", WEBKIT_APART);
   await openName(page, "start", ".cards");

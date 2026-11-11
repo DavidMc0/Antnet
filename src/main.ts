@@ -569,20 +569,21 @@ async function landing(url: URL, root: string): Promise<void> {
 
   // The front door (DEMO.md 5.1), when this loader has a site called "start": it fetches Start
   // in the background while the visitor reads. Otherwise the plain address page.
-  let hasStart = false;
+  let names: string[] = [];
   try {
-    hasStart = (await fetchNames()).has(START_NAME);
+    names = [...(await fetchNames()).keys()];
   } catch {
-    // No directory: the plain landing page.
+    // No directory: no list of sites, and the plain landing page.
   }
+  const named = names.map((name) => ({ name, href: nameOrigin(name, root, location.protocol, location.port) + "/" }));
   const fixtures = await loadFixtures(root);
-  if (!hasStart) {
-    showLanding(options(fixtures));
+  if (!names.includes(START_NAME)) {
+    showLanding({ ...options(fixtures), named });
     return;
   }
 
   const startUrl = nameOrigin(START_NAME, root, location.protocol, location.port) + "/";
-  const door = showFrontDoor({ ...options(fixtures), startHref: startUrl });
+  const door = showFrontDoor({ ...options(fixtures), named, startHref: startUrl });
   let stop: (() => void) | null = null;
   stop = warmInFrame(startUrl.replace(/\/$/, WARM_PATH), (report: WarmMessage) => {
     door.report(report);

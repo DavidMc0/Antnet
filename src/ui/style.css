@@ -110,6 +110,17 @@ a { color: var(--accent); }
 .door-enter { font-size: 1.1rem; padding: 10px 28px; }
 .door[data-door="working"] .door-enter { opacity: 0.75; }
 .door-more { margin-top: 16px; }
+.named-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.named-list a {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-decoration: none;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9rem;
+}
+.named-list a:hover { border-color: var(--accent); }
 
 /* Info page: the records a site arrived as. */
 table.records {

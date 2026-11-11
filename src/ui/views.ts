@@ -75,6 +75,8 @@ export function showError(
 export interface LandingOptions {
   onOpen(input: string, rawHexIsPointer: boolean): string | null;
   fixtures?: { name: string; href: string }[];
+  /** The sites in this loader's name directory, as links. */
+  named?: { name: string; href: string }[];
   /** A message to show under the address box, such as why the page asked for wasn't opened. */
   notice?: string;
   canRegisterHandler: boolean;
@@ -123,7 +125,22 @@ function addressTools(opts: LandingOptions): { form: HTMLFormElement; input: HTM
   const handler = opts.canRegisterHandler
     ? h("p", { class: "small" }, h("button", { class: "link", onclick: opts.onRegisterHandler }, "Open web+ant: links with this loader"))
     : null;
-  return { form, input, extras: [handler, fixtures] };
+  return { form, input, extras: [namedSites(opts.named), handler, fixtures] };
+}
+
+/** The sites in the name directory, so a visitor who knows no addresses has somewhere to go. */
+function namedSites(named?: { name: string; href: string }[]): HTMLElement | null {
+  if (!named?.length) return null;
+  return h(
+    "section",
+    { class: "named", "data-testid": "named-sites" },
+    h("h2", {}, "Sites on this loader"),
+    h(
+      "ul",
+      { class: "named-list" },
+      ...named.map((s) => h("li", {}, h("a", { href: s.href, "data-name": s.name }, s.name))),
+    ),
+  );
 }
 
 export function showLanding(opts: LandingOptions): void {
@@ -138,6 +155,11 @@ export function showLanding(opts: LandingOptions): void {
         "p",
         {},
         "Every byte comes from Autonomi nodes over WebRTC and is verified in your browser. No gateway sits in the data path.",
+      ),
+      h(
+        "p",
+        { class: "small" },
+        "Pick a site below, or type a site's short name (such as library), its 64-character address, or an ant:// link.",
       ),
       form,
       extras,
@@ -189,7 +211,7 @@ export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
       "section",
       { class: "card door-more" },
       h("h2", {}, "Open another site"),
-      h("p", { class: "small" }, "A site's short name, its 64-character address, or an ant:// link."),
+      h("p", { class: "small" }, "Type a site's short name (such as library), its 64-character address, or an ant:// link."),
       form,
       extras,
     ),
