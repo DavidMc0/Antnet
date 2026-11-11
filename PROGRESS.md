@@ -324,9 +324,36 @@ The user agreed to the redesign after the Safari result.
 | Library, Chromium | 92 ms | no change, 0.1 s |
 | Library, Firefox | 138 ms | no change, under 0.1 s |
 
+## Front door design pass: planned, not started (2026-11-11, end of session)
+
+The user asked for the pass in Fable: clear, attractive, strong and confident without being over the top, and highlighting the benefits that come from Autonomi. The session ended before any code changed. The only change on disk is `src/ui/fonts/`, which holds copies of Start's Instrument Sans and JetBrains Mono with their licences. It is untracked and not yet referenced.
+
+**The plan:**
+- **Look:** the same family as Start (cool paper, deep green ink, the three-dot mark, Instrument Sans with JetBrains Mono), so door → Start feels like one place. Scope the styles to the door with a page attribute (for example `data-page="door"` on `<html>`), leaving the loading, info and error views as they are. Bundle the fonts through `src/ui/style.css`; Vite emits them under `/_autonomi/assets/`.
+- **Layout:** a full page, not a card.
+  1. **Top bar:** the mark, "antnet", and a Source link.
+  2. **Hero:** "This is the last page a web server will send you.", with one line beneath: from here on, sites come straight from the Autonomi network, fetched by the browser and checked piece by piece.
+  3. **Live panel:** a five-node trail (Connect, Find, Fetch, Check, Hand over) matching Start's strip, the status line, and Enter. When ready, a mono line shows this visit's numbers (records, size, time).
+  4. **Three benefits:** no server in the middle (checked in your browser); opens from an ordinary link (nothing to install); paid for once (no hosting bill, no renewal).
+  5. **Lower, quieter:** the other named sites, the address box, and a fine-print line that this first page is the loader, small and open source.
+- **Plumbing needed:**
+  - `InstallUI.step(text, stage?)` with stages `connect | find | fetch | install`, so the trail doesn't depend on message text.
+  - The door's `done()` reads the state record for the summary line.
+- **Keep for tests** (`tests/e2e/warm.spec.ts`):
+  - `[data-door]` with `working | ready | error`;
+  - `data-testid="door-status"`, with ready text "Antnet Start is here, checked and ready.";
+  - `data-testid="enter"`, reading "Try again" on error;
+  - "Opening as soon as it arrives" after an early Enter;
+  - `data-testid="named-sites"`;
+  - the `h1` text.
+
+  Update the test's "Enter tries again" wording if the error copy changes.
+- **Avoid:** forever, unstoppable, uncensorable, revolutionary, Web3 (DEMO.md section 1).
+
 ### Next
 
-1. **In DEMO.md section 10's order:**
+1. **The front door design pass** above, in Fable.
+2. **In DEMO.md section 10's order:**
    - **A design pass on the front door:** a good job for Fable.
    - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
    - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.
