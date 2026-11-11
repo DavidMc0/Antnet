@@ -151,9 +151,32 @@ The CLI prints addresses with `0x`. The landing page, `link.mjs` and the mainnet
   - archive size.
 - **Checked:** no console errors or CSP violations on the demo pages.
 
+## Demo, step 1b: design pass on Start and the Library (done 2026-11-11)
+
+- **Looks:** described in `sites/README.md`. Fonts are bundled under the Open Font License: Literata for the Library; Instrument Sans and JetBrains Mono for Start.
+- **The Library gained:**
+  - cloth-bound covers on the shelf;
+  - a title page in each book's cover colour;
+  - a contents list and reading time built from the text;
+  - a "next on the shelf" link;
+  - a reading-progress line, where the browser supports scroll-driven animation.
+- **Start gained:**
+  - the three-dot mark;
+  - the receipt as a card;
+  - site cards tinted with each site's own colours;
+  - the five-step trail;
+  - the offline band;
+  - numbered publish commands.
+- **Checked** in light, dark and phone layouts: no console errors, CSP violations or sideways scrolling. All 41 e2e tests and 57 unit tests pass.
+- **Archive sizes:** the Library is 1.09 MB and Start is 142 kB, both far under 12 MiB.
+- **Not done:**
+  - Safari and Firefox haven't been looked at.
+  - The Library's receipt doesn't yet lead with its publish date and cost (DEMO.md 3.5); that needs the date at publish time.
+  - Start shows one card until the other sites exist.
+
 ### Next
 
-1. **Design pass** on Start and the Library, under the rules in `sites/README.md` (the user plans to use Fable 5.2).
+1. **The user reviews the look** (`npm run fixtures`, `npm run dev`).
 2. **Publish:** the user creates Start's key and runs `node sites/build.mjs record start-pointer <address>`, uploads the Library, then Start, then creates the pointer. This is M4 on mainnet.
 3. **Then, from DEMO.md section 10:**
    - warm-up and the front door;

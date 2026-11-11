@@ -1,142 +1,762 @@
-/* The Library: plain, readable placeholder styles. The design pass replaces these. */
+/* The Library. Bookish and comfortable to read: cream paper, cloth-bound covers, and one
+   typeface made for long reading (Literata, bundled in /fonts under the Open Font License).
+   Everything is in the archive; nothing loads from outside. */
+
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/literata.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/literata-italic.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light dark;
-  --bg: #fbfaf7;
-  --fg: #222;
-  --muted: #666;
-  --rule: #ddd;
-  --link: #1f4e8c;
+  --paper: #f6f0e4;
+  --paper-deep: #ede4d3;
+  --ink: #2b2521;
+  --muted: #776a5c;
+  --rule: #d8ccb8;
+  --accent: #8a2f2a;
+  --gilt: #f0e2bd;
+  --shadow: 40 28 16;
+  --serif: "Literata", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1b1a18;
-    --fg: #e8e4dc;
-    --muted: #a39e94;
-    --rule: #3a3833;
-    --link: #8fb4e8;
+    --paper: #181410;
+    --paper-deep: #211c16;
+    --ink: #e6dbc8;
+    --muted: #a3957f;
+    --rule: #3b332a;
+    --accent: #e0a184;
+    --shadow: 0 0 0;
   }
 }
 
-* {
+/* One cloth colour per book, shared by its cover on the shelf and its title page. */
+[data-book="the-time-machine"] {
+  --cloth: #23463f;
+}
+[data-book="jekyll-and-hyde"] {
+  --cloth: #40294a;
+}
+[data-book="a-study-in-scarlet"] {
+  --cloth: #7c2a23;
+}
+[data-book="the-importance-of-being-earnest"] {
+  --cloth: #6d581c;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 2rem;
 }
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 1.0625rem/1.6 Georgia, "Times New Roman", serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem);
+  line-height: 1.62;
+  font-optical-sizing: auto;
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  font-kerning: normal;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 a {
-  color: var(--link);
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
-main {
-  max-width: 38rem;
-  margin: 0 auto;
-  padding: 1rem 1rem 3rem;
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+h1,
+h2,
+h3 {
+  font-weight: 400;
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
-.masthead,
-.colophon {
-  max-width: 38rem;
-  margin: 0 auto;
-  padding: 1rem;
+/* ---- Masthead and colophon, on every page ------------------------------------------- */
+
+.masthead {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-}
-.masthead {
-  border-bottom: 1px solid var(--rule);
-}
-.colophon {
-  border-top: 1px solid var(--rule);
-  color: var(--muted);
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.4rem 1.25rem 1.1rem;
 }
 .home {
-  color: inherit;
+  color: var(--ink);
   text-decoration: none;
-  font-weight: bold;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.masthead .antnet-start {
+  font-family: var(--serif);
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 1;
+}
+.masthead .antnet-start:hover {
+  color: var(--accent);
+  text-decoration: none;
 }
 
-.lede {
+.colophon {
+  max-width: 36em;
+  margin: 5rem auto 0;
+  padding: 2.2rem 1.25rem 3.5rem;
+  text-align: center;
   color: var(--muted);
+  border-top: 1px solid var(--rule);
 }
+.colophon-line {
+  margin: 0 0 0.6rem;
+  font-style: italic;
+  font-size: 0.95em;
+}
+.colophon .antnet-receipt {
+  font-family: var(--serif);
+  font-size: 0.78em;
+  line-height: 1.6;
+  opacity: 1;
+  text-wrap: pretty;
+}
+.colophon .antnet-receipt strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.antnet-address {
+  font-family: var(--serif);
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.credit {
+  max-width: 34em;
+  margin: 3rem auto 0;
+  padding: 0 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8em;
+  text-wrap: pretty;
+}
+
+/* A small three-dot ornament, drawn rather than typed so it never depends on a glyph. */
+.frontispiece::after,
+.book-text section[epub\:type~="chapter"]::before,
+.book-text section[epub\:type~="epilogue"]::before,
+.book-text section[epub\:type~="part"]::before {
+  content: "";
+  display: block;
+  width: 3.6rem;
+  height: 0.5rem;
+  margin: 0 auto;
+  background: radial-gradient(circle, var(--accent) 0 0.13rem, transparent 0.16rem) 0 50% / 1.2rem 100% repeat-x;
+  opacity: 0.8;
+}
+
+/* ---- The shelf ---------------------------------------------------------------------- */
+
+.shelf-page main,
+.missing-page main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+.frontispiece {
+  text-align: center;
+  padding: clamp(2.5rem, 7vw, 5rem) 0 clamp(2rem, 5vw, 3.5rem);
+}
+.frontispiece h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 1.6rem + 5vw, 4.75rem);
+  letter-spacing: -0.015em;
+}
+.lede {
+  margin: 0.9rem auto 1.8rem;
+  max-width: 30em;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 1.1em;
+}
+
 .shelf {
   list-style: none;
+  margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 2.75rem) clamp(1.1rem, 3vw, 2.25rem);
+}
+@media (min-width: 56rem) {
+  .shelf {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .book {
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-.book a {
-  text-decoration: none;
-}
-.book-title {
-  display: block;
-  font-size: 1.25rem;
-}
-.book-author {
-  display: block;
-  color: var(--muted);
-}
-.book-blurb {
-  margin: 0.25rem 0 0;
-}
-.credit {
-  color: var(--muted);
-  font-size: 0.875rem;
+  container-type: inline-size;
 }
 
-.book-head {
+.cover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  aspect-ratio: 2 / 3;
+  padding: 17cqi 11cqi 13cqi 16cqi;
+  border-radius: 0.5cqi 2cqi 2cqi 0.5cqi;
+  background-color: var(--cloth, #333);
+  /* A hint of woven cloth, and the shadowed hinge beside the spine. */
+  background-image:
+    linear-gradient(90deg, rgb(0 0 0 / 0.34), rgb(0 0 0 / 0.04) 7%, rgb(255 255 255 / 0.07) 8.5%, transparent 11%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.05) 0 1px, transparent 1px 3px);
+  color: var(--gilt);
   text-align: center;
-  margin: 2rem 0 3rem;
+  text-decoration: none;
+  box-shadow:
+    0 1px 1px rgb(var(--shadow) / 0.2),
+    0 0.6rem 1.4rem -0.5rem rgb(var(--shadow) / 0.45);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
-.byline {
+/* The stamped frame. */
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 6cqi 6cqi 6cqi 12cqi;
+  border: 1px solid currentColor;
+  border-radius: 0.6cqi;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.cover:hover,
+.cover:focus-visible {
+  transform: translateY(-0.35rem);
+  box-shadow:
+    0 1px 1px rgb(var(--shadow) / 0.2),
+    0 1.4rem 2rem -0.8rem rgb(var(--shadow) / 0.55);
+}
+.cover:focus-visible {
+  outline-offset: 5px;
+}
+.book-title {
+  font-size: 10.5cqi;
+  line-height: 1.14;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+.book-title::after {
+  content: "";
+  display: block;
+  width: 14cqi;
+  height: 1px;
+  margin: 7cqi auto 0;
+  background: currentColor;
+  opacity: 0.6;
+}
+.book-author {
+  font-size: 5cqi;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+.book-blurb {
+  margin: 1.1rem 0 0;
+  font-size: 0.88em;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.book-meta {
+  margin: 0.35rem 0 0;
   color: var(--muted);
+  font-size: 0.76em;
+  font-style: italic;
+}
+
+.note {
+  max-width: 34em;
+  margin: clamp(3.5rem, 8vw, 6rem) auto 0;
+  text-align: center;
+  text-wrap: pretty;
+}
+.note-lead {
+  margin: 0 0 0.8rem;
+  font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.1rem);
+  font-style: italic;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.note p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92em;
+}
+
+.button {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.55em 1.4em;
+  border: 1px solid var(--accent);
+  border-radius: 0.2em;
+  text-decoration: none;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+}
+.button:hover {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+/* ---- A book ------------------------------------------------------------------------- */
+
+/* Reading progress along the top, where the browser supports scroll-driven animation. */
+.progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  .progress {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    animation: reading-progress linear both;
+    animation-timeline: scroll(root);
+    z-index: 2;
+  }
+}
+@keyframes reading-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The title page: the book's own cloth, edge to edge. */
+.book-head {
+  padding: clamp(3rem, 9vw, 6rem) 1.25rem clamp(3rem, 8vw, 5.25rem);
+  background-color: var(--cloth, #333);
+  background-image:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.03) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.05) 0 1px, transparent 1px 3px);
+  color: var(--gilt);
+  text-align: center;
+}
+.book-head h1 {
+  max-width: 14em;
+  margin: 0 auto;
+  font-size: clamp(2.1rem, 1.3rem + 4.2vw, 4rem);
+  letter-spacing: -0.012em;
+}
+.book-head h1::after {
+  content: "";
+  display: block;
+  width: 3.5rem;
+  height: 1px;
+  margin: 1.6rem auto 0;
+  background: currentColor;
+  opacity: 0.6;
+}
+/* Two classes each, so the body-text paragraph rules below don't reach the title page. */
+.book-head .book-kicker,
+.book-head .byline {
+  text-indent: 0;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+.book-head .book-kicker {
+  margin: 0 0 1.1rem;
+  font-size: 0.74em;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.book-head .byline {
+  margin: 1.3rem 0 0;
+  font-style: italic;
+  font-size: 0.86em;
+  opacity: 0.85;
+}
+
+/* The text column: about 66 characters wide. */
+.book-text > section,
+.contents,
+.onward {
+  max-width: 33em;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 .book-text section {
-  margin-bottom: 3rem;
+  margin-top: clamp(3.5rem, 8vw, 5.5rem);
 }
+.book-text section section {
+  margin-top: clamp(3rem, 7vw, 4.5rem);
+}
+
+.contents {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  font-size: 0.86em;
+}
+.book-text .contents h2 {
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+.contents ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  columns: 2;
+  column-gap: 2.5rem;
+}
+@media (max-width: 30rem) {
+  .contents ol {
+    columns: 1;
+  }
+}
+.contents li {
+  break-inside: avoid;
+  padding: 0.14em 0;
+}
+.contents .toc-top:not(:first-child) {
+  margin-top: 0.15em;
+}
+.contents .toc-sub {
+  padding-left: 1em;
+}
+.contents a {
+  color: inherit;
+  text-decoration: none;
+}
+.contents a:hover .toc-t {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.toc-n {
+  display: inline-block;
+  min-width: 2.1em;
+  color: var(--accent);
+  font-variant-numeric: lining-nums;
+  font-size: 0.86em;
+  letter-spacing: 0.05em;
+}
+
+/* Headings inside the text: an ordinal, sometimes a title beneath it. */
 .book-text h2,
-.book-text h3 {
+.book-text h3,
+.book-text h4 {
+  margin: 1.4rem 0 1.6rem;
+  text-align: center;
+  font-size: 1.5em;
+}
+.book-text [epub\:type~="z3998:ordinal"],
+.book-text h2:has([epub\:type~="z3998:ordinal"]) {
+  font-size: 1.7em;
+  letter-spacing: 0.1em;
+  font-variant-numeric: lining-nums;
+}
+.book-text h2 [epub\:type~="z3998:ordinal"],
+.book-text h2 [epub\:type~="se:label"] {
+  font-size: 1em;
+}
+.book-text [epub\:type~="se:label"] {
+  font-size: 0.6em;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.book-text hgroup {
+  margin: 1.4rem 0 1.8rem;
   text-align: center;
 }
+.book-text hgroup > * {
+  margin: 0;
+}
+.book-text hgroup p,
+.book-text h2[epub\:type~="title"],
+.book-text h3[epub\:type~="title"] {
+  font-style: italic;
+  font-size: 1.45em;
+  line-height: 1.25;
+  text-indent: 0;
+  text-wrap: balance;
+}
+.book-text hgroup p {
+  margin-top: 0.5rem;
+}
+
+/* Paragraphs set as in a printed book: indented, with no space between. */
 .book-text p {
   margin: 0;
-  text-indent: 1.5em;
+  text-indent: 1.4em;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  text-wrap: pretty;
+  hanging-punctuation: first;
 }
 .book-text h2 + p,
 .book-text h3 + p,
+.book-text h4 + p,
 .book-text hgroup + p,
-.book-text blockquote p,
+.book-text blockquote + p,
+.book-text blockquote p:first-child,
+.book-text li p,
+.book-text td p,
 .book-text [epub\:type~="frontmatter"] p {
   text-indent: 0;
 }
-.book-text hgroup p {
-  text-align: center;
-  text-indent: 0;
-  font-style: italic;
+
+/* Each chapter opens with a raised initial and a first line in small capitals. */
+.book-text section[epub\:type~="chapter"] > p:first-of-type::first-letter,
+.book-text section[epub\:type~="epilogue"] > p:first-of-type::first-letter {
+  float: left;
+  margin: 0.06em 0.09em 0 0;
+  font-size: 3.35em;
+  line-height: 0.8;
+  font-weight: 500;
+  color: var(--accent);
 }
-.book-text blockquote {
-  margin: 1rem 2rem;
+.book-text section[epub\:type~="chapter"] > p:first-of-type::first-line,
+.book-text section[epub\:type~="epilogue"] > p:first-of-type::first-line {
+  font-variant-caps: small-caps;
+  letter-spacing: 0.04em;
 }
 
-/* The play: Standard Ebooks sets dialogue as a table of speaker and line. */
+.book-text abbr {
+  text-decoration: none;
+}
+.book-text blockquote {
+  margin: 1.3em 1.6em;
+  font-size: 0.94em;
+}
+.book-text blockquote p + p {
+  text-indent: 1.4em;
+}
+.book-text blockquote header,
+.book-text blockquote footer {
+  margin: 0.6em 0;
+}
+.book-text blockquote footer p,
+.book-text [epub\:type~="z3998:signature"],
+.book-text [epub\:type~="z3998:valediction"] {
+  text-align: right;
+  text-indent: 0;
+}
+.book-text [epub\:type~="z3998:signature"] {
+  font-variant-caps: small-caps;
+  letter-spacing: 0.04em;
+}
+.book-text .inscription {
+  margin: 1.2em 0;
+  text-align: center;
+  text-indent: 0;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.3em;
+  font-size: 1.15em;
+}
+.book-text [epub\:type~="noteref"] {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+  padding: 0 0.15em;
+  text-decoration: none;
+  font-variant-numeric: lining-nums;
+}
+.book-text [epub\:type~="endnotes"] {
+  font-size: 0.86em;
+  color: var(--muted);
+}
+.book-text [epub\:type~="endnotes"] h2 {
+  font-size: 0.9em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.book-text [epub\:type~="backlink"] {
+  text-decoration: none;
+}
+.book-text :target {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 2px;
+}
+.book-text section:target {
+  background: none;
+}
+
+/* The play: dialogue is a table of speaker and line; the cast is a plain list. */
+.book-text ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.book-text ul li {
+  padding: 0.12em 0;
+}
+.book-text [epub\:type~="frontmatter"] {
+  text-align: center;
+}
 .book-text table {
-  border-collapse: collapse;
   width: 100%;
+  border-collapse: collapse;
 }
 .book-text td {
   vertical-align: top;
-  padding: 0.2rem 0.5rem 0.2rem 0;
+  padding: 0.28em 0;
+  hyphens: auto;
+  -webkit-hyphens: auto;
 }
 .book-text td:first-child {
-  font-variant: small-caps;
+  width: 6.2em;
+  padding-right: 1.1em;
+  text-align: right;
   white-space: nowrap;
-  width: 1%;
 }
-.book-text td p {
-  text-indent: 0;
+.book-text td[epub\:type~="z3998:persona"] {
+  color: var(--accent);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.book-text [epub\:type~="z3998:stage-direction"] {
+  color: var(--muted);
+}
+.book-text [epub\:type~="z3998:stage-direction"] b,
+.book-text b[epub\:type~="z3998:persona"] {
+  font-weight: 500;
+  font-style: normal;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 34rem) {
+  .book-text tr,
+  .book-text td {
+    display: block;
+  }
+  .book-text tr {
+    margin-bottom: 0.7em;
+  }
+  .book-text td {
+    padding: 0;
+  }
+  .book-text td:first-child {
+    width: auto;
+    text-align: left;
+    white-space: normal;
+  }
+  .book-text td:empty {
+    display: none;
+  }
+}
+
+/* What to read next. */
+.onward {
+  margin-top: clamp(4rem, 9vw, 6rem);
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+.onward a {
+  text-decoration: none;
+}
+.onward-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--muted);
+  font-size: 0.7em;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.onward-title {
+  font-style: italic;
+  font-size: 1.35em;
+  line-height: 1.2;
+}
+.onward-next:hover .onward-title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.onward-shelf {
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.onward-shelf:hover {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover {
+    transition: none;
+  }
+  .cover:hover,
+  .cover:focus-visible {
+    transform: none;
+  }
+}
+
+@media print {
+  .masthead,
+  .progress,
+  .contents,
+  .onward,
+  .colophon {
+    display: none;
+  }
+  .book-head {
+    background: none;
+    color: #000;
+  }
 }

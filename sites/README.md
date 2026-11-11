@@ -24,6 +24,25 @@ The demo sites are linked locally exactly as on mainnet, only with test addresse
 `npm run fixtures` again and reload. A site is installed once per origin, so to see changes use the site's info page
 (`/_autonomi/`), then **Clear this site's data**, or use a fresh browser profile.
 
+## The look of each site
+
+- **Antnet Start** is calm and confident:
+  - cool paper, deep green ink and one accent;
+  - Instrument Sans for text, with JetBrains Mono for every number and address, so each claim reads like a
+    measurement;
+  - a mark of three dots in a row (an ant, and three nodes on a network), repeated in the five-step trail.
+- **The Library** is bookish:
+  - cream paper, with Literata throughout;
+  - each book has one cloth colour, used for its cover on the shelf and its title page;
+  - chapters open with a raised initial and a first line in small capitals;
+  - each book has a contents list and a reading time, both built from the text.
+
+Fonts are bundled in each site's `static/fonts/`, with their licence files (SIL Open Font License). They are the
+Latin subsets from the Fontsource packages.
+
+In each page's `<head>`, `ctx.headTags` comes **before** the site's own stylesheet, so the site's CSS can restyle
+the shared receipt and Start link.
+
 ## Rules for the design pass
 
 The look of each site is free to change. These parts are load-bearing:

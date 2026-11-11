@@ -1,5 +1,5 @@
 // Antnet Start (DEMO.md 3.1): the hub, reached through a pointer, linking to every demo site
-// by its immutable address. Plain structure for now; the look comes in the design pass.
+// by its immutable address. The look is in static/style.css; this file builds the page.
 
 export const meta = {
   title: "Antnet Start",
@@ -9,27 +9,84 @@ export const meta = {
 export const settings = {};
 
 const size = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} kB`);
+const short = (address) => `${address.slice(0, 4)}…${address.slice(-4)}`;
+
+// Inline SVG only uses presentation attributes, so it needs no inline styles (the CSP forbids them).
+const svg = (body, box = "0 0 24 24", cls = "") =>
+  `<svg${cls ? ` class="${cls}"` : ""} viewBox="${box}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+/** The mark: three dots in a row. An ant, and three nodes on a network. */
+const MARK = `<svg class="mark" viewBox="0 0 44 18" fill="currentColor" aria-hidden="true"><circle cx="8" cy="10" r="6.5"/><circle cx="22" cy="10" r="3.6"/><circle cx="35" cy="10" r="5"/><path d="M37.5 5.5l3-4M39.5 8l4-2.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+
+const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', "0 0 24 24", "arrow");
+
+/** One glyph per site; sites not listed here get the plain dot. */
+const ICONS = {
+  library: svg('<path d="M12 6.6C10 5.2 7.4 4.6 4.5 4.6v13c2.9 0 5.5.6 7.5 2 2-1.4 4.6-2 7.5-2v-13c-2.9 0-5.5.6-7.5 2zM12 6.6v13"/>'),
+  colonysim: svg('<circle cx="5.5" cy="12" r="3"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.3" cy="12" r="2.6"/><path d="M20 9.6l1.6-2.2"/>'),
+  cinema: svg('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M10.2 9.2v5.6l4.8-2.8z"/>'),
+  docs: svg('<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20zM14 3.5v4h4M9.8 12h5.4M9.8 15.5h5.4"/>'),
+  default: svg('<circle cx="12" cy="12" r="3.2"/>'),
+};
+
+const STEPS = [
+  ["connect", "Connect", "to the Autonomi network, straight from your browser."],
+  ["find", "Find", "the latest version, by reading this site's pointer."],
+  ["fetch", "Fetch", "its records from the nodes that hold them."],
+  ["check", "Check", "every byte against the address."],
+  ["hand", "Hand over", "to your browser, which serves the site from now on."],
+];
+
+const COMMANDS = [
+  ["Pack a folder that has an index.html", "node tools/pack.mjs my-site/ my-site.tar"],
+  ["Upload it. This is the one time you pay", "ant file upload my-site.tar --public"],
+  ["Turn the address it prints into a link", "node tools/link.mjs i &lt;address&gt; --root antnet.autonomirror.com"],
+];
+
+const FINE_PRINT = [
+  "A first visit to each site takes several seconds while it is fetched and checked. Return visits are instant.",
+  "Some networks block the kind of connection this needs. If a site won't load, try another network.",
+  "These are static sites and apps. There is no server-side code.",
+  "A small share of content on the network can't yet be reached from browsers.",
+  "The first page (the loader) still comes from an ordinary web host. It is small and open source, and anyone can run their own.",
+  "Antnet is an independent proof of concept, not an Autonomi Foundation product.",
+];
 
 export async function build(ctx) {
   const cards = ctx.sites
     .map(
       (s) => `    <li class="card" data-site="${ctx.esc(s.name)}">
       <a class="card-link" href="${s.href}">
+        <span class="card-icon">${ICONS[s.name] ?? ICONS.default}</span>
         <span class="card-title">${ctx.esc(s.meta.title)}</span>
         <span class="card-desc">${ctx.esc(s.meta.description)}</span>
-        <span class="card-meta">${size(s.bytes)} · <code title="${s.address}">${s.address.slice(0, 4)}…${s.address.slice(-4)}</code></span>
+        <span class="card-meta"><span>${size(s.bytes)}</span><code title="${s.address}">${short(s.address)}</code><span class="card-go">Open ${ARROW}</span></span>
       </a>
     </li>`,
     )
     .join("\n");
 
+  const steps = STEPS.map(
+    ([id, label, detail], i) => `    <li data-step="${id}">
+      <span class="step-n">${i + 1}</span>
+      <b>${label}</b>
+      <span class="step-d">${detail}</span>
+      <span class="t"></span>
+    </li>`,
+  ).join("\n");
+
   const versions = ctx.versions.length
     ? `<section class="versions" aria-labelledby="versions-h">
-  <h2 id="versions-h">Earlier versions</h2>
-  <p>Every version of this page ever published is still there, at its own address.</p>
+  <div class="section-head">
+    <h2 id="versions-h">Earlier versions</h2>
+    <p>Every version of this page ever published is still there, at its own address.</p>
+  </div>
   <ul>
 ${ctx.versions
-  .map((v) => `    <li><a href="${v.href}">Version ${v.number}</a>, ${ctx.esc(v.date)} · <code title="${v.address}">${v.address.slice(0, 4)}…${v.address.slice(-4)}</code></li>`)
+  .map(
+    (v) =>
+      `    <li><a href="${v.href}">Version ${v.number}</a><span>${ctx.esc(v.date)}</span><code title="${v.address}">${short(v.address)}</code></li>`,
+  )
   .join("\n")}
   </ul>
 </section>`
@@ -41,66 +98,78 @@ ${ctx.versions
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Antnet Start</title>
-<link rel="stylesheet" href="/style.css">
 ${ctx.headTags}
+<link rel="stylesheet" href="/style.css">
 <script src="/start.js" defer></script>
 </head>
 <body>
-<main>
-<header class="intro">
-  <h1>Antnet Start</h1>
-  <p class="tagline">A small web of sites that live on the Autonomi network.</p>
-  <p class="address-note">That long name in the address bar is this site's address on the network. It is also how your browser knows nothing was changed.</p>
-  ${ctx.receipt.replace('class="antnet-receipt"', 'class="antnet-receipt receipt-main"')}
+<header class="top">
+  <span class="brand">${MARK}<span>antnet</span></span>
+  <a class="top-link" href="/_autonomi/">This visit</a>
 </header>
 
+<main>
+<section class="hero">
+  <h1>Antnet Start</h1>
+  <p class="tagline">A small web of sites that live on the Autonomi network.</p>
+  <p class="address-note">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>', "0 0 24 24", "up")}<span>That long name in the address bar is this site's address on the network. It is also how your browser knows nothing was changed.</span></p>
+  ${ctx.receipt.replace('class="antnet-receipt"', 'class="antnet-receipt receipt-main"')}
+</section>
+
 <section class="directory" aria-labelledby="directory-h">
-  <h2 id="directory-h">Sites</h2>
+  <div class="section-head">
+    <h2 id="directory-h">Sites</h2>
+    <p>Each one is its own website, with its own address and its own look.</p>
+  </div>
   <ul class="cards">
 ${cards}
   </ul>
 </section>
 
 <section class="journey" aria-labelledby="journey-h" hidden>
-  <h2 id="journey-h">How this page reached you</h2>
+  <div class="section-head">
+    <h2 id="journey-h">How this page reached you</h2>
+    <p>Five steps, timed on this visit. <a href="/_autonomi/">Full details</a></p>
+  </div>
   <ol class="steps">
-    <li data-step="connect"><b>Connect</b> to the Autonomi network from your browser. <span class="t"></span></li>
-    <li data-step="find"><b>Find</b> the latest version, by reading this site's pointer. <span class="t"></span></li>
-    <li data-step="fetch"><b>Fetch</b> its records from the nodes that hold them. <span class="t"></span></li>
-    <li data-step="check"><b>Check</b> every byte against the address. <span class="t"></span></li>
-    <li data-step="hand"><b>Hand over</b> to your browser, which serves the site from now on. <span class="t"></span></li>
+${steps}
   </ol>
-  <p><a href="/_autonomi/">Full details for this visit</a></p>
 </section>
 
 <section class="try" aria-labelledby="try-h">
-  <h2 id="try-h">Try this</h2>
-  <p>Open each site once. Then turn off your wifi and keep browsing: everything you've seen still works, because the sites are now on your device, checked and complete.</p>
+  <span class="try-icon">${svg('<path d="M3 3l18 18M8.6 15.4a5 5 0 0 1 6.3-.4M5.3 12a9.6 9.6 0 0 1 3.3-2.2M12.8 8.4a9.6 9.6 0 0 1 5.9 3.6M2 8.6a14.4 14.4 0 0 1 3.4-2.4M9.6 4.7A14.4 14.4 0 0 1 22 8.6"/><circle cx="12" cy="19" r="0.9" fill="currentColor" stroke="none"/>')}</span>
+  <div>
+    <h2 id="try-h">Try this</h2>
+    <p class="try-lead">Turn off your wifi and keep browsing.</p>
+    <p>Open each site once first. Everything you've seen still works, because the sites are on your device now, checked and complete.</p>
+  </div>
 </section>
 
 ${versions}
 
 <section class="publish" aria-labelledby="publish-h">
-  <h2 id="publish-h">Publish your own</h2>
-  <p>Any folder with an <code>index.html</code> can be a site. Three commands:</p>
-<pre><code>node tools/pack.mjs my-site/ my-site.tar
-ant file upload my-site.tar --public
-node tools/link.mjs i &lt;address&gt; --root antnet.autonomirror.com</code></pre>
-  <p>The tools are in the <a href="https://github.com/DavidMc0/Antnet">Antnet repository</a>. You pay once, when you upload.</p>
+  <div class="publish-text">
+    <h2 id="publish-h">What would you put here?</h2>
+    <p>Any folder with an <code>index.html</code> can be a site. You pay once, when you upload, and there is nothing to renew.</p>
+    <p>The tools are in the <a href="https://github.com/DavidMc0/Antnet">Antnet repository</a>.</p>
+  </div>
+  <ol class="commands">
+${COMMANDS.map(([what, cmd]) => `    <li><span class="cmd-what">${what}</span><code>${cmd}</code></li>`).join("\n")}
+  </ol>
 </section>
 
 <section class="fineprint" aria-labelledby="fine-h">
   <h2 id="fine-h">Fine print</h2>
   <ul>
-    <li>A first visit to each site takes several seconds while it is fetched and checked. Return visits are instant.</li>
-    <li>Some networks block the kind of connection this needs. If a site won't load, try another network.</li>
-    <li>These are static sites and apps. There is no server-side code.</li>
-    <li>A small share of content on the network can't yet be reached from browsers.</li>
-    <li>The first page (the loader) still comes from an ordinary web host. It is small and open source, and anyone can run their own.</li>
-    <li>Antnet is an independent proof of concept, not an Autonomi Foundation product.</li>
+${FINE_PRINT.map((line) => `    <li>${ctx.esc(line)}</li>`).join("\n")}
   </ul>
 </section>
 </main>
+
+<footer class="foot">
+  <span class="brand">${MARK}<span>antnet</span></span>
+  <span>An independent proof of concept. <a href="https://github.com/DavidMc0/Antnet">Source</a></span>
+</footer>
 </body>
 </html>
 `;

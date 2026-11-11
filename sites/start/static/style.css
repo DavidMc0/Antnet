@@ -1,127 +1,705 @@
-/* Antnet Start: plain placeholder styles. The design pass replaces these. */
+/* Antnet Start. Calm and confident: cool paper, deep green ink, one accent, and numbers set
+   in a monospace face so every claim reads like a measurement. Fonts are bundled in /fonts
+   (Instrument Sans and JetBrains Mono, Open Font License); nothing loads from outside. */
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light dark;
-  --bg: #f6f7f9;
-  --fg: #1d2129;
-  --muted: #5d6573;
-  --card: #fff;
-  --rule: #dde1e7;
-  --link: #1f5fbf;
+  --bg: #f1f4f1;
+  --surface: #fbfcfb;
+  --ink: #0f1c18;
+  --muted: #586762;
+  --rule: #d5ddd8;
+  --accent: #0b7355;
+  --accent-soft: #dcefe7;
+  --band: #10241e;
+  --band-ink: #eaf3ef;
+  --band-muted: #a5bcb3;
+  --band-accent: #7fe0b8;
+  --shadow: 15 40 30;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --page: 70rem;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121418;
-    --fg: #e6e9ef;
-    --muted: #9aa3b2;
-    --card: #1c1f25;
-    --rule: #2c313a;
-    --link: #8db4ff;
+    --bg: #0b110f;
+    --surface: #121a17;
+    --ink: #e8f0ec;
+    --muted: #90a29b;
+    --rule: #233029;
+    --accent: #66d6aa;
+    --accent-soft: #11261e;
+    --band: #16221e;
+    --band-ink: #e8f0ec;
+    --band-muted: #90a29b;
+    --band-accent: #66d6aa;
+    --shadow: 0 0 0;
   }
 }
 
-* {
+/* The tint each card borrows from the site it leads to. */
+[data-site="library"] {
+  --tint: #8a2f2a;
+  --tint-bg: #f6f0e4;
+}
+[data-site="colonysim"] {
+  --tint: #9a5b12;
+  --tint-bg: #fbf0d9;
+}
+[data-site="cinema"] {
+  --tint: #e9e4f5;
+  --tint-bg: #241d3a;
+}
+[data-site="docs"] {
+  --tint: #1d4f91;
+  --tint-bg: #e4eefb;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--fg);
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  font-kerning: normal;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 a {
-  color: var(--link);
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
-main {
-  max-width: 46rem;
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+svg {
+  display: block;
+}
+
+main,
+.top,
+.foot {
+  max-width: var(--page);
   margin: 0 auto;
-  padding: 2rem 1rem 4rem;
+  padding-left: clamp(1.25rem, 4vw, 2.5rem);
+  padding-right: clamp(1.25rem, 4vw, 2.5rem);
 }
-h1 {
-  margin: 0;
-  font-size: 2rem;
+main > section {
+  margin-top: clamp(4rem, 9vw, 7rem);
 }
-h2 {
-  font-size: 1.125rem;
-  margin: 2.5rem 0 0.75rem;
+
+/* ---- Top bar and footer ------------------------------------------------------------- */
+
+.top,
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.top {
+  padding-top: 1.5rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.mark {
+  width: 2.1rem;
+  height: auto;
+  color: var(--accent);
+}
+.top-link {
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.top-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.foot {
+  position: relative;
+  margin-top: clamp(4rem, 9vw, 7rem);
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+/* The footer rule, as wide as the content rather than the padded box. */
+.foot::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: clamp(1.25rem, 4vw, 2.5rem);
+  right: clamp(1.25rem, 4vw, 2.5rem);
+  border-top: 1px solid var(--rule);
+}
+
+/* ---- Hero --------------------------------------------------------------------------- */
+
+main > .hero {
+  position: relative;
+  margin-top: 0;
+  padding-top: clamp(3.5rem, 10vw, 7.5rem);
+}
+/* A faint field of nodes behind the headline, fading out towards the text. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 35%;
+  height: 26rem;
+  background: radial-gradient(circle, var(--rule) 0 1.2px, transparent 1.6px) 0 0 / 1.5rem 1.5rem;
+  -webkit-mask-image: radial-gradient(ellipse at 75% 30%, #000 0, transparent 68%);
+  mask-image: radial-gradient(ellipse at 75% 30%, #000 0, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+.hero h1 {
+  margin: 0 0 1.4rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 .tagline {
-  font-size: 1.125rem;
-  margin: 0.25rem 0 0.5rem;
+  margin: 0;
+  max-width: 15em;
+  font-size: clamp(2.3rem, 1.2rem + 5vw, 4.6rem);
+  font-weight: 550;
+  font-stretch: 88%;
+  line-height: 1.04;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
 }
 .address-note {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.address-note .up {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.18rem;
+  color: var(--accent);
+}
+
+/* The receipt: this visit, in numbers. */
+.hero .receipt-main {
+  position: relative;
+  max-width: 44rem;
+  margin-top: 2.5rem;
+  padding: 2.6rem 1.5rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 0.9rem;
+  box-shadow: 0 1.5rem 3rem -2rem rgb(var(--shadow) / 0.35);
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: var(--muted);
+  opacity: 1;
+  text-wrap: pretty;
+}
+.hero .receipt-main::before {
+  content: "Receipt · this visit";
+  position: absolute;
+  top: 0.95rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--accent);
+}
+.hero .receipt-main strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+.hero .receipt-main .antnet-address {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-size: 1em;
+}
+
+/* ---- Section headings ---------------------------------------------------------------- */
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 1.5rem;
+  margin-bottom: 1.6rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+h2 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-stretch: 92%;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+.section-head p {
+  margin: 0;
   color: var(--muted);
   font-size: 0.9375rem;
 }
-.receipt-main {
-  font-size: 0.9375rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--rule);
-  border-radius: 0.5rem;
-  background: var(--card);
-  opacity: 1;
-}
+
+/* ---- The directory ------------------------------------------------------------------ */
 
 .cards {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
   display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
 }
 .card-link {
-  display: block;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon title"
+    "icon desc"
+    "meta meta";
+  column-gap: 1rem;
   height: 100%;
-  padding: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 0.5rem;
-  background: var(--card);
+  border-radius: 0.9rem;
   color: inherit;
   text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .card-link:hover,
 .card-link:focus-visible {
-  border-color: var(--link);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 1.2rem 2rem -1.4rem rgb(var(--shadow) / 0.45);
+}
+.card-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.7rem;
+  background: var(--tint-bg, var(--accent-soft));
+  color: var(--tint, var(--accent));
+}
+.card-icon svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 .card-title {
-  display: block;
+  grid-area: title;
+  font-size: 1.1875rem;
   font-weight: 600;
-  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 .card-desc {
-  display: block;
-  margin: 0.25rem 0 0.5rem;
-}
-.card-meta {
-  display: block;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.steps {
-  padding-left: 1.25rem;
-}
-.steps .t {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.steps .t:not(:empty)::before {
-  content: "· ";
-}
-
-pre {
-  overflow-x: auto;
-  padding: 0.75rem 1rem;
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-}
-code {
-  font-family: ui-monospace, "SF Mono", Consolas, monospace;
-}
-.fineprint {
+  grid-area: desc;
+  margin-top: 0.3rem;
   color: var(--muted);
   font-size: 0.9375rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.card-meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.1rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.arrow {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.2s ease;
+}
+.card-link:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* ---- How this page reached you: five nodes on a trail --------------------------------- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.steps li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+/* The trail between one node and the next. */
+.steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  left: 2.7rem;
+  right: -0.65rem;
+  height: 0;
+  border-top: 1.5px dashed var(--rule);
+}
+.step-n {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-bottom: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.steps b {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.step-d {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.steps .t {
+  margin-top: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.steps .t:empty {
+  display: none;
+}
+@media (max-width: 52rem) {
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .steps li {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    column-gap: 1rem;
+    padding-bottom: 1.5rem;
+  }
+  .steps li > :not(.step-n) {
+    grid-column: 2;
+  }
+  .step-n {
+    grid-row: 1 / span 3;
+    margin: 0;
+  }
+  .steps li:not(:last-child)::after {
+    top: 2.5rem;
+    bottom: 0.3rem;
+    left: 1.1rem;
+    right: auto;
+    height: auto;
+    border-top: 0;
+    border-left: 1.5px dashed var(--rule);
+  }
+  .steps .t {
+    margin-top: 0.2rem;
+  }
+}
+
+/* ---- Try this: the offline moment ---------------------------------------------------- */
+
+main > .try {
+  display: flex;
+  gap: clamp(1.25rem, 4vw, 2.5rem);
+  align-items: flex-start;
+  padding: clamp(1.75rem, 5vw, 3.25rem);
+  background: var(--band);
+  color: var(--band-ink);
+  border-radius: 1.25rem;
+}
+.try-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--band-accent) 55%, transparent);
+  color: var(--band-accent);
+}
+.try-icon svg {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+.try h2 {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-stretch: 100%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--band-accent);
+}
+.try-lead {
+  margin: 0.7rem 0 0.8rem;
+  font-size: clamp(1.7rem, 1.1rem + 2.6vw, 2.8rem);
+  font-weight: 550;
+  font-stretch: 88%;
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+.try p:last-child {
+  margin: 0;
+  max-width: 36rem;
+  color: var(--band-muted);
+  text-wrap: pretty;
+}
+@media (max-width: 34rem) {
+  main > .try {
+    flex-direction: column;
+  }
+}
+
+/* ---- Earlier versions ---------------------------------------------------------------- */
+
+.versions ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.versions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 1.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.versions li a {
+  min-width: 7rem;
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---- Publish your own ---------------------------------------------------------------- */
+
+.publish {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: start;
+}
+@media (max-width: 52rem) {
+  .publish {
+    grid-template-columns: 1fr;
+  }
+}
+.publish h2 {
+  font-size: clamp(1.9rem, 1.2rem + 2.8vw, 3rem);
+  font-weight: 550;
+  font-stretch: 88%;
+  line-height: 1.06;
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+}
+.publish-text p {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.commands {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 1.4rem;
+  counter-reset: cmd;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 0.9rem;
+}
+.commands li {
+  counter-increment: cmd;
+  position: relative;
+  padding: 1rem 0 1rem 2.4rem;
+}
+.commands li + li {
+  border-top: 1px dashed var(--rule);
+}
+.commands li::before {
+  content: counter(cmd);
+  position: absolute;
+  left: 0;
+  top: 1.05rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.cmd-what {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.commands code {
+  display: block;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.commands code::before {
+  content: "$ ";
+  color: var(--accent);
+}
+
+/* ---- Fine print ---------------------------------------------------------------------- */
+
+.fineprint {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.fineprint h2 {
+  margin-bottom: 1rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-stretch: 100%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fineprint ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  columns: 2;
+  column-gap: 3rem;
+}
+@media (max-width: 44rem) {
+  .fineprint ul {
+    columns: 1;
+  }
+}
+.fineprint li {
+  break-inside: avoid;
+  position: relative;
+  padding: 0 0 0.85rem 1.1rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.fineprint li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-link,
+  .arrow {
+    transition: none;
+  }
+  .card-link:hover,
+  .card-link:focus-visible {
+    transform: none;
+  }
+  .card-link:hover .arrow {
+    transform: none;
+  }
 }
