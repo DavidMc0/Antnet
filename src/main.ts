@@ -224,16 +224,23 @@ async function updateCheck(state: SiteState, link: SiteLink, root: string): Prom
   try {
     source = await createSource();
     const s = source;
-    const target = await withBudget(checkBudgetMs(),async (signal) => {
+    let connectMs: number | undefined;
+    let resolveMs: number | undefined;
+    const target = await withBudget(checkBudgetMs(), async (signal) => {
+      let t = performance.now();
       await s.connect?.(signal);
-      return s.resolvePointer(link.address, signal);
+      connectMs = since(t);
+      t = performance.now();
+      const found = await s.resolvePointer(link.address, signal);
+      resolveMs = since(t);
+      return found;
     });
     const checkMs = since(started);
     if (target === state.archive) {
       outcome = "no change";
     } else {
       view.step("Downloading the new version…");
-      const timings: Timings = { resolveMs: checkMs };
+      const timings: Timings = { connectMs, resolveMs };
       let t = performance.now();
       const result = await s.fetchArchive(target, {
         maxBytes: maxArchiveBytes(),

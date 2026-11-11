@@ -113,14 +113,17 @@ function shellCsp(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const loaderRoot = process.env.VITE_LOADER_ROOT ?? env.VITE_LOADER_ROOT ?? "";
+  const fixtureSource = (process.env.VITE_SOURCE ?? env.VITE_SOURCE) === "fixture";
   return {
     appType: "spa",
+    // public/ holds only the generated test fixtures; keep them out of mainnet builds.
+    publicDir: fixtureSource ? "public" : false,
     plugins: [serviceWorker(loaderRoot), noCacheShell(), shellCsp()],
     server: { allowedHosts: [".localhost"] },
     preview: { allowedHosts: [".localhost"] },
     build: {
       assetsDir: "_autonomi/assets",
-      outDir: process.env.VITE_SOURCE === "fixture" ? "dist-fixture" : "dist",
+      outDir: fixtureSource ? "dist-fixture" : "dist",
       emptyOutDir: true,
     },
     // The SDK loads its WASM with new URL(..., import.meta.url); pre-bundling would break that.

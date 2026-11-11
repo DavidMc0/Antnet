@@ -69,7 +69,7 @@ The CLI prints addresses with `0x`. The landing page, `link.mjs` and the mainnet
 - **Progress:** SDK 0.1.5 reports chunk progress only in the message text ("Downloaded chunk 2/3"). The source parses that, so the loading screen shows "2 of 3 records".
 - **Gate risk for M5:** a 2 MB site is still 4 records, so expect about 10 s too. That is right at the gate's 10 s median.
 
-## M3 (pointers and updates): fixture tests done, mainnet `before` done, waiting on the re-point
+## M3 (pointers and updates): done on mainnet (with a raised check budget); budget decision pending
 
 - **`tests/e2e/m3.spec.ts`:** 8 tests pass (36 fixture e2e in total). They cover:
   - a due check with no change;
@@ -103,10 +103,33 @@ The CLI prints addresses with `0x`. The landing page, `link.mjs` and the mainnet
 - **Test setting `checkBudgetMs`:** sessionStorage, 1–60 s, set through `m3-mainnet.mjs --budget <s>`. With 30 s, the no-change check succeeded in 18.9 s.
 - **Design question for the user:** raise the budget, bring forward background checks (spec 10 / phase 2), and/or take the first-read latency up with the SDK maintainers. This is open question 486 in the spec.
 
+- **`after` (pointer re-pointed to spa-v2, counter 1, 30 s budget):** passes. The due check found the new archive and installed v2:
+  - pointer resolve 16.96 s, download 7.51 s, 24.7 s in total until Version 2 showed;
+  - state recorded "new version installed", with the archive in use now spa-v2.
+- **Fix:** an install made during an update check showed "connect —" on the info page. The check now times connect and resolve separately and passes both on.
+
+**M3 done-when is met on mainnet: a re-pointed pointer shows the new version on the next due check, and a slow check falls back to the cached site.**
+
+- **Budget decision (user, 2026-11-11):** `CHECK_BUDGET_MS` raised to 25 s for now. With that default and no override, a due check with no change succeeded in 17.9 s on mainnet. The fixture test for a slow check now sets `checkBudgetMs` to 3 s to stay fast. Background checks remain the better long-term fix.
+- **SDK issue drafted:** `docs/sdk-issue-read-latency.md`, for WithAutonomi/ant-browser-sdk. It is related to the user's existing issue #10 there, about chunks that can't be fetched.
+
+## Hosting: live at https://antnet.autonomirror.com/ (2026-11-11)
+
+- **Server:** the user's VPS (Ubuntu 26.04, 77.42.84.209), with nginx alongside impactivefinance.com.
+- **DNS:** at GoDaddy, `A antnet` and `A *.antnet` records point to the VPS.
+- **Certificate:** a wildcard certificate from acme.sh via the GoDaddy DNS API (`dns_gd`), installed to `/etc/ssl/antnet/` and renewed automatically.
+- **Files:**
+  - `deploy/nginx/antnet.conf` is the nginx site;
+  - `deploy/deploy.ps1 -Server root@77.42.84.209` deploys, using `npm run build:deploy` and atomic release switching under `/var/www/antnet`;
+  - `deploy/README.md` has the setup steps.
+- **Production builds no longer include `public/`** (the test fixtures).
+- **Checked live:**
+  - HTTP redirects to HTTPS, and the certificate is valid for subdomains;
+  - the shell, service worker and assets have the right caching headers;
+  - spa-v1 opened by its `i…` link at `/users/42` in 10.5 s, with download 8.8 s and connect 1.55 s (the WASM now comes over the internet);
+  - the M3 pointer opened v2 in 23 s, with resolve 18.9 s.
+
 ### Next
 
-1. **The user** re-points: `ant pointer update --key site.key 5423f9da…41b3`.
-2. **Run** `node tools/m3-mainnet.mjs after ddabf062… --budget 30`.
-3. **The user** decides the budget or background-check question above.
-3. **M4** (links between sites): see the upload-order note in the M2 hand-off above; one side must be a pointer.
-4. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe`.
+1. **M4** (links between sites): see the upload-order note in the M2 hand-off; one side must be a pointer.
+2. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe`.

@@ -63,13 +63,16 @@ test("a re-pointed pointer installs the new version on the next due check", asyn
 test("a slow check falls back to the cached site within the budget", async ({ page }) => {
   await install(page, POINTER, "#view");
   await expireCheck(page);
-  // The fixture source waits this long in connect(), past the 5 s check budget.
-  await page.evaluate(() => sessionStorage.setItem("fixtureDelay", "8000"));
+  // A short budget keeps the test fast; the fixture source waits past it in connect().
+  await page.evaluate(() => {
+    sessionStorage.setItem("checkBudgetMs", "3000");
+    sessionStorage.setItem("fixtureDelay", "8000");
+  });
   const started = Date.now();
   await page.reload();
   await expect(page.locator("#view")).toHaveText("Home", { timeout: 15_000 });
   const elapsed = Date.now() - started;
-  expect(elapsed).toBeLessThan(7_500);
+  expect(elapsed).toBeLessThan(5_500);
   const state = await readState(page);
   expect(state.lastCheck?.outcome).toBe("timed out");
   // Next check due in about 10 minutes, not a full hour.

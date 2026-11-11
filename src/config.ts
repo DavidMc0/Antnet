@@ -25,13 +25,17 @@ export function maxArchiveBytes(): number {
 
 /** How often a pointer link is re-checked on navigation (spec 3.4). */
 export const CHECK_INTERVAL_MS = 60 * 60 * 1000;
-/** Time budget for an update check: connect plus pointer read. */
-export const CHECK_BUDGET_MS = 5_000;
+/**
+ * Time budget for an update check: connect plus pointer read. The spec's default is 5 s, but
+ * with SDK 0.1.5 the first pointer read on a new connection takes 17–20 s on mainnet
+ * (PROGRESS.md, M3), so 5 s always timed out. 25 s for now, until background checks or a
+ * faster SDK.
+ */
+export const CHECK_BUDGET_MS = 25_000;
 
 /**
- * The budget in force. sessionStorage "checkBudgetMs" (1 s to 60 s) overrides it, for
- * measuring checks on mainnet, where the first pointer read on a new connection takes
- * 9–20 s with SDK 0.1.5. A page can only make its own visitor wait longer.
+ * The budget in force. sessionStorage "checkBudgetMs" (1 s to 60 s) overrides it, for tests
+ * and measurements. A page can only change how long its own visitor waits.
  */
 export function checkBudgetMs(): number {
   try {

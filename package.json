@@ -8,6 +8,7 @@
     "dev": "cross-env VITE_SOURCE=fixture vite",
     "dev:autonomi": "cross-env VITE_SOURCE=autonomi vite",
     "build": "tsc --noEmit && vite build",
+    "build:deploy": "cross-env VITE_LOADER_ROOT=antnet.autonomirror.com npm run build",
     "build:fixture": "npm run fixtures && cross-env VITE_SOURCE=fixture vite build",
     "preview": "vite preview",
     "preview:fixture": "cross-env VITE_SOURCE=fixture vite preview --port 4173 --strictPort",
