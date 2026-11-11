@@ -350,6 +350,15 @@ The user asked for the pass in Fable: clear, attractive, strong and confident wi
   Update the test's "Enter tries again" wording if the error copy changes.
 - **Avoid:** forever, unstoppable, uncensorable, revolutionary, Web3 (DEMO.md section 1).
 
+## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
+
+Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
+
+- **The site's CSP must loosen** (as for Cinema): `script-src 'self' 'wasm-unsafe-eval'` and `connect-src 'self' https: wss:` for the bundled SDK, plus `https://autonomirror.com` if it fetches the removal list. Use `cspExtra` in its `site.mjs`; the shared CSP replaces `script-src`, so build the policy rather than appending a second `script-src`.
+- **The Library's "Download as EPUB" button means a Library v2 upload.** Upload it together with Start v2.
+- **`/f/ant/…` paths are fine:** the loader reserves only `/_autonomi/…`, and `"spa": true` serves deep links and reloads.
+- **Open decision:** how the removal list fails when it can't be fetched (DEMO.md section 11).
+
 ### Next
 
 1. **The front door design pass** above, in Fable.

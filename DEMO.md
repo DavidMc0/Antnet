@@ -1,10 +1,10 @@
 # Antnet demo plan
 
-*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
+*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
 
 ## 1. What the demo has to do
 
-**In one sentence:** a visitor clicks one link and browses five real websites that no web server sent them: their browser fetched each one directly from Autonomi nodes and checked it.
+**In one sentence:** a visitor clicks one link and browses six real websites that no web server sent them: their browser fetched each one directly from Autonomi nodes and checked it.
 
 **Three things a visitor should leave knowing**
 
@@ -29,10 +29,10 @@
 | Step | What they see | What it teaches |
 | --- | --- | --- |
 | 1. **Front door** (ordinary web page on the root domain) | "This is the last page a web server will send you." Three short lines on what happens next, a progress line as Antnet Start arrives from the network, then an **Enter** button. | The handover from the old web to the new one, and it hides the slowest wait behind reading time. |
-| 2. **Antnet Start** (the hub), at `start.antnet.autonomirror.com` | A calm directory of four sites. Under the title, a receipt: where this page came from, in real numbers. Each card shows its site arriving in the background, then "Ready". | Sites come from the network as a few verified records. |
+| 2. **Antnet Start** (the hub), at `start.antnet.autonomirror.com` | A calm directory of five sites. Under the title, a receipt: where this page came from, in real numbers. Each card shows its site arriving in the background, then "Ready". | Sites come from the network as a few verified records. |
 | 3. **Any site** | Opens at once, because it was fetched while they read. It is a different website with its own look and its own short address: `docs.antnet.autonomirror.com`, `cinema.antnet.autonomirror.com`. | This is a web of independent sites, not one app. |
 | 4. **Where it came from** | Start's "Where this page came from" panel: the records that made up the page and the nodes that served them. Technical visitors can open their browser's developer tools and see that no web request fetched the site's content. | There really is no server: the page came from many independent computers, and the browser can prove it. |
-| 5. **A new site appears** (live demos and the video) | The presenter publishes a site and updates Start. A line appears: "A newer version of this page is available." After a reload there is a fifth card. The earlier version of Start is still there at its own link. | Sites can be updated by their owner, and old versions don't disappear. |
+| 5. **A new site appears** (live demos and the video) | The presenter publishes a site and updates Start. A line appears: "A newer version of this page is available." After a reload there is a sixth card. The earlier version of Start is still there at its own link. | Sites can be updated by their owner, and old versions don't disappear. |
 | 6. **Your turn** | Three commands, the cost of the last publish, how to claim a short name, and a link to the repository. | It is open to them, down to a name of their own. |
 
 ---
@@ -99,7 +99,27 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
 - **Surprise:** "This shelf has no server behind it."
 - **Check:** the books chosen are public domain where the audience is, not only in the US, and Standard Ebooks' own logo and name aren't used as branding.
 
-### 3.6 The guest site — published during the demo
+### 3.6 Download Button — Autonomirror on Antnet
+
+*The current Autonomirror proof of concept (the download page and the button generator), published as an Antnet site, without sign-in, uploads or payments. The Autonomirror MVP spec, section 20, covers it from that side.*
+
+- **Name:** `download`, so `download.antnet.autonomirror.com`. Download links look like `download.antnet.autonomirror.com/f/ant/<address>?n=<name>&s=<size>`.
+- **What it shows:** a download page for files on Autonomi that is itself on Autonomi. Neither the file nor the page is sent by a server; the browser fetches both from the network and checks them. And anyone can make a button for their own file.
+- **How:**
+  - The page bundles the browser SDK, like Cinema (archive about 7 MB, within four records).
+  - `"spa": true`, so every `/f/ant/…` path serves the page with its query string kept, and reloads and deep links work. Old `/d/?a=…` links are redirected by the page.
+  - **Chrome and Edge** save through the save picker with `streamAndSave()`, which must stay the first thing awaited in the click handler. **Other browsers** use the buffered download, up to the SDK's 1 GB default.
+  - A media preview, if the page has one, uses the loader's merged media bridge (section 5.8). If the page uses its own service worker to stream saves in Firefox or Safari, that worker's handler is merged into the loader's worker the same way: an origin can have only one.
+  - The generator's base URL for links and embed codes is a build setting, set to `https://download.antnet.autonomirror.com`.
+- **Files to download in the demo:**
+  - **Cinema** gets a "Download this film" button made with the generator, so the demo shows an embed in use. The film is large, so on stage it only starts.
+  - **Library** gets a "Download as EPUB" button for one book (Standard Ebooks publishes EPUBs of its public-domain editions; upload one as a public file). It finishes in seconds and shows the verified hash.
+- **Removal list:** if the current site checks Autonomirror's list of removed files, the Antnet version fetches it live from autonomirror.com (which must allow the Antnet origin with CORS). It is never baked into the archive, because older versions of the page stay readable and can't be updated. What happens when the list can't be fetched is an open decision (section 11).
+- **Surprise:** a line under the button: "This page and this file both came from the Autonomi network. Free to download." After a download, the page shows the hashes it checked.
+- **Wording:** Autonomirror's rules apply: "free to download", never "free mirror", "forever" or "can't be taken down".
+- **Checks:** a cold open of a `/f/ant/…` link; a reload on that link; a save through the picker in Chrome; a buffered download in Firefox and Safari; the hash shown matches the file's published SHA-256; the generator's snippets point at the Antnet address.
+
+### 3.7 The guest site — published during the demo
 
 - **Content:** a single page, "Hello from 14 November", made in front of the audience.
 - **What it shows:** how little it takes to publish, and Start updating to include it (journey step 5). It gets the name `hello` by the same claim route visitors use (section 5.9).
@@ -129,7 +149,7 @@ Every site has a small "Antnet Start" link in its header, written as a portable 
 
 ### 4.3 One look per site
 
-Different type and colour for each site, the same quiet footer on all. Light and dark themes. No trackers, no external fonts or scripts: everything a site needs is in its archive, so nothing on any page comes from anywhere but the network.
+Different type and colour for each site, the same quiet footer on all. Light and dark themes. No trackers, no external fonts or scripts: everything a site needs is in its archive, so nothing on any page comes from anywhere but the network. The two exceptions are reads from Autonomi itself (Cinema's film, the Download Button's files) and the Download Button's removal list, if it keeps one.
 
 ### 4.4 Fine print (on Start)
 
@@ -256,6 +276,7 @@ Addresses on the network are 64 characters long, which is right for checking con
 | `colonysim` | ColonySim | its archive address |
 | `cinema` | Cinema | its archive address |
 | `library` | Library | its archive address |
+| `download` | Download Button | its archive address |
 | `hello` | The guest site | claimed live (journey step 5) |
 
 **Rules for every name**
@@ -331,8 +352,8 @@ A site's address is the hash of its contents, links included, so two sites can't
 
 ```
                     start.antnet.autonomirror.com  (pointer, so its owner can update it)
-           links by name to   docs · colonysim · cinema · library
-                               │       │        │         │
+           links by name to   docs · colonysim · cinema · library · download
+                               │       │        │         │          │
            each links back by name to  start
 ```
 
@@ -374,13 +395,14 @@ A site's address is the hash of its contents, links included, so two sites can't
 | 0:40 | Cards turning to "Ready". Open the Docs, search for something. | "A normal docs site, built with normal tools." |
 | 1:00 | ColonySim. Drop food, watch trails form. | "And real apps. This one saves itself in the browser." |
 | 1:20 | Cinema. Press play; it starts in a few seconds. Drag the playhead to the middle, then near the end. | "A full-length film in HD, streaming straight from the network. No video host, and its publisher pays nothing more however many people watch." |
-| 1:35 | Back to Start. Open "Where this page came from". Optionally, developer tools: the Network tab shows no request for the site's content. | "No server. This page came from these computers on the Autonomi network, and the browser checked every piece." |
-| 2:00 | Terminal: pack and upload the guest site, claim `hello`, update Start's pointer. | "Publishing is three commands, and you pay once. And it gets a name, like any website." |
-| 2:30 | Start shows "A newer version is available". Reload: fifth card. Open "Earlier versions". | "The owner can update a site. The old version is still there." |
-| 2:40 | Open `hello.antnet.autonomirror.com`. Press Alt+Shift+A, type `library`, Enter. | "And getting around works like the web: type a name, and you're there." |
-| 2:50 | "Publish your own" section. | "What would you put here?" |
+| 1:35 | Library. Press "Download as EPUB": the download page opens, saves the book in seconds and shows the hash it checked. | "A download page that is itself on the network. Neither the page nor the file came from a server. Anyone can make one of these buttons." |
+| 1:50 | Back to Start. Open "Where this page came from". Optionally, developer tools: the Network tab marks every file of the site as served by the service worker, none by a web server. | "No server. This page came from these computers on the Autonomi network, and the browser checked every piece." |
+| 2:10 | Terminal: pack and upload the guest site, claim `hello`, update Start's pointer. | "Publishing is three commands, and you pay once. And it gets a name, like any website." |
+| 2:35 | Start shows "A newer version is available". Reload: sixth card. Open "Earlier versions". | "The owner can update a site. The old version is still there." |
+| 2:45 | Open `hello.antnet.autonomirror.com`. Press Alt+Shift+A, type `library`, Enter. | "And getting around works like the web: type a name, and you're there." |
+| 2:55 | "Publish your own" section. | "What would you put here?" |
 
-The upload, the name check and the pointer update take real time. In a recording, cut them. Live, start them before the 1:35 step and narrate over the wait.
+The upload, the name check and the pointer update take real time. In a recording, cut them. Live, start them before the 1:50 step and narrate over the wait.
 
 ---
 
@@ -389,7 +411,7 @@ The upload, the name check and the pointer update take real time. In a recording
 - **The link:** the root domain (the front door). After Enter, visitors land on `start.antnet.autonomirror.com`.
 - **A 90-second screen recording** of section 7, captioned, no voice needed. It is also the fallback for people whose network blocks the connection.
 - **One still image:** Start with the receipt and all cards "Ready".
-- **Two sentences for a post:** "Five websites with no web server behind them. Your browser fetches each one directly from the Autonomi network and checks it."
+- **Two sentences for a post:** "Six websites with no web server behind them, including a download page. Your browser fetches each one directly from the Autonomi network and checks it."
 - **For the Autonomi community:** the measurements, the repository, and an invitation to publish a site, claim a name for it, and have it listed on Start.
 
 ---
@@ -404,7 +426,8 @@ The upload, the name check and the pointer update take real time. In a recording
 - [ ] Start's update notice appears after a pointer update, and "Earlier versions" opens v1.
 - [ ] The `ant` keyword works in Chrome and Firefox, and Alt+Shift+A opens the in-page bar on every demo site.
 - [ ] Licence and credit lines present: Docs (MIT/Apache, source and commit, "Unofficial mirror"), Cinema (Blender Foundation, CC BY 3.0), Library (public-domain status).
-- [ ] Every archive under 12 MiB; no site requests anything from outside its own archive, except Cinema's stream from Autonomi.
+- [ ] Every archive under 12 MiB; no site requests anything from outside its own archive, except reads from Autonomi (Cinema, Download Button) and the Download Button's removal list.
+- [ ] Download Button: the checks in section 3.6, plus the EPUB and film buttons on Library and Cinema.
 - [ ] Cinema: ten cold plays in Chromium; note time to first frame and to each seek. Ten minutes of continuous playback in Chrome, Firefox and Safari.
 - [ ] Every hand-picked name opens its site, and a test claim goes through the GitHub form and Action end to end, including a rejected one.
 - [ ] `publish/start.key` backed up somewhere other than the laptop.
@@ -417,7 +440,7 @@ The upload, the name check and the pointer update take real time. In a recording
 2. **Hosting** on a real wildcard domain, with **name resolution and the hand-picked `names.json`** (section 5.9). Names simplify every link after this.
 3. **Warm-up and the front door.** This decides how slick the demo can be, so test it early.
 4. **Non-blocking updates** and the update notice.
-5. **Cinema streaming first** (section 5.8): it is the riskiest piece and the most impressive, so prove it early. **Then ColonySim and Docs.**
+5. **Cinema streaming first** (section 5.8): it is the riskiest piece and the most impressive, so prove it early. **Then the Download Button** (it reuses the same SDK setup), **ColonySim and Docs.**
 6. **Loading screen, "can't connect" page and the address bar** (section 5.7): the OpenSearch keyword first, as it is small, then the in-page shortcut.
 7. **The name claim form and Action**, tested with a throwaway site.
 8. **Checks, recording, share.**
@@ -425,6 +448,7 @@ The upload, the name check and the pointer update take real time. In a recording
 ## 11. Open decisions
 
 - ~~**Domain** for the demo.~~ Decided 11 November: the loader root is `antnet.autonomirror.com`, on the user's VPS. (`antnet.site` was considered; it isn't owned.)
+- **Download Button removal list:** when the list can't be fetched, fail closed everywhere (as the Autonomirror MVP does), or only on `antnet.autonomirror.com` and warn on other loaders? See the Autonomirror MVP spec, section 20.
 - **Names policy:** are a GitHub account and a one-claim-a-day limit the right bar for the demo, and is 14 days the right release period for a name whose site stops claiming it?
 - **Address bar shortcut:** is Alt+Shift+A the right default, and should the in-page bar be on for every site or only for sites that opt in?
 - ~~**Is Colony the right app?**~~ Decided: keep the simulation, named ColonySim.
