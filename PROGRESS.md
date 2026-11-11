@@ -299,11 +299,26 @@ The user agreed to the redesign after the Safari result.
   - **Safari, first visit** (after clearing Start's data on its info page): the loading screen and front door show, become ready, and Enter opens Start instantly.
   - **So the front door works in Chrome, Brave, Firefox and Safari.** The WebKit return-visit failure seen locally was specific to `localhost`.
 
+- **Safari, `?open=library` after visiting the Library:** works. Both WebKit failures seen locally were artefacts of `*.localhost`.
+
+## Non-blocking updates (DEMO.md 5.3; built 2026-11-11, late; not yet deployed)
+
+- **The service worker no longer holds navigations for due checks** (the old Rule 4 is removed). An installed site is always served at once.
+- **The check script:** for pointer and named sites, the worker adds `<script src="/_autonomi/check.js" defer>` as the first element of each HTML page's `<head>`, and serves that script itself (`src/check-client.js`, bundled raw into the worker). It is loader code, and the info page says so in a new "Updates" row.
+- **How the check runs:** about 1 s after the page loads, the script opens `/_autonomi/check` in a hidden frame on the **site's own origin**, so it shares storage in every browser, Safari included.
+  - The shell there runs `checkForUpdate()` if a check is due. That function re-reads `names.json` for named sites, then reads the pointer within `BACKGROUND_CHECK_BUDGET_MS` (30 s), installs any new version and records the outcome.
+  - It reports `updated`, `no-change`, `removed`, `not-due` or `not-installed` to the page.
+- **What the visitor sees:** `updated` shows a notice, "A newer version of this page is available. [Reload]"; `removed` shows "This site's name has been removed from the directory." The notice is in an open shadow root and styled through CSSOM, so a site policy of `style-src 'self'` allows it.
+- **Info page:** "Check for a new version now" runs `checkForUpdate()` on the spot and shows the outcome there.
+- **Removed:** the blocking `updateCheck` and `nameCheck`. A hard reload of an installed site just hands back to the worker.
+- **Tests:** `m3.spec.ts` and the names due-check tests were rewritten for background semantics. Helpers `readState`, `expireCheck`, `waitForCheck` and `updateNotice` are in `helpers.ts`.
+  - **Results:** Chromium 67/67, unit 74, and Firefox all pass. WebKit passes too, apart from the interception-based tests, which are skipped there with `INTERCEPT`.
+- **Not handled:** a site whose own CSP blocks same-origin frames, or the script, won't get background checks (there is no blocking fallback any more). The demo sites allow both.
+
 ### Next
 
-1. **Optional Safari check:** `https://antnet.autonomirror.com/?open=library` after visiting the Library.
+1. **The user deploys** (`deploy.ps1`; no nginx change). Then check on the live loader that Start opens at once when a check is due, and that the check is recorded afterwards.
 2. **In DEMO.md section 10's order:**
-   - **Non-blocking updates:** Start's hourly check holds the page for about 15–20 s.
    - **A design pass on the front door:** a good job for Fable.
    - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
    - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.

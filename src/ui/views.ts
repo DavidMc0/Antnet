@@ -260,7 +260,8 @@ export interface InfoOptions {
   label: string;
   state: SiteState | null;
   sourceName: string;
-  onCheck(): void;
+  /** Runs a check and re-renders the page with the outcome. */
+  onCheck(): Promise<void>;
   /** Clears storage and re-renders the page (with a status message). */
   onClear(): Promise<void>;
   status?: string;
@@ -355,6 +356,14 @@ export function showInfo(opts: InfoOptions): void {
           state.records !== undefined ? row("Records", `${state.records + 1} (${state.records} chunks + DataMap)`) : null,
           row("Installed", formatTime(state.installedAt)),
           canChange ? row("Last checked", formatTime(state.checkedAt)) : null,
+          canChange
+            ? row(
+                "Updates",
+                "Checked in the background, at most once an hour. For this, the loader adds one small " +
+                  "script of its own to this site's pages (/_autonomi/check.js).",
+                "updates",
+              )
+            : null,
           row(
             "Install timings",
             `connect ${formatMs(t?.connectMs)} · resolve ${formatMs(t?.resolveMs)} · download ${formatMs(
@@ -396,7 +405,19 @@ export function showInfo(opts: InfoOptions): void {
       h(
         "div",
         { class: "actions" },
-        canChange && state ? h("button", { onclick: opts.onCheck }, "Check for a new version now") : null,
+        canChange && state
+          ? h(
+              "button",
+              {
+                onclick: (e: Event) => {
+                  (e.currentTarget as HTMLButtonElement).disabled = true;
+                  status.textContent = "Checking… (reading a pointer can take 20 seconds)";
+                  opts.onCheck().catch((err) => (status.textContent = `Couldn't check: ${err}`));
+                },
+              },
+              "Check for a new version now",
+            )
+          : null,
         h(
           "button",
           {

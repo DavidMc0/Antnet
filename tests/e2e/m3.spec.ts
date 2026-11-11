@@ -1,66 +1,61 @@
-// Milestone M3 behaviour against the fixture source: pointer update checks (spec 3.4).
+// Milestone M3 against the fixture source: pointer update checks (spec 3.4), which since
+// 11 November 2026 run in the background (DEMO.md 5.3). A due check never holds the page:
+// the installed site is served at once, the loader's script in the page checks afterwards
+// in a hidden same-origin frame, and a new version brings a notice offering a reload.
 
-import { type Page, expect, test } from "@playwright/test";
-import { fixture, install, siteUrl } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { expireCheck, fixture, install, readState, siteUrl, updateNotice, waitForCheck } from "./helpers";
+
+/** Playwright's request interception doesn't reach requests made through WebKit's service worker. */
+const INTERCEPT = "request interception doesn't reach WebKit's service worker";
 
 const POINTER = "spa (pointer)";
 
-/** Make the installed site's pointer check due, by moving checkedAt into the past. */
-async function expireCheck(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const cache = await caches.open("autonomi-loader-meta");
-    const res = await cache.match("/_autonomi/state.json");
-    if (!res) throw new Error("nothing installed");
-    const state = await res.json();
-    state.checkedAt = 0;
-    await cache.put(
-      "/_autonomi/state.json",
-      new Response(JSON.stringify(state), { headers: { "Content-Type": "application/json" } }),
-    );
-  });
-}
-
-async function readState(page: Page): Promise<{ archive: string; checkedAt: number; lastCheck?: { outcome: string } }> {
-  return page.evaluate(async () => {
-    const res = await (await caches.open("autonomi-loader-meta")).match("/_autonomi/state.json");
-    return res!.json();
-  });
-}
-
-test("a due check with no new version records the check and serves the cached site", async ({ page }) => {
+test("a due check with no new version runs in the background and records it", async ({ page }) => {
   await install(page, POINTER, "#view");
   await expireCheck(page);
+  const since = Date.now();
   await page.reload();
-  await expect(page.locator("#view")).toHaveText("Home", { timeout: 15_000 });
-  const state = await readState(page);
-  expect(state.archive).toBe(fixture("spa").address);
-  expect(state.lastCheck?.outcome).toBe("no change");
-  expect(Date.now() - state.checkedAt).toBeLessThan(60_000);
+  await expect(page.locator("#view")).toHaveText("Home");
+  const state = await waitForCheck(page, since);
+  expect(state?.lastCheck?.outcome).toBe("no change");
+  expect(state?.archive).toBe(fixture("spa").address);
+  expect(Date.now() - (state?.checkedAt ?? 0)).toBeLessThan(60_000);
+  await expect(updateNotice(page)).toHaveCount(0);
 });
 
-test("a re-pointed pointer installs the new version on the next due check", async ({ page, context }) => {
+test("a re-pointed pointer is installed in the background, and the page offers a reload", async ({ page, context, browserName }) => {
+  test.skip(browserName === "webkit", INTERCEPT);
   await install(page, POINTER, "#view");
   // Re-point: the pointer now targets the plain site's archive.
   const pointerFile = `/_autonomi/fixtures/pointers/${fixture(POINTER).address}.json`;
   await context.route(`**${pointerFile}`, (route) =>
     route.fulfill({ json: { kind: "chunk", target: fixture("plain").address } }),
   );
-  // Not due yet: still the old version, and no pointer read.
+  // Not due yet: the old version, and no notice.
   await page.reload();
   await expect(page.locator("#view")).toHaveText("Home");
 
   await expireCheck(page);
+  const since = Date.now();
   await page.reload();
+  // The installed version is served at once; the check runs afterwards.
+  await expect(page.locator("#view")).toHaveText("Home");
+  const state = await waitForCheck(page, since);
+  expect(state?.lastCheck?.outcome).toBe("new version installed");
+  expect(state?.archive).toBe(fixture("plain").address);
+
+  const notice = updateNotice(page);
+  await expect(notice).toHaveAttribute("data-antnet-notice", "update");
+  await expect(notice.getByRole("status")).toContainText("A newer version of this page is available.");
+  await notice.getByRole("button", { name: "Reload" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-page", "home", { timeout: 15_000 });
-  const state = await readState(page);
-  expect(state.archive).toBe(fixture("plain").address);
-  expect(state.lastCheck?.outcome).toBe("new version installed");
   // The old archive's cache is gone.
   const names = await page.evaluate(() => caches.keys());
   expect(names.filter((n) => n.startsWith("site-v1-"))).toEqual([`site-v1-${fixture("plain").address}`]);
 });
 
-test("a slow check falls back to the cached site within the budget", async ({ page }) => {
+test("a slow check never holds the page, and gives up within its budget", async ({ page }) => {
   await install(page, POINTER, "#view");
   await expireCheck(page);
   // A short budget keeps the test fast; the fixture source waits past it in connect().
@@ -68,26 +63,28 @@ test("a slow check falls back to the cached site within the budget", async ({ pa
     sessionStorage.setItem("checkBudgetMs", "3000");
     sessionStorage.setItem("fixtureDelay", "8000");
   });
-  const started = Date.now();
+  const since = Date.now();
   await page.reload();
-  await expect(page.locator("#view")).toHaveText("Home", { timeout: 15_000 });
-  const elapsed = Date.now() - started;
-  expect(elapsed).toBeLessThan(5_500);
-  const state = await readState(page);
-  expect(state.lastCheck?.outcome).toBe("timed out");
+  await expect(page.locator("#view")).toHaveText("Home");
+  expect(Date.now() - since).toBeLessThan(2_500);
+  const state = await waitForCheck(page, since);
+  expect(state?.lastCheck?.outcome).toBe("timed out");
   // Next check due in about 10 minutes, not a full hour.
-  const dueIn = state.checkedAt + 60 * 60 * 1000 - Date.now();
+  const dueIn = (state?.checkedAt ?? 0) + 60 * 60 * 1000 - Date.now();
   expect(dueIn).toBeGreaterThan(9 * 60 * 1000);
   expect(dueIn).toBeLessThan(11 * 60 * 1000);
 });
 
-test("a failed check falls back to the cached site", async ({ page, context }) => {
+test("a failed check keeps the installed site and says so", async ({ page, context, browserName }) => {
+  test.skip(browserName === "webkit", INTERCEPT);
   await install(page, POINTER, "#view");
   await context.route("**/_autonomi/fixtures/pointers/**", (route) => route.fulfill({ status: 500, body: "down" }));
   await expireCheck(page);
+  const since = Date.now();
   await page.reload();
-  await expect(page.locator("#view")).toHaveText("Home", { timeout: 15_000 });
-  expect((await readState(page)).lastCheck?.outcome).toMatch(/^failed/);
+  await expect(page.locator("#view")).toHaveText("Home");
+  expect((await waitForCheck(page, since))?.lastCheck?.outcome).toMatch(/^failed/);
+  await expect(updateNotice(page)).toHaveCount(0);
 });
 
 test("an expired check with the network offline serves the cached site", async ({ page, context }) => {
@@ -99,7 +96,7 @@ test("an expired check with the network offline serves the cached site", async (
   await context.setOffline(false);
 });
 
-test("immutable links never check", async ({ page, context }) => {
+test("immutable links never check, and get no loader script", async ({ page, context }) => {
   let pointerReads = 0;
   await context.route("**/_autonomi/fixtures/pointers/**", (route) => {
     pointerReads++;
@@ -109,16 +106,29 @@ test("immutable links never check", async ({ page, context }) => {
   await expireCheck(page);
   await page.reload();
   await expect(page.locator("#view")).toHaveText("Home");
+  await page.waitForTimeout(2000);
   expect(pointerReads).toBe(0);
+  expect(await page.locator('script[src="/_autonomi/check.js"]').count()).toBe(0);
 });
 
-test("the info page's check-now action runs a check", async ({ page }) => {
+test("pointer sites get the loader's check script, first in <head>", async ({ page }) => {
+  await install(page, POINTER, "#view");
+  const first = await page.evaluate(() => document.head.firstElementChild?.getAttribute("src"));
+  expect(first).toBe("/_autonomi/check.js");
+  const res = await page.request.get(siteUrl(POINTER, "/_autonomi/check.js"));
+  // Fetched outside the page, the request reaches the host, not the worker; in the page it
+  // is the worker's own script.
+  void res;
+  const type = await page.evaluate(async () => (await fetch("/_autonomi/check.js")).headers.get("Content-Type"));
+  expect(type).toContain("javascript");
+});
+
+test("the info page's check-now action runs a check there and then", async ({ page }) => {
   await install(page, POINTER, "#view");
   await page.goto(siteUrl(POINTER, "/_autonomi/"));
   await page.getByRole("button", { name: "Check for a new version now" }).click();
-  await expect(page.locator("#view")).toHaveText("Home", { timeout: 15_000 });
-  await page.goto(siteUrl(POINTER, "/_autonomi/"));
-  await expect(page.locator("[data-view=info]")).toContainText("no change");
+  await expect(page.locator(".status")).toContainText("Checked: no change.", { timeout: 15_000 });
+  await expect(page.getByTestId("updates")).toContainText("/_autonomi/check.js");
 });
 
 test("the info page's clear action removes the site", async ({ page }) => {
@@ -131,4 +141,5 @@ test("the info page's clear action removes the site", async ({ page }) => {
     workers: (await navigator.serviceWorker.getRegistrations()).length,
   }));
   expect(left).toEqual({ caches: [], workers: 0 });
+  expect(await readState(page)).toBeNull();
 });

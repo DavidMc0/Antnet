@@ -7,6 +7,10 @@ export const STATE_PATH = "/_autonomi/state.json";
 export const SITE_CACHE_PREFIX = "site-v1-";
 /** A site's front door: shown while it installs, skipped once it is installed. */
 export const DOOR_PATH = "/_autonomi/door";
+/** The background update check, opened in a hidden frame by the loader's script in a page. */
+export const CHECK_PATH = "/_autonomi/check";
+/** That script, served by the service worker and added to pointer and named sites' pages. */
+export const CHECK_SCRIPT_PATH = "/_autonomi/check.js";
 
 /** Largest archive the loader will download (spec 5.1). */
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
@@ -40,13 +44,28 @@ export const CHECK_BUDGET_MS = 25_000;
  * and measurements. A page can only change how long its own visitor waits.
  */
 export function checkBudgetMs(): number {
+  return budgetOverride() ?? CHECK_BUDGET_MS;
+}
+
+/**
+ * Time budget for a background update check (DEMO.md 5.3). Nobody waits for it, so it can be
+ * longer than a blocking check; the first pointer read on a new connection takes 17–20 s.
+ * The same sessionStorage "checkBudgetMs" overrides it.
+ */
+export const BACKGROUND_CHECK_BUDGET_MS = 30_000;
+
+export function backgroundBudgetMs(): number {
+  return budgetOverride() ?? BACKGROUND_CHECK_BUDGET_MS;
+}
+
+function budgetOverride(): number | undefined {
   try {
     const v = Number(sessionStorage.getItem("checkBudgetMs"));
     if (Number.isSafeInteger(v) && v >= 1_000 && v <= 60_000) return v;
   } catch {
     // No storage: use the default.
   }
-  return CHECK_BUDGET_MS;
+  return undefined;
 }
 /** After a failed check, the next one is due after this long. */
 export const CHECK_RETRY_MS = 10 * 60 * 1000;

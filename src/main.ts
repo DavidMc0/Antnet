@@ -3,12 +3,13 @@
 import "./ui/style.css";
 import {
   CHECK_INTERVAL_MS,
+  CHECK_PATH,
   CHECK_RETRY_MS,
   MAX_AUTO_RELOADS,
   RELOAD_WINDOW_MS,
   DOOR_PATH,
   SW_PATH,
-  checkBudgetMs,
+  backgroundBudgetMs,
   maxArchiveBytes,
 } from "./config";
 import {
@@ -298,75 +299,127 @@ function withBudget<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Pr
   });
 }
 
-async function updateCheck(state: SiteState, link: SiteLink, root: string): Promise<void> {
-  const view = showLoading(link, "Checking for a new version…");
-  view.step("Reading the pointer…");
+/** What an update check found. */
+interface CheckResult {
+  outcome: string;
+  /** A new version was installed. */
+  changed: boolean;
+  /** The site's name was removed from the directory; the site is no longer installed. */
+  removed: boolean;
+}
+
+/**
+ * One update check, with no UI (DEMO.md 5.3). For a named site, re-read the directory first
+ * (a quick request to the host): a changed entry installs what it now points to, a removed
+ * name uninstalls the site. Then, for a pointer, read the pointer within the time budget and
+ * install the new archive if it moved. Records the outcome in the state record either way.
+ */
+async function checkForUpdate(state: SiteState, budgetMs: number): Promise<CheckResult> {
   const started = performance.now();
   const now = Date.now();
+  let current = state;
+  const record = async (outcome: string, checkedAt = now): Promise<CheckResult> => {
+    await writeState(location.origin, { ...current, checkedAt, lastCheck: { at: now, ms: since(started), outcome } });
+    return { outcome, changed: false, removed: false };
+  };
+  // After a failure the next check is due after CHECK_RETRY_MS rather than a full interval.
+  const failed = (outcome: string) => record(outcome, now - CHECK_INTERVAL_MS + CHECK_RETRY_MS);
+  const installed = async (): Promise<CheckResult> => {
+    const fresh = await readState(location.origin);
+    if (fresh) {
+      await writeState(location.origin, { ...fresh, lastCheck: { at: now, ms: since(started), outcome: "new version installed" } });
+    }
+    return { outcome: "new version installed", changed: true, removed: false };
+  };
+
+  if (state.name) {
+    let entry: NameEntry | undefined;
+    try {
+      entry = (await fetchNames()).get(state.name);
+    } catch (e) {
+      console.warn("[autonomi-loader] name check failed", e);
+      return failed(`failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    if (!entry) {
+      // The name was removed from the directory: stop serving what it used to lead to.
+      await deleteOtherSiteCaches(null);
+      await clearState(location.origin);
+      return { outcome: "name removed", changed: false, removed: true };
+    }
+    current = { ...state, nameSince: entry.since };
+    if (!sameLink(entry, state.link)) {
+      // The name leads somewhere else now: install that, whatever kind of link it is.
+      const ok = await new Promise<string | null>((resolve) => {
+        void install({ kind: entry.kind, address: entry.address }, location.hostname, { name: state.name!, since: entry.since }, {
+          step: () => {},
+          progress: () => {},
+          done: () => resolve(null),
+          fail: (title, message) => resolve(`${title}: ${message}`),
+        });
+      });
+      return ok === null ? installed() : failed(`failed: ${ok}`);
+    }
+    if (state.link.kind === "i") return record("no change");
+  }
+
   let source: SiteSource | null = null;
-  let outcome: string;
-  let checkedAt = now;
   try {
     source = await createSource();
     const s = source;
     let connectMs: number | undefined;
     let resolveMs: number | undefined;
-    const target = await withBudget(checkBudgetMs(), async (signal) => {
+    const target = await withBudget(budgetMs, async (signal) => {
       let t = performance.now();
       await s.connect?.(signal);
       connectMs = since(t);
       t = performance.now();
-      const found = await s.resolvePointer(link.address, signal);
+      const found = await s.resolvePointer(state.link.address, signal);
       resolveMs = since(t);
       return found;
     });
-    const checkMs = since(started);
-    if (target === state.archive) {
-      outcome = "no change";
-    } else {
-      view.step("Downloading the new version…");
-      const timings: Timings = { connectMs, resolveMs };
-      let t = performance.now();
-      const result = await s.fetchArchive(target, {
-        maxBytes: maxArchiveBytes(),
-        onProgress: (done, total, unit) => view.progress(done, total, unit),
-      });
-      timings.downloadMs = since(t);
-      view.step("Installing…");
-      const installed = await installArchive({
-        origin: location.origin,
-        link,
-        name: state.name,
-        nameSince: state.nameSince,
-        archive: target,
-        blake3: result.blake3,
-        bytes: result.bytes,
-        records: result.chunks,
-        recordList: result.recordList,
-        arrivals: result.arrivals,
-        timings,
-        startedAt: started,
-      });
-      installed.lastCheck = { at: now, ms: checkMs, outcome: "new version installed" };
-      await writeState(location.origin, installed);
-      resetReloadGuard();
-      guardedReload(link, root);
-      return;
-    }
+    if (target === state.archive) return record("no change");
+    const timings: Timings = { connectMs, resolveMs };
+    const t = performance.now();
+    const result = await s.fetchArchive(target, { maxBytes: maxArchiveBytes() });
+    timings.downloadMs = since(t);
+    await installArchive({
+      origin: location.origin,
+      link: state.link,
+      name: current.name,
+      nameSince: current.nameSince,
+      archive: target,
+      blake3: result.blake3,
+      bytes: result.bytes,
+      records: result.chunks,
+      recordList: result.recordList,
+      arrivals: result.arrivals,
+      timings,
+      startedAt: started,
+    });
+    return installed();
   } catch (e) {
     console.warn("[autonomi-loader] update check failed", e);
-    outcome = e instanceof BudgetError ? "timed out" : `failed: ${describeError(e).message}`;
-    // Next check is due after CHECK_RETRY_MS rather than a full interval.
-    checkedAt = now - CHECK_INTERVAL_MS + CHECK_RETRY_MS;
+    return failed(e instanceof BudgetError ? "timed out" : `failed: ${describeError(e).message}`);
   } finally {
     source?.close();
   }
-  await writeState(location.origin, {
-    ...state,
-    checkedAt,
-    lastCheck: { at: now, ms: since(started), outcome },
-  });
-  guardedReload(link, root);
+}
+
+/**
+ * The background check (DEMO.md 5.3), at /_autonomi/check in a hidden frame on the site's own
+ * origin. The loader's script in the site's pages (/_autonomi/check.js, added by the service
+ * worker) opens it once the page has loaded. Being same-origin, it shares the site's storage
+ * in every browser. It reports to the page, which offers a reload when there is a new version.
+ */
+async function backgroundCheck(): Promise<void> {
+  const post = (status: string, outcome?: string) => {
+    if (window.parent !== window) window.parent.postMessage({ type: "antnet:check", status, outcome }, location.origin);
+  };
+  const state = await readState(location.origin);
+  if (!state) return post("not-installed");
+  if (!checkDue(state, Date.now())) return post("not-due");
+  const r = await checkForUpdate(state, backgroundBudgetMs());
+  post(r.removed ? "removed" : r.changed ? "updated" : "no-change", r.outcome);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -384,8 +437,8 @@ function unknownName(name: string, root: string): void {
 /** Open a named site: use what is installed, or look the name up and install what it points to. */
 async function openByName(name: string, state: SiteState | null, root: string): Promise<void> {
   if (state && state.name === name) {
-    if (checkDue(state, Date.now())) return nameCheck(state, name, root);
-    // Installed and current, yet the host answered: one ordinary reload hands over to the worker.
+    // Installed, yet the host answered (a hard reload, or the worker wasn't in control yet):
+    // one ordinary reload hands over to the worker. Updates are checked in the background.
     return guardedReload(state.link, root);
   }
   let entry: NameEntry | undefined;
@@ -400,47 +453,6 @@ async function openByName(name: string, state: SiteState | null, root: string): 
   }
   if (!entry) return unknownName(name, root);
   return install({ kind: entry.kind, address: entry.address }, root, { name, since: entry.since });
-}
-
-/**
- * A due check on a named site. Re-read the directory first (an ordinary request to the host,
- * so it is quick): if the name now points somewhere else, install that. Otherwise carry on
- * with the pointer check, or for a fixed address just record that the check ran.
- */
-async function nameCheck(state: SiteState, name: string, root: string): Promise<void> {
-  const view = showLoading(state.link, "Checking for a new version…");
-  view.step("Reading the name directory…");
-  const started = performance.now();
-  const now = Date.now();
-  let entry: NameEntry | undefined;
-  try {
-    entry = (await fetchNames()).get(name);
-  } catch (e) {
-    console.warn("[autonomi-loader] name check failed", e);
-    await writeState(location.origin, {
-      ...state,
-      checkedAt: now - CHECK_INTERVAL_MS + CHECK_RETRY_MS,
-      lastCheck: { at: now, ms: since(started), outcome: `failed: ${e instanceof Error ? e.message : String(e)}` },
-    });
-    return guardedReload(state.link, root);
-  }
-  if (!entry) {
-    // The name was removed from the directory: stop serving what it used to lead to.
-    await deleteOtherSiteCaches(null);
-    await clearState(location.origin);
-    return unknownName(name, root);
-  }
-  if (!sameLink(entry, state.link)) {
-    return install({ kind: entry.kind, address: entry.address }, root, { name, since: entry.since });
-  }
-  const current: SiteState = { ...state, nameSince: entry.since };
-  if (state.link.kind === "p") return updateCheck(current, state.link, root);
-  await writeState(location.origin, {
-    ...current,
-    checkedAt: now,
-    lastCheck: { at: now, ms: since(started), outcome: "no change" },
-  });
-  guardedReload(state.link, root);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -476,9 +488,14 @@ async function info(ident: Ident, label: string, status?: string): Promise<void>
     sourceName: source,
     status,
     onCheck: async () => {
-      if (state) await writeState(location.origin, { ...state, checkedAt: 0 });
-      resetReloadGuard();
-      location.assign("/");
+      if (!state) return;
+      const r = await checkForUpdate(state, backgroundBudgetMs());
+      const what = r.removed
+        ? "The name has been removed from the directory, so this site is no longer installed here."
+        : r.changed
+          ? "A new version was found and installed. Open the site to see it."
+          : `Checked: ${r.outcome}.`;
+      await info(ident, label, what);
     },
     onClear: async () => {
       for (const name of await caches.keys()) await caches.delete(name);
@@ -699,6 +716,7 @@ async function boot(): Promise<void> {
   if (url.pathname === "/_autonomi" || url.pathname === "/_autonomi/") return info(ident, label);
   if (url.pathname === WARM_PATH) return warm(host);
   if (url.pathname === DOOR_PATH) return door(host);
+  if (url.pathname === CHECK_PATH) return backgroundCheck();
   if (url.pathname.startsWith("/_autonomi/")) {
     showError("Not found", "This path belongs to the loader and has nothing here.", [homeAction(root)], shownLink);
     return;
@@ -716,7 +734,6 @@ async function boot(): Promise<void> {
 
   const link = host.link;
   if (!state || state.name || !sameLink(state.link, link)) return install(link, root);
-  if (checkDue(state, Date.now())) return updateCheck(state, link, root);
   // Installed and current, yet the host answered: a hard reload, or the worker wasn't
   // controlling this page yet. One ordinary reload hands over to the worker.
   guardedReload(link, root);

@@ -2,10 +2,11 @@
 // The loader's service worker (spec 3.3). Serves the installed site from Cache Storage and
 // never talks to Autonomi. Built as one self-contained classic script.
 
-import { CHECK_INTERVAL_MS, DOOR_PATH, RESERVED_PREFIX, SW_PATH, siteCacheName } from "./config";
+import CHECK_SCRIPT from "./check-client.js?raw";
+import { CHECK_SCRIPT_PATH, DOOR_PATH, RESERVED_PREFIX, SW_PATH, siteCacheName } from "./config";
 import { classifyHost, goLinkTarget } from "./host";
 import { cachePathFor, parseRange, resolvePath } from "./site";
-import { checkDue, readState } from "./state";
+import { type SiteState, readState } from "./state";
 
 declare const self: ServiceWorkerGlobalScope;
 declare const __LOADER_ROOT__: string;
@@ -42,6 +43,16 @@ self.addEventListener("fetch", (event) => {
           state ? Response.redirect(new URL("/", url.origin).href, 302) : fetch(req),
         ),
       );
+    } else if (url.pathname === CHECK_SCRIPT_PATH) {
+      event.respondWith(
+        new Response(req.method === "HEAD" ? null : CHECK_SCRIPT, {
+          headers: {
+            "Content-Type": "text/javascript; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+          },
+        }),
+      );
     }
     return;
   }
@@ -56,14 +67,8 @@ async function handle(req: Request, url: URL): Promise<Response> {
   // Rule 3: nothing installed; the host returns the shell, which installs the site.
   if (!state) return fetch(req);
 
-  // Rule 4: a pointer link whose check is due lets one navigation through to the shell.
-  if (req.mode === "navigate" && checkDue(state, Date.now(), CHECK_INTERVAL_MS)) {
-    try {
-      return await fetch(req);
-    } catch {
-      // Offline: fall through to the cached site.
-    }
-  }
+  // Rule 4 (until 11 November 2026, a due check held one navigation for the shell) is gone:
+  // updates are checked in the background (DEMO.md 5.3), so the site is always served at once.
 
   // Rule 5: serve from the site cache.
   const cache = await caches.open(siteCacheName(state.archive));
@@ -87,9 +92,36 @@ async function handle(req: Request, url: URL): Promise<Response> {
     case "file": {
       const cached = await cache.match(lookup(resolution.path));
       if (!cached) return new Response("Not found", { status: 404 });
+      if (canChange(state) && isHtml(cached) && !req.headers.has("Range")) {
+        return withCheckScript(req, cached, resolution.status);
+      }
       return respondWithFile(req, cached, resolution.status);
     }
   }
+}
+
+/** A site whose content can change: a pointer link, or a short name (whose entry can move). */
+function canChange(state: SiteState): boolean {
+  return state.link.kind === "p" || state.name !== undefined;
+}
+
+function isHtml(res: Response): boolean {
+  return (res.headers.get("Content-Type") ?? "").startsWith("text/html");
+}
+
+/**
+ * An HTML page with the loader's update-check script added as the first thing in <head>
+ * (DEMO.md 5.3). It is served from the site's own origin, so a site policy of
+ * script-src 'self' allows it; a site whose policy blocks it just isn't checked.
+ */
+async function withCheckScript(req: Request, cached: Response, status: number): Promise<Response> {
+  const tag = `<script src="${CHECK_SCRIPT_PATH}" defer></script>`;
+  const html = await cached.text();
+  const head = /<head\b[^>]*>/i.exec(html);
+  const out = head ? html.slice(0, head.index + head[0].length) + tag + html.slice(head.index + head[0].length) : tag + html;
+  const headers = new Headers(cached.headers);
+  headers.delete("Content-Length");
+  return new Response(req.method === "HEAD" ? null : out, { status, headers });
 }
 
 async function respondWithFile(req: Request, cached: Response, status: number): Promise<Response> {
