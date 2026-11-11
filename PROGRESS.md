@@ -129,7 +129,34 @@ The CLI prints addresses with `0x`. The landing page, `link.mjs` and the mainnet
   - spa-v1 opened by its `i…` link at `/users/42` in 10.5 s, with download 8.8 s and connect 1.55 s (the WASM now comes over the internet);
   - the M3 pointer opened v2 in 23 s, with resolve 18.9 s.
 
+## Demo, step 1: Start and the Library (plumbing done, plain look; 2026-11-11)
+
+- **`sites/`** (see `sites/README.md`):
+  - `build.mjs` builds each site from `site.mjs` plus `static/`, adds the shared receipt and the Start link, and writes a strict CSP (`default-src 'self'`) into each settings file;
+  - `addresses.json` keeps track of uploads, and the build warns when a site has changed since it was uploaded;
+  - Start lists its earlier versions;
+  - `npm run sites` builds for mainnet into `publish/sites/`.
+- **The Library:** four Standard Ebooks texts (CC0), fetched by `sites/library/fetch-books.mjs` with Standard Ebooks' branding sections dropped. The archive is 835 kB.
+- **Start:**
+  - the receipt;
+  - the directory cards;
+  - "How this page reached you", with this visit's timings from the loader's state;
+  - Try this, Earlier versions, Publish your own and the fine print.
+- **Fixtures:** `tools/build-fixtures.mjs` builds the demo sites linked exactly as on mainnet: `demo: Antnet Start` (pointer) and `demo: The Library`.
+- **`tests/e2e/demo.spec.ts`** (5 tests; 41 in total, all passing):
+  - links both ways, with back and forward history (the M4 behaviour, on fixtures);
+  - receipt and timings;
+  - the full tour offline;
+  - the Library's 404;
+  - archive size.
+- **Checked:** no console errors or CSP violations on the demo pages.
+
 ### Next
 
-1. **M4** (links between sites): see the upload-order note in the M2 hand-off; one side must be a pointer.
-2. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe`.
+1. **Design pass** on Start and the Library, under the rules in `sites/README.md` (the user plans to use Fable 5.2).
+2. **Publish:** the user creates Start's key and runs `node sites/build.mjs record start-pointer <address>`, uploads the Library, then Start, then creates the pointer. This is M4 on mainnet.
+3. **Then, from DEMO.md section 10:**
+   - warm-up and the front door;
+   - non-blocking updates;
+   - ColonySim, Cinema and the Docs.
+4. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe` on the live host.

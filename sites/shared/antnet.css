@@ -1,0 +1,32 @@
+/* The two pieces every demo site shares: the Antnet Start link and the receipt.
+   Deliberately quiet, so each site's own look stays in charge. Each site's stylesheet
+   can override these. */
+
+.antnet-start {
+  font: 500 0.8125rem/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.75;
+}
+.antnet-start:hover,
+.antnet-start:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.antnet-receipt {
+  font: 0.8125rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  opacity: 0.8;
+  margin: 0;
+}
+.antnet-receipt[hidden] {
+  display: none;
+}
+.antnet-receipt strong {
+  font-weight: 600;
+}
+.antnet-address {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.95em;
+}

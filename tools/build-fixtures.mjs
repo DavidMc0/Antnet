@@ -28,8 +28,10 @@ async function addArchive(name, bytes, listed = true) {
   return address;
 }
 
+const pointerAddress = (name) => sha256(enc.encode(`fixture-pointer:${name}`));
+
 async function addPointer(name, kind, target, listed = true) {
-  const address = sha256(enc.encode(`fixture-pointer:${name}`));
+  const address = pointerAddress(name);
   await writeFile(join(OUT, "pointers", `${address}.json`), JSON.stringify({ kind, target }) + "\n");
   index[name] = { kind: "p", address, ...(listed ? {} : { listed: false }) };
   return address;
@@ -48,6 +50,22 @@ if (sites.plain) {
   const inner = await addPointer("plain (pointer, inner)", "chunk", sites.plain, false);
   await addPointer("plain (pointer chain)", "pointer", inner);
 }
+// 2b. The demo sites (sites/, DEMO.md), linked exactly as on mainnet but with fixture
+// addresses. Start's pointer address is known before Start exists, as on mainnet.
+{
+  const { CONTENT_SITES, buildContentSite, buildStart } = await import("../sites/build.mjs");
+  const START = "demo: Antnet Start";
+  const links = { startPointer: pointerAddress(START), sites: {} };
+  const shown = [];
+  for (const name of CONTENT_SITES) {
+    const built = await buildContentSite(name, links);
+    links.sites[name] = await addArchive(`demo: ${built.meta.title}`, built.tar);
+    shown.push({ name, meta: built.meta, bytes: built.bytes, address: links.sites[name] });
+  }
+  const start = await buildStart(links, shown, []);
+  await addPointer(START, "chunk", await addArchive("demo: Antnet Start (archive)", start.tar, false));
+}
+
 await addPointer("pointer-not-chunk", "graph_entry", "00".repeat(32), false);
 await addPointer("pointer-to-missing", "chunk", "ee".repeat(32), false);
 
