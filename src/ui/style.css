@@ -90,6 +90,27 @@ th { width: 34%; padding-right: 12px; font-weight: 500; color: var(--muted); }
 ul { padding-left: 20px; }
 a { color: var(--accent); }
 
+/* Warm-up frames: present and running, but out of sight and out of the way. */
+.warm-frame {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The front door. Plain for now; its design pass comes later. */
+.door h1 { font-size: 1.7rem; }
+.door-progress { margin-top: 20px; }
+.door-status { margin: 0 0 8px; color: var(--muted); }
+.door[data-door="ready"] .door-status { color: var(--text); font-weight: 500; }
+.door-enter { font-size: 1.1rem; padding: 10px 28px; }
+.door[data-door="working"] .door-enter { opacity: 0.75; }
+.door-more { margin-top: 16px; }
+
 /* Info page: the records a site arrived as. */
 table.records {
   margin-top: 0.5rem;

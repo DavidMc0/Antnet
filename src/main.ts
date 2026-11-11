@@ -23,12 +23,13 @@ import {
 } from "./host";
 import { NotASiteError, deleteOtherSiteCaches, installArchive } from "./install";
 import { type NameEntry, fetchNames } from "./names";
+import { WARM_PATH, type WarmMessage, warmInFrame, warmReporter } from "./warm";
 import { createSource } from "./source";
 import { type SiteSource, SourceError } from "./source/types";
 import { type SiteState, type Timings, checkDue, clearState, readState, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
 import { formatBytes } from "./ui/dom";
-import { showError, showInfo, showLanding, showLoading } from "./ui/views";
+import { showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
 
 const CONFIGURED_ROOT: string | undefined = import.meta.env.VITE_LOADER_ROOT || undefined;
 const RELOADS_KEY = "autonomi-loader-reloads";
@@ -145,11 +146,36 @@ interface Named {
   since?: string;
 }
 
-async function install(link: SiteLink, root: string, named?: Named): Promise<void> {
+/** Where an install reports to: the loading screen, or (warm-up) the page that embedded it. */
+interface InstallUI {
+  step(text: string): void;
+  progress(done: number, total?: number, unit?: "bytes" | "records"): void;
+  done(): void;
+  fail(title: string, message: string): void;
+}
+
+/** The ordinary install: a loading screen, then a reload into the installed site. */
+function pageUI(link: SiteLink, root: string, named?: Named): InstallUI {
   const view = showLoading(
     link,
     named ? `Opening ${named.name}` : link.kind === "p" ? "Opening the latest version of a site" : "Opening a site",
   );
+  return {
+    step: (text) => view.step(text),
+    progress: (done, total, unit) => view.progress(done, total, unit),
+    done() {
+      // A fresh install starts a new reload budget.
+      resetReloadGuard();
+      guardedReload(link, root);
+    },
+    fail(title, message) {
+      showError(title, message, [{ label: "Try again", run: () => location.reload() }, homeAction(root)], link);
+    },
+  };
+}
+
+async function install(link: SiteLink, root: string, named?: Named, ui: InstallUI = pageUI(link, root, named)): Promise<void> {
+  const view = ui;
   const started = performance.now();
   const timings: Timings = {};
   let source: SiteSource | null = null;
@@ -195,14 +221,53 @@ async function install(link: SiteLink, root: string, named?: Named): Promise<voi
   } catch (e) {
     const { title, message } = describeError(e);
     console.error("[autonomi-loader] install failed", e);
-    showError(title, message, [{ label: "Try again", run: () => location.reload() }, homeAction(root)], link);
+    ui.fail(title, message);
     return;
   } finally {
     source?.close();
   }
-  // A fresh install starts a new reload budget.
-  resetReloadGuard();
-  guardedReload(link, root);
+  ui.done();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Warm-up (DEMO.md 5.2): install in a hidden frame and report to the page that embedded it.
+
+async function warm(host: Extract<ReturnType<typeof classifyHost>, { view: "site" | "name" }>): Promise<void> {
+  // Listen for the parent's hello before anything asynchronous.
+  const reporter = warmReporter(host.root);
+  showLoading(host.view === "site" ? host.link : { kind: "i", address: "0".repeat(64) }, "Fetching in the background");
+  const fail = (error: string, step: string) => reporter.update({ status: "error", error, step });
+  try {
+    await registerWorker();
+  } catch (e) {
+    return fail("The loader can't run here", e instanceof Error ? e.message : String(e));
+  }
+  const state = await readState(location.origin);
+
+  let link: SiteLink;
+  let named: Named | undefined;
+  if (host.view === "name") {
+    if (state && state.name === host.name) return reporter.update({ status: "ready", step: "Already here" });
+    let entry: NameEntry | undefined;
+    try {
+      entry = (await fetchNames()).get(host.name);
+    } catch (e) {
+      return fail("The name directory couldn't be read", e instanceof Error ? e.message : String(e));
+    }
+    if (!entry) return fail(`No site is called “${host.name}” here yet`, "");
+    link = { kind: entry.kind, address: entry.address };
+    named = { name: host.name, since: entry.since };
+  } else {
+    link = host.link;
+    if (state && !state.name && sameLink(state.link, link)) return reporter.update({ status: "ready", step: "Already here" });
+  }
+
+  await install(link, host.root, named, {
+    step: (text) => reporter.update({ step: text }),
+    progress: (done, total, unit) => reporter.update({ done, total, unit }),
+    done: () => reporter.update({ status: "ready", step: "Ready" }),
+    fail: (title, message) => fail(title, message),
+  });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -502,16 +567,32 @@ async function landing(url: URL, root: string): Promise<void> {
     },
   });
 
-  showLanding(options());
-  const fixtures = await loadFixtures(root);
-  if (fixtures?.length) {
-    // Re-render with the list, keeping whatever was typed.
-    const typed = document.querySelector<HTMLInputElement>("input[name=address]")?.value ?? "";
-    showLanding(options(fixtures));
-    const input = document.querySelector<HTMLInputElement>("input[name=address]");
-    if (input) input.value = typed;
+  // The front door (DEMO.md 5.1), when this loader has a site called "start": it fetches Start
+  // in the background while the visitor reads. Otherwise the plain address page.
+  let hasStart = false;
+  try {
+    hasStart = (await fetchNames()).has(START_NAME);
+  } catch {
+    // No directory: the plain landing page.
   }
+  const fixtures = await loadFixtures(root);
+  if (!hasStart) {
+    showLanding(options(fixtures));
+    return;
+  }
+
+  const startUrl = nameOrigin(START_NAME, root, location.protocol, location.port) + "/";
+  const door = showFrontDoor({ ...options(fixtures), startHref: startUrl });
+  let stop: (() => void) | null = null;
+  stop = warmInFrame(startUrl.replace(/\/$/, WARM_PATH), (report: WarmMessage) => {
+    door.report(report);
+    // Done either way: the frame has nothing more to say.
+    if (report.status !== "working") stop?.();
+  });
 }
+
+/** The site the front door fetches in the background and opens with Enter. */
+const START_NAME = "start";
 
 // ---------------------------------------------------------------------------------------------
 // Boot
@@ -538,6 +619,7 @@ async function boot(): Promise<void> {
     return;
   }
   if (url.pathname === "/_autonomi" || url.pathname === "/_autonomi/") return info(ident, label);
+  if (url.pathname === WARM_PATH) return warm(host);
   if (url.pathname.startsWith("/_autonomi/")) {
     showError("Not found", "This path belongs to the loader and has nothing here.", [homeAction(root)], shownLink);
     return;

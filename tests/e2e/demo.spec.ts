@@ -45,6 +45,22 @@ test("Start lists the records the page arrived as, and the nodes that served the
   await expect(origin.locator(".origin-tip")).toContainText("developer tools");
 });
 
+test("Start fetches each listed site in the background; opening it then needs no network", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit keeps framed storage apart on *.localhost (see warm.spec.ts)");
+  await openName(page, "start", ".cards");
+  const card = page.locator('.card[data-site="library"]');
+  await expect(card).toHaveAttribute("data-warm", "ready", { timeout: 15_000 });
+  await expect(card.locator("[data-status]")).toHaveText("Ready");
+
+  let fetches = 0;
+  page.context().on("request", (r) => {
+    if (/\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) fetches++;
+  });
+  await card.locator(".card-link").click();
+  await expect(page.locator(".shelf")).toBeVisible();
+  expect(fetches).toBe(0);
+});
+
 test("the publish command names the loader in use", async ({ page }) => {
   await openName(page, "start", ".cards");
   await expect(page.locator("[data-loader-root]")).toHaveText("localhost:4173");

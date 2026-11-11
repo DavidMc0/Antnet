@@ -8,6 +8,14 @@ export const meta = {
 
 export const settings = {};
 
+/**
+ * Start fetches each listed site in a hidden frame before it is clicked (DEMO.md 5.2), so it
+ * may frame other sites. Which loader domain they are on isn't known when Start is built, so
+ * this allows any https site, plus localhost for local testing. Start frames only the
+ * warm-up paths of the sites it lists itself.
+ */
+export const cspExtra = "frame-src 'self' https: http://localhost:* http://*.localhost:*";
+
 const size = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} kB`);
 const short = (address) => `${address.slice(0, 4)}…${address.slice(-4)}`;
 
@@ -63,6 +71,7 @@ export async function build(ctx) {
         <span class="card-title">${ctx.esc(s.meta.title)}</span>
         <span class="card-desc">${ctx.esc(s.meta.description)}</span>
         <span class="card-meta"><code>${ctx.esc(s.name)}</code><span>${size(s.bytes)}</span><span class="card-go">Open ${ARROW}</span></span>
+        <span class="card-status" data-status>Not fetched yet</span>
       </a>
     </li>`,
     )
@@ -128,7 +137,7 @@ ${ctx.headTags}
 <section class="directory" aria-labelledby="directory-h">
   <div class="section-head">
     <h2 id="directory-h">Sites</h2>
-    <p>Each one is its own website, with its own address and its own look.</p>
+    <p>Each one is its own website, with its own address and its own look. While you read, this page fetches them from the network, one at a time.</p>
   </div>
   <ul class="cards">
 ${cards}

@@ -360,7 +360,8 @@ h2 {
   grid-template-areas:
     "icon title"
     "icon desc"
-    "meta meta";
+    "meta meta"
+    "status status";
   column-gap: 1rem;
   height: 100%;
   padding: 1.25rem 1.25rem 1rem;
@@ -792,5 +793,61 @@ main > .origin[hidden] {
   }
   .card-link:hover .arrow {
     transform: none;
+  }
+}
+
+/* ---- Warm-up: each card shows its site arriving in the background --------------------- */
+
+.warm-frame {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.card-status {
+  grid-area: status;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.card-status::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+}
+[data-warm="working"] .card-status {
+  color: var(--ink);
+}
+[data-warm="working"] .card-status::before {
+  border-color: var(--accent);
+  border-right-color: transparent;
+  animation: warm-spin 0.9s linear infinite;
+}
+[data-warm="ready"] .card-status {
+  color: var(--accent);
+}
+[data-warm="ready"] .card-status::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+@keyframes warm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-warm="working"] .card-status::before {
+    animation: none;
   }
 }

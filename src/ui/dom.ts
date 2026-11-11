@@ -1,4 +1,4 @@
-type Child = Node | string | null | undefined | false | Child[];
+export type Child = Node | string | null | undefined | false | Child[];
 
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,

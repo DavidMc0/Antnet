@@ -241,11 +241,34 @@ DEMO.md was revised (short names, "Where this page came from", a new top line fo
   - `m4-mainnet.mjs` opened the info page in a separate browser session.
   - `probe.mjs` read a named site's info page before it rendered.
 
+## Demo, step 3: warm-up and the front door (built locally 2026-11-11; not deployed)
+
+- **Warm-up** (`src/warm.ts`, DEMO.md 5.2):
+  - **The warm path:** `<site>/_autonomi/warm` installs the site without reloading and reports to the page that embedded it. The frame sends `{type:"antnet:warm", status, step, done, total, unit}` in reply to `{type:"antnet:hello"}`.
+  - **Who it answers:** only a parent on this loader (`isLoaderOrigin`: the root or a subdomain, same scheme and port), and only the window that embedded it.
+  - **Already installed:** a site that is already there reports ready without fetching.
+  - **`install()`** now takes an `InstallUI`: the loading screen, or a reporter for the warm path.
+- **Front door** (`showFrontDoor`, DEMO.md 5.1): when `names.json` has `start`, the root page says "This is the last page a web server will send you." It warms Start in a hidden frame, shows its progress, and has an Enter link that also works early. The address box, handler offer and test-fixture list sit below. Without `start`, the old landing page shows. The design is plain; it gets a Fable pass later.
+- **Shell CSP:** gains `frame-src 'self' https://*.<root>` (`http://*.localhost:*` without a root).
+- **Start, v2 (built, not uploaded):**
+  - Each card warms its site one at a time, through its portable link to `/_autonomi/warm`, showing "Arriving… 2 of 3 records" and then "Ready".
+  - Start's CSP adds `frame-src 'self' https: http://localhost:* http://*.localhost:*` (`cspExtra` in its `site.mjs`).
+  - **Holding the upload** until the next site exists, so Start is only paid for once more.
+- **Tests:** 74 unit (`warm.test.ts` is new) and 65 Chromium e2e (`warm.spec.ts` is new), all passing. Opening Start after the front door, or the Library after Start's card says Ready, fetches nothing from the network.
+- **Cross-browser** (new `playwright.browsers.config.ts`; `npx playwright install firefox webkit` done):
+  - **Firefox:** warm-up works.
+  - **WebKit:** keeps framed storage apart from top-level visits on `*.localhost`, so warm-up doesn't help there. This is the open question for Safari on the real domain. Nothing breaks: Enter shows the loading screen, though a WebKit card can say "Ready" when it isn't.
+  - **Full suite in Firefox and WebKit:** 14 failures. Mostly tool limits:
+    - CDP-only forced-reload tests;
+    - request interception not reaching WebKit's service worker and frames;
+    - WebM/VP9 not playing in Windows WebKit.
+  - **Possibly real, to check on the Mac mini in Safari:** `?open=<name>` after a path-form visit (`names.spec.ts`, "the root domain opens a name…"), and the reload-guard behaviour.
+
 ### Next
 
-1. **Commit and push** this work (asked; awaiting the user's answer).
-2. **Then, in DEMO.md section 10's order:**
-   - warm-up and the front door;
+1. **The user deploys the loader** (`deploy.ps1`). No nginx change is needed.
+2. **Check warm-up on the live domain:** Chromium, Firefox and WebKit through Playwright, plus Safari on the user's Mac mini. The key question is whether WebKit/Safari shares a framed site's storage with a top-level visit when both are under `autonomirror.com`. If Safari doesn't, show honest card text there.
+3. **Then, in DEMO.md section 10's order:**
    - non-blocking updates (Start's hourly check holds the page for about 15–20 s);
    - Cinema streaming;
    - ColonySim and the Docs;

@@ -2,8 +2,9 @@
 
 import type { SiteLink } from "../host";
 import type { NameEntry } from "../names";
+import type { WarmReport } from "../warm";
 import { type SiteState, sameLink } from "../state";
-import { formatBytes, formatMs, formatTime, h, mount } from "./dom";
+import { type Child, formatBytes, formatMs, formatTime, h, mount } from "./dom";
 
 function brand(): HTMLElement {
   return h("header", { class: "brand" }, h("span", { class: "mark" }, "◆"), " Autonomi Site Loader");
@@ -80,7 +81,8 @@ export interface LandingOptions {
   onRegisterHandler(): void;
 }
 
-export function showLanding(opts: LandingOptions): void {
+/** The address box, the web+ant handler offer and (in test builds) the fixture list. */
+function addressTools(opts: LandingOptions): { form: HTMLFormElement; input: HTMLInputElement; extras: Child[] } {
   const input = h("input", {
     type: "text",
     name: "address",
@@ -118,6 +120,14 @@ export function showLanding(opts: LandingOptions): void {
       )
     : null;
 
+  const handler = opts.canRegisterHandler
+    ? h("p", { class: "small" }, h("button", { class: "link", onclick: opts.onRegisterHandler }, "Open web+ant: links with this loader"))
+    : null;
+  return { form, input, extras: [handler, fixtures] };
+}
+
+export function showLanding(opts: LandingOptions): void {
+  const { form, input, extras } = addressTools(opts);
   mount(
     brand(),
     h(
@@ -130,13 +140,86 @@ export function showLanding(opts: LandingOptions): void {
         "Every byte comes from Autonomi nodes over WebRTC and is verified in your browser. No gateway sits in the data path.",
       ),
       form,
-      opts.canRegisterHandler
-        ? h("p", { class: "small" }, h("button", { class: "link", onclick: opts.onRegisterHandler }, "Open web+ant: links with this loader"))
-        : null,
-      fixtures,
+      extras,
     ),
   );
   input.focus();
+}
+
+export interface FrontDoorOptions extends LandingOptions {
+  /** Start's address on this loader. Enter goes there. */
+  startHref: string;
+}
+
+export interface FrontDoorView {
+  /** Show what the background fetch of Start is doing. */
+  report(r: WarmReport): void;
+}
+
+/**
+ * The front door (DEMO.md 5.1): the one page a web server sends. Start is fetched in the
+ * background while the visitor reads; Enter opens it, at once if it has arrived. Enter works
+ * early too: the visitor then sees the ordinary loading screen.
+ */
+export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
+  const status = h("p", { class: "door-status", "data-testid": "door-status", role: "status" }, "Fetching Antnet Start…");
+  const bar = h("progress", { max: "1" });
+  const enter = h("a", { class: "button door-enter", href: opts.startHref, "data-testid": "enter" }, "Enter");
+  const door = h(
+    "main",
+    { class: "card door", "data-view": "landing", "data-door": "working" },
+    h("h1", {}, "This is the last page a web server will send you."),
+    h(
+      "p",
+      {},
+      "While you read this, your browser is fetching Antnet Start straight from computers on the Autonomi network, " +
+        "and checking every piece of it itself.",
+    ),
+    h("p", {}, "Start and the sites it links to come from the network, not from a server."),
+    h("p", {}, "The first time takes a few seconds. After that, they open at once."),
+    h("div", { class: "door-progress" }, status, bar),
+    h("div", { class: "actions" }, enter),
+  );
+
+  const { form, extras } = addressTools(opts);
+  mount(
+    brand(),
+    door,
+    h(
+      "section",
+      { class: "card door-more" },
+      h("h2", {}, "Open another site"),
+      h("p", { class: "small" }, "A site's short name, its 64-character address, or an ant:// link."),
+      form,
+      extras,
+    ),
+  );
+
+  return {
+    report(r) {
+      door.setAttribute("data-door", r.status);
+      if (r.status === "ready") {
+        status.textContent = "Antnet Start is here, checked and ready.";
+        bar.max = 1;
+        bar.value = 1;
+        return;
+      }
+      if (r.status === "error") {
+        status.textContent = `Start couldn't be fetched in the background (${r.error ?? "error"}). Enter will try again.`;
+        bar.max = 1;
+        bar.value = 0;
+        return;
+      }
+      if (r.total) {
+        bar.max = r.total;
+        bar.value = r.done ?? 0;
+      } else {
+        bar.removeAttribute("value");
+      }
+      const count = r.total && r.unit === "records" ? ` ${r.done ?? 0} of ${r.total} records` : "";
+      status.textContent = `${r.step ?? "Fetching Antnet Start…"}${count}`;
+    },
+  };
 }
 
 export interface InfoOptions {

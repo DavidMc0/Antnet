@@ -8,17 +8,25 @@ const NAMES_OUT = "_autonomi/names.json";
 const SW_FILE = "autonomi-loader-sw.js";
 const SW_ENTRY = fileURLToPath(new URL("./src/sw.ts", import.meta.url));
 
-/** CSP for the shell page in production builds. Dev injects inline styles, so it is build-only. */
-const SHELL_CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self'",
-  "img-src 'self' data:",
-  "connect-src 'self' https: wss:",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'self'",
-].join("; ");
+/**
+ * CSP for the shell page in production builds. Dev injects inline styles, so it is build-only.
+ * frame-src allows the loader's own sites, for warm-up frames (DEMO.md 5.2). Without a
+ * configured root the build runs on localhost (tests, local preview).
+ */
+function shellCsp(loaderRoot: string): string {
+  const sites = loaderRoot ? `https://*.${loaderRoot}` : "http://*.localhost:*";
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'wasm-unsafe-eval'",
+    "style-src 'self'",
+    "img-src 'self' data:",
+    "connect-src 'self' https: wss:",
+    `frame-src 'self' ${sites}`,
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+  ].join("; ");
+}
 
 /**
  * Bundles src/sw.ts into one self-contained classic script with no runtime imports
@@ -129,13 +137,14 @@ function noCacheShell(): Plugin {
   };
 }
 
-function shellCsp(): Plugin {
+function shellCspMeta(loaderRoot: string): Plugin {
+  const csp = shellCsp(loaderRoot);
   return {
     name: "autonomi-loader-shell-csp",
     transformIndexHtml: {
       order: "post",
       handler(html, ctx) {
-        const meta = ctx.server ? "" : `<meta http-equiv="Content-Security-Policy" content="${SHELL_CSP}" />`;
+        const meta = ctx.server ? "" : `<meta http-equiv="Content-Security-Policy" content="${csp}" />`;
         return html.replace("<!--shell-csp-->", meta);
       },
     },
@@ -150,7 +159,7 @@ export default defineConfig(({ mode }) => {
     appType: "spa",
     // public/ holds only the generated test fixtures; keep them out of mainnet builds.
     publicDir: fixtureSource ? "public" : false,
-    plugins: [serviceWorker(loaderRoot), nameDirectory(!fixtureSource), noCacheShell(), shellCsp()],
+    plugins: [serviceWorker(loaderRoot), nameDirectory(!fixtureSource), noCacheShell(), shellCspMeta(loaderRoot)],
     server: { allowedHosts: [".localhost"] },
     preview: { allowedHosts: [".localhost"] },
     build: {

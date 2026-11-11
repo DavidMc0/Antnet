@@ -166,8 +166,84 @@
     section.hidden = false;
   }
 
+  // ---- Warm-up: fetch each listed site before it is clicked (DEMO.md 5.2) ------------------
+  // Each card's site is opened in a hidden frame at its warm-up path, one at a time in card
+  // order. The frame installs the site and reports back; it only answers pages on the same
+  // loader. If the browser keeps framed storage apart, the cards just say "Ready" without it
+  // helping, and a click shows the normal loading screen.
+
+  var WARM_LIMIT_MS = 120000;
+
+  function warmCards() {
+    var cards = [].slice.call(document.querySelectorAll(".card[data-site]"));
+    var i = 0;
+
+    function next() {
+      if (i >= cards.length) return;
+      var card = cards[i++];
+      var link = card.querySelector(".card-link");
+      var status = card.querySelector("[data-status]");
+      if (!link || !status) return next();
+
+      // The card links to the site by a portable link; its warm-up path is under it.
+      var url = link.getAttribute("href").replace(/\/$/, "") + "/_autonomi/warm";
+      var frame = el("iframe", "warm-frame");
+      frame.setAttribute("aria-hidden", "true");
+      frame.tabIndex = -1;
+      frame.title = "Fetching " + card.getAttribute("data-site") + " in the background";
+      frame.src = url;
+      card.setAttribute("data-warm", "working");
+      status.textContent = "Arriving…";
+
+      var answered = false;
+      var finished = false;
+      var timer;
+      var limit;
+
+      function finish(state, text) {
+        if (finished) return;
+        finished = true;
+        clearInterval(timer);
+        clearTimeout(limit);
+        removeEventListener("message", onMessage);
+        frame.remove();
+        card.setAttribute("data-warm", state);
+        status.textContent = text;
+        next();
+      }
+
+      function onMessage(e) {
+        if (e.source !== frame.contentWindow || !e.data || e.data.type !== "antnet:warm") return;
+        answered = true;
+        var r = e.data;
+        if (r.status === "ready") return finish("ready", "Ready");
+        if (r.status === "error") return finish("idle", "Not fetched yet");
+        status.textContent =
+          "Arriving…" + (r.total && r.unit === "records" ? " " + (r.done || 0) + " of " + r.total + " records" : "");
+      }
+
+      function hello() {
+        if (frame.contentWindow) frame.contentWindow.postMessage({ type: "antnet:hello" }, "*");
+      }
+
+      addEventListener("message", onMessage);
+      frame.addEventListener("load", hello);
+      timer = setInterval(function () {
+        if (answered) clearInterval(timer);
+        else hello();
+      }, 500);
+      limit = setTimeout(function () {
+        finish("idle", "Not fetched yet");
+      }, WARM_LIMIT_MS);
+      document.body.appendChild(frame);
+    }
+
+    next();
+  }
+
   function init() {
     showLoaderRoot();
+    warmCards();
     if (typeof window.antnetState !== "function") return;
     window.antnetState().then(function (state) {
       if (!state) return;

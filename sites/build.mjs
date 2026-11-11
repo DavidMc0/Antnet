@@ -96,7 +96,8 @@ async function assemble(name, mod, built) {
     name,
     title: mod.meta.title,
     ...mod.settings,
-    headers: { "/*": { "Content-Security-Policy": CSP }, ...mod.settings?.headers },
+    // A site may add directives to the shared policy (Start adds frame-src for warm-up).
+    headers: { "/*": { "Content-Security-Policy": mod.cspExtra ? `${CSP}; ${mod.cspExtra}` : CSP }, ...mod.settings?.headers },
   };
   files.set(".autonomi-site.json", enc.encode(JSON.stringify(settings, null, 2) + "\n"));
   const tar = packFiles(files);
