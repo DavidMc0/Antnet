@@ -5,6 +5,8 @@ export const RESERVED_PREFIX = "/_autonomi/";
 export const META_CACHE = "autonomi-loader-meta";
 export const STATE_PATH = "/_autonomi/state.json";
 export const SITE_CACHE_PREFIX = "site-v1-";
+/** A site's front door: shown while it installs, skipped once it is installed. */
+export const DOOR_PATH = "/_autonomi/door";
 
 /** Largest archive the loader will download (spec 5.1). */
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;

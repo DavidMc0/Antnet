@@ -137,7 +137,7 @@ ${ctx.headTags}
 <section class="directory" aria-labelledby="directory-h">
   <div class="section-head">
     <h2 id="directory-h">Sites</h2>
-    <p>Each one is its own website, with its own address and its own look. While you read, this page fetches them from the network, one at a time.</p>
+    <p>Each one is its own website, with its own address and its own look. While you read, this page fetches them from the network, one at a time, where your browser allows it.</p>
   </div>
   <ul class="cards">
 ${cards}

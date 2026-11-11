@@ -1,6 +1,6 @@
 // Warm-up (DEMO.md 5.2): install a site before the visitor clicks it.
 //
-// A page on the loader (the front door, or a site such as Start) embeds a hidden frame at
+// A site such as Antnet Start embeds a hidden frame at
 // <site>/_autonomi/warm. In that frame the shell installs the site as usual but doesn't
 // reload into it; it reports progress to the page that embedded it. When the visitor then
 // opens the site, the service worker already has it, so it appears at once.
@@ -85,44 +85,5 @@ export function warmReporter(root: string): WarmReporter {
       latest = { ...latest, ...report };
       send();
     },
-  };
-}
-
-// ---------------------------------------------------------------------------------------------
-// Parent side (used by the loader's own pages; demo sites carry the same few lines in plain JS)
-
-/**
- * Warm a site in a hidden frame. `url` is the site's warm path, directly or through a portable
- * link. Calls `onReport` for each report; returns a function that removes the frame.
- */
-export function warmInFrame(url: string, onReport: (report: WarmMessage) => void): () => void {
-  const frame = document.createElement("iframe");
-  frame.className = "warm-frame";
-  frame.setAttribute("aria-hidden", "true");
-  frame.tabIndex = -1;
-  frame.title = "Fetching a site in the background";
-  frame.src = url;
-
-  let answered = false;
-  const onMessage = (e: MessageEvent) => {
-    if (e.source !== frame.contentWindow) return;
-    const data = e.data as WarmMessage | null;
-    if (data?.type !== "antnet:warm") return;
-    answered = true;
-    onReport(data);
-  };
-  addEventListener("message", onMessage);
-
-  // The frame may redirect (a portable link) and its script starts a moment after load, so
-  // keep saying hello until it answers. The hello carries nothing, so "*" is safe.
-  const hello = () => frame.contentWindow?.postMessage({ type: "antnet:hello" }, "*");
-  frame.addEventListener("load", hello);
-  const timer = setInterval(() => (answered ? clearInterval(timer) : hello()), 500);
-
-  document.body.append(frame);
-  return () => {
-    clearInterval(timer);
-    removeEventListener("message", onMessage);
-    frame.remove();
   };
 }

@@ -264,10 +264,42 @@ DEMO.md was revised (short names, "Where this page came from", a new top line fo
     - WebM/VP9 not playing in Windows WebKit.
   - **Possibly real, to check on the Mac mini in Safari:** `?open=<name>` after a path-form visit (`names.spec.ts`, "the root domain opens a name…"), and the reload-guard behaviour.
 
+- **Root page:** both versions now list every site in `names.json` as links, and say what to type (commit `511ed37`), after the user found the old page left visitors stuck.
+- **Deployed and live (2026-11-11, about 22:10 UTC).** `tools/warm-live.mjs` on the live loader, fresh profiles:
+
+| Browser | Front door fetch | Enter → Start | Result |
+| --- | --- | --- | --- |
+| Chromium | ready after 21.4 s | 191 ms | Warmed |
+| Firefox | ready after 26.3 s | 226 ms | Warmed |
+| WebKit (Playwright, Windows) | "Couldn't reach the Autonomi network" within 2 s | — | Can't test: this build has no `RTCPeerConnection` |
+
+- **Safari** therefore has to be checked on the user's Mac mini.
+- **To do:** say plainly when a browser has no WebRTC ("This browser can't make the direct connections Antnet needs"), rather than "Couldn't reach the Autonomi network". This belongs with DEMO.md 5.5.
+
+- **Safari on the Mac mini, with the frame-based front door:** it worked, but after "ready" and Enter, Start was fetched again, pointer read included. So Safari keeps a framed site's storage apart from a top-level visit even on the real domain. The same applies to every iPhone and iPad browser, since they all use WebKit.
+
+## Front door, redesigned: on the site's own origin, no frames (2026-11-11, late)
+
+The user agreed to the redesign after the Safari result.
+
+- **The bare root** (`/`, no query) on a loader whose directory has `start` redirects to `start.<root>/_autonomi/door`. `?landing`, `/<unknown-name>`, `?open=` and the path forms behave as before. A loader without `start` shows the address page, now with the named sites listed.
+- **`/_autonomi/door`** on any site:
+  - **Already installed:** the service worker redirects straight to `/`, without the shell (`DOOR_PATH` in `config.ts`, handled in `sw.ts`). The shell does the same if the worker isn't active yet.
+  - **Otherwise:** the shell shows the front door ("This is the last page a web server will send you") while it installs the site on its own origin. Enter opens it at once once it has arrived. Pressed early, it opens the site as soon as the install finishes, with no second install. On failure the button becomes "Try again". The door replaces itself in history.
+  - **Lower down:** the other named sites, and the address box.
+- **The shell no longer embeds frames:** the parent side of `warm.ts` and the shell's `frame-src` were removed. `/_autonomi/warm` stays, for Start's cards.
+- **Start v2 cards** skip warm-up on WebKit, including every iOS browser, and say "Fetched when you open it". Elsewhere they warm as before.
+- **Tests:** Chromium 66/66 and 74 unit tests pass. In Firefox, the door, demo and names files all pass. In WebKit the door's main path passes (root → door → ready → Enter → Start instantly); what fails:
+  - the four directory-change tests (interception doesn't reach WebKit's service worker);
+  - **two that need checking in real Safari:** after a script redirect from the root (`localhost`) to an installed site (`start.localhost`), WebKit shows the meta cache but no `state.json`, so it reinstalls. That covers a returning visitor at the root, and `?open=library` after visiting the Library. It may be specific to `localhost`.
+
 ### Next
 
-1. **The user deploys the loader** (`deploy.ps1`). No nginx change is needed.
-2. **Check warm-up on the live domain:** Chromium, Firefox and WebKit through Playwright, plus Safari on the user's Mac mini. The key question is whether WebKit/Safari shares a framed site's storage with a top-level visit when both are under `autonomirror.com`. If Safari doesn't, show honest card text there.
+1. **The user deploys** (`deploy.ps1`; no nginx change).
+2. **Safari on the Mac mini:**
+   - a first visit to https://antnet.autonomirror.com/ should go to Start's door, become ready, and Enter should open Start at once;
+   - a **second** visit to the root should go straight to Start, with no door and no fetching;
+   - also try `https://antnet.autonomirror.com/?open=library` after visiting the Library.
 3. **Then, in DEMO.md section 10's order:**
    - non-blocking updates (Start's hourly check holds the page for about 15–20 s);
    - Cinema streaming;

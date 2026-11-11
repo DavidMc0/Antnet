@@ -174,8 +174,28 @@
 
   var WARM_LIMIT_MS = 120000;
 
+  /**
+   * Safari's engine keeps a framed site's storage apart from a later visit to it, even on the
+   * same domain (tested 11 November 2026), so warm-up can't help there and the cards would
+   * claim "Ready" falsely. Every browser on iPhone and iPad uses that engine too.
+   */
+  function framesKeptApart() {
+    var ua = navigator.userAgent;
+    if (/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)) return true; // iOS browsers are all WebKit
+    return /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR|Android/.test(ua);
+  }
+
   function warmCards() {
     var cards = [].slice.call(document.querySelectorAll(".card[data-site]"));
+    if (framesKeptApart()) {
+      // No background fetching: each site loads when it's opened.
+      cards.forEach(function (card) {
+        card.setAttribute("data-warm", "off");
+        var status = card.querySelector("[data-status]");
+        if (status) status.textContent = "Fetched when you open it";
+      });
+      return;
+    }
     var i = 0;
 
     function next() {

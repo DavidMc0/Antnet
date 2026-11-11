@@ -228,7 +228,7 @@ test.describe("media", () => {
 
 test.describe("landing page and links", () => {
   test("the landing page lists fixtures and opens a pasted address", async ({ page }) => {
-    await page.goto(ROOT_URL);
+    await page.goto(`${ROOT_URL}?landing`);
     await expect(page.locator("[data-view=landing]")).toBeVisible();
     await expect(page.locator("a[data-fixture=plain]")).toHaveAttribute("href", siteUrl("plain"));
     await page.fill("input[name=address]", `ant://${fixture("plain").address}/docs/page.html`);
@@ -237,7 +237,7 @@ test.describe("landing page and links", () => {
   });
 
   test("the landing page explains a bad address", async ({ page }) => {
-    await page.goto(ROOT_URL);
+    await page.goto(`${ROOT_URL}?landing`);
     await page.fill("input[name=address]", "not an address");
     await page.click("form button[type=submit]");
     await expect(page.locator(".form-error")).toContainText("Not a recognised address");

@@ -6,11 +6,13 @@ import {
   CHECK_RETRY_MS,
   MAX_AUTO_RELOADS,
   RELOAD_WINDOW_MS,
+  DOOR_PATH,
   SW_PATH,
   checkBudgetMs,
   maxArchiveBytes,
 } from "./config";
 import {
+  type HostInfo,
   type SiteLink,
   classifyHost,
   goLinkTarget,
@@ -23,13 +25,14 @@ import {
 } from "./host";
 import { NotASiteError, deleteOtherSiteCaches, installArchive } from "./install";
 import { type NameEntry, fetchNames } from "./names";
-import { WARM_PATH, type WarmMessage, warmInFrame, warmReporter } from "./warm";
+import { WARM_PATH, warmReporter } from "./warm";
 import { createSource } from "./source";
 import { type SiteSource, SourceError } from "./source/types";
 import { type SiteState, type Timings, checkDue, clearState, readState, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
 import { formatBytes } from "./ui/dom";
-import { showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
+import { type LandingOptions, showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
+
 
 const CONFIGURED_ROOT: string | undefined = import.meta.env.VITE_LOADER_ROOT || undefined;
 const RELOADS_KEY = "autonomi-loader-reloads";
@@ -515,6 +518,39 @@ async function loadFixtures(root: string): Promise<{ name: string; href: string 
   }
 }
 
+/** What the address box, the handler offer and the site lists need, on any loader page. */
+function landingOptions(root: string, fixtures?: { name: string; href: string }[], notice?: string): LandingOptions {
+  return {
+    onOpen(input: string, rawHexIsPointer: boolean): string | null {
+      const parsed = parseAddressInput(input, root, rawHexIsPointer ? "p" : "i");
+      if ("error" in parsed) return parsed.error;
+      location.assign(targetOrigin(parsed, root, location.protocol, location.port) + parsed.rest);
+      return null;
+    },
+    fixtures,
+    notice,
+    canRegisterHandler: typeof navigator.registerProtocolHandler === "function",
+    onRegisterHandler() {
+      try {
+        navigator.registerProtocolHandler("web+ant", `${rootUrl(root)}?open=%s`);
+      } catch (e) {
+        console.warn("[autonomi-loader] registerProtocolHandler failed", e);
+      }
+    },
+  };
+}
+
+/** The named sites, as links on this loader. Empty when there is no directory. */
+async function namedSites(root: string): Promise<{ names: string[]; named: { name: string; href: string }[] }> {
+  let names: string[] = [];
+  try {
+    names = [...(await fetchNames()).keys()];
+  } catch {
+    // No directory: no list of sites.
+  }
+  return { names, named: names.map((name) => ({ name, href: nameOrigin(name, root, location.protocol, location.port) + "/" })) };
+}
+
 async function landing(url: URL, root: string): Promise<void> {
   const formTarget = pathFormTarget(url, root);
   if (formTarget) {
@@ -548,52 +584,93 @@ async function landing(url: URL, root: string): Promise<void> {
     }
   }
 
-  const options = (fixtures?: { name: string; href: string }[]) => ({
-    onOpen(input: string, rawHexIsPointer: boolean): string | null {
-      const parsed = parseAddressInput(input, root, rawHexIsPointer ? "p" : "i");
-      if ("error" in parsed) return parsed.error;
-      location.assign(targetOrigin(parsed, root, location.protocol, location.port) + parsed.rest);
-      return null;
-    },
-    fixtures,
-    notice,
-    canRegisterHandler: typeof navigator.registerProtocolHandler === "function",
-    onRegisterHandler() {
-      try {
-        navigator.registerProtocolHandler("web+ant", `${location.origin}/?open=%s`);
-      } catch (e) {
-        console.warn("[autonomi-loader] registerProtocolHandler failed", e);
-      }
-    },
-  });
+  const { names, named } = await namedSites(root);
 
-  // The front door (DEMO.md 5.1), when this loader has a site called "start": it fetches Start
-  // in the background while the visitor reads. Otherwise the plain address page.
-  let names: string[] = [];
-  try {
-    names = [...(await fetchNames()).keys()];
-  } catch {
-    // No directory: no list of sites, and the plain landing page.
+  // The front door (DEMO.md 5.1): the bare root goes to Start's own front door, which fetches
+  // Start while the visitor reads. ?landing (or a loader without Start) shows the address page.
+  if (url.pathname === "/" && !url.search && !notice && names.includes(START_NAME)) {
+    location.replace(nameOrigin(START_NAME, root, location.protocol, location.port) + DOOR_PATH);
+    return;
   }
-  const named = names.map((name) => ({ name, href: nameOrigin(name, root, location.protocol, location.port) + "/" }));
-  const fixtures = await loadFixtures(root);
-  if (!names.includes(START_NAME)) {
-    showLanding({ ...options(fixtures), named });
+  showLanding({ ...landingOptions(root, await loadFixtures(root), notice), named });
+}
+
+/** The site the bare root leads to, through its front door. */
+const START_NAME = "start";
+
+/**
+ * A site's front door (DEMO.md 5.1), at <site>/_autonomi/door: the story of what is about to
+ * happen, shown while the site installs on its own origin. No frame is involved, so it works
+ * the same in every browser. Enter opens the site, at once once it has arrived; pressed early,
+ * it opens the site as soon as it arrives. The door replaces itself in the history, so Back
+ * from the site doesn't return to it.
+ */
+async function door(host: Extract<HostInfo, { view: "site" | "name" }>): Promise<void> {
+  const { root } = host;
+  const enterSite = () => location.replace("/");
+  try {
+    await registerWorker();
+  } catch (e) {
+    showError("The loader can't run here", e instanceof Error ? e.message : String(e), [homeAction(root)]);
     return;
   }
 
-  const startUrl = nameOrigin(START_NAME, root, location.protocol, location.port) + "/";
-  const door = showFrontDoor({ ...options(fixtures), named, startHref: startUrl });
-  let stop: (() => void) | null = null;
-  stop = warmInFrame(startUrl.replace(/\/$/, WARM_PATH), (report: WarmMessage) => {
-    door.report(report);
-    // Done either way: the frame has nothing more to say.
-    if (report.status !== "working") stop?.();
+  // Already here: straight in.
+  const state = await readState(location.origin);
+  const here = host.view === "name" ? state?.name === host.name : !!state && !state.name && sameLink(state.link, host.link);
+  if (here) return enterSite();
+
+  let link: SiteLink;
+  let named: Named | undefined;
+  if (host.view === "name") {
+    let entry: NameEntry | undefined;
+    try {
+      entry = (await fetchNames()).get(host.name);
+    } catch (e) {
+      showError("The name directory couldn't be read", e instanceof Error ? e.message : String(e), [
+        { label: "Try again", run: () => location.reload() },
+        homeAction(root),
+      ]);
+      return;
+    }
+    if (!entry) return unknownName(host.name, root);
+    link = { kind: entry.kind, address: entry.address };
+    named = { name: host.name, since: entry.since };
+  } else {
+    link = host.link;
+  }
+
+  const sites = await namedSites(root);
+  let ready = false;
+  let entered = false;
+  let failed = false;
+  const view = showFrontDoor({
+    ...landingOptions(root, await loadFixtures(root)),
+    named: sites.named.filter((s) => s.name !== named?.name),
+    siteLabel: named?.name === START_NAME ? "Antnet Start" : (named?.name ?? "this site"),
+    onEnter() {
+      if (failed) return location.reload();
+      if (ready) return enterSite();
+      entered = true;
+      view.report({ status: "working", step: "Opening as soon as it arrives…" });
+    },
+  });
+
+  await install(link, root, named, {
+    step: (text) => view.report({ status: "working", step: text }),
+    progress: (done, total, unit) => view.report({ status: "working", done, total, unit }),
+    done() {
+      ready = true;
+      resetReloadGuard();
+      if (entered) return enterSite();
+      view.report({ status: "ready" });
+    },
+    fail(title, message) {
+      failed = true;
+      view.report({ status: "error", error: title, step: message });
+    },
   });
 }
-
-/** The site the front door fetches in the background and opens with Enter. */
-const START_NAME = "start";
 
 // ---------------------------------------------------------------------------------------------
 // Boot
@@ -621,6 +698,7 @@ async function boot(): Promise<void> {
   }
   if (url.pathname === "/_autonomi" || url.pathname === "/_autonomi/") return info(ident, label);
   if (url.pathname === WARM_PATH) return warm(host);
+  if (url.pathname === DOOR_PATH) return door(host);
   if (url.pathname.startsWith("/_autonomi/")) {
     showError("Not found", "This path belongs to the loader and has nothing here.", [homeAction(root)], shownLink);
     return;

@@ -10,18 +10,14 @@ const SW_ENTRY = fileURLToPath(new URL("./src/sw.ts", import.meta.url));
 
 /**
  * CSP for the shell page in production builds. Dev injects inline styles, so it is build-only.
- * frame-src allows the loader's own sites, for warm-up frames (DEMO.md 5.2). Without a
- * configured root the build runs on localhost (tests, local preview).
  */
-function shellCsp(loaderRoot: string): string {
-  const sites = loaderRoot ? `https://*.${loaderRoot}` : "http://*.localhost:*";
+function shellCsp(): string {
   return [
     "default-src 'self'",
     "script-src 'self' 'wasm-unsafe-eval'",
     "style-src 'self'",
     "img-src 'self' data:",
     "connect-src 'self' https: wss:",
-    `frame-src 'self' ${sites}`,
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",
@@ -137,8 +133,8 @@ function noCacheShell(): Plugin {
   };
 }
 
-function shellCspMeta(loaderRoot: string): Plugin {
-  const csp = shellCsp(loaderRoot);
+function shellCspMeta(): Plugin {
+  const csp = shellCsp();
   return {
     name: "autonomi-loader-shell-csp",
     transformIndexHtml: {
@@ -159,7 +155,7 @@ export default defineConfig(({ mode }) => {
     appType: "spa",
     // public/ holds only the generated test fixtures; keep them out of mainnet builds.
     publicDir: fixtureSource ? "public" : false,
-    plugins: [serviceWorker(loaderRoot), nameDirectory(!fixtureSource), noCacheShell(), shellCspMeta(loaderRoot)],
+    plugins: [serviceWorker(loaderRoot), nameDirectory(!fixtureSource), noCacheShell(), shellCspMeta()],
     server: { allowedHosts: [".localhost"] },
     preview: { allowedHosts: [".localhost"] },
     build: {

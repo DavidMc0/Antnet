@@ -115,7 +115,7 @@ test("the root domain opens a name by path, by ?open= and from the address box",
   await page.goto(`${ROOT_URL}?open=library`);
   await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
 
-  await page.goto(ROOT_URL);
+  await page.goto(`${ROOT_URL}?landing`);
   await page.locator("input[name=address]").fill("start");
   await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page.locator(".cards")).toBeVisible({ timeout: 15_000 });

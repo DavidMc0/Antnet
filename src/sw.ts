@@ -2,7 +2,7 @@
 // The loader's service worker (spec 3.3). Serves the installed site from Cache Storage and
 // never talks to Autonomi. Built as one self-contained classic script.
 
-import { CHECK_INTERVAL_MS, RESERVED_PREFIX, SW_PATH, siteCacheName } from "./config";
+import { CHECK_INTERVAL_MS, DOOR_PATH, RESERVED_PREFIX, SW_PATH, siteCacheName } from "./config";
 import { classifyHost, goLinkTarget } from "./host";
 import { cachePathFor, parseRange, resolvePath } from "./site";
 import { checkDue, readState } from "./state";
@@ -29,12 +29,19 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (req.method !== "GET" && req.method !== "HEAD") return;
 
-  // Rule 2: reserved paths go to the network, except portable go-links.
+  // Rule 2: reserved paths go to the network, except portable go-links, and a site's front
+  // door when the site is already installed: then straight into the site, without the shell.
   if (url.pathname.startsWith(RESERVED_PREFIX) || url.pathname === SW_PATH) {
     if (url.pathname.startsWith("/_autonomi/go/")) {
       const host = classifyHost(url.hostname, __LOADER_ROOT__ || undefined);
       const target = goLinkTarget(url, host.root);
       if (target) event.respondWith(Response.redirect(target, 302));
+    } else if (url.pathname === DOOR_PATH && req.mode === "navigate") {
+      event.respondWith(
+        readState(self.location.origin).then((state) =>
+          state ? Response.redirect(new URL("/", url.origin).href, 302) : fetch(req),
+        ),
+      );
     }
     return;
   }

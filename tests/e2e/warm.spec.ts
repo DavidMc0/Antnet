@@ -1,99 +1,103 @@
-// Warm-up and the front door (DEMO.md 5.1, 5.2) on the fixture source.
+// The front door (DEMO.md 5.1) and warm-up (5.2) on the fixture source.
+//
+// The front door runs on Start's own origin (start.<root>/_autonomi/door) while Start installs,
+// with no frame, so it works the same in every browser. Start's cards still warm their sites
+// in hidden frames, where the browser allows it (not WebKit, which keeps framed storage apart).
 
 import { type Page, expect, test } from "@playwright/test";
 import { ROOT_URL, nameUrl, openName } from "./helpers";
-
-/**
- * WebKit keeps a framed site's storage apart from a top-level visit to the same site, at least
- * on *.localhost (the tests' hosts), so warm-up can't help there. Whether Safari does the same
- * on a real domain is checked against the live loader. Playwright's request interception also
- * doesn't reach WebKit's frames.
- */
-const WEBKIT_APART = "WebKit keeps framed storage apart on *.localhost";
 
 /** Count requests for site content (archives and pointers) from now on. */
 function countFetches(page: Page): () => number {
   let n = 0;
   page.context().on("request", (r) => {
-    // Archives and pointer reads; the landing page's own list of test sites doesn't count.
+    // Archives and pointer reads; the pages' own list of test sites doesn't count.
     if (/\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) n++;
   });
   return () => n;
 }
 
-test("the front door fetches Start in the background, and Enter then opens it at once", async ({ page, browserName }) => {
-  test.skip(browserName === "webkit", WEBKIT_APART);
+test("the root leads to Start's front door; Enter opens Start at once once it has arrived", async ({ page }) => {
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-door]")).toBeVisible();
+  expect(new URL(page.url()).hostname).toBe("start.localhost");
   await expect(page.locator("h1")).toHaveText("This is the last page a web server will send you.");
   await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "ready", { timeout: 15_000 });
-  await expect(page.getByTestId("door-status")).toContainText("ready");
+  await expect(page.getByTestId("door-status")).toHaveText("Antnet Start is here, checked and ready.");
 
   const fetches = countFetches(page);
   await page.getByTestId("enter").click();
   await expect(page.locator(".cards")).toBeVisible();
-  expect(new URL(page.url()).hostname).toBe("start.localhost");
-  // Served by the worker the frame installed: nothing fetched from the network on Enter.
+  const url = new URL(page.url());
+  expect(url.hostname + url.pathname).toBe("start.localhost/");
   expect(fetches()).toBe(0);
 });
 
-test("Enter works before the background fetch finishes", async ({ page }) => {
-  // Hold the fixture source back, so Start can't have arrived when Enter is clicked.
+test("Enter pressed early opens Start as soon as it arrives, with no second loading screen", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "Playwright's request interception doesn't reach WebKit's service worker");
   await page.context().route("**/_autonomi/fixtures/pointers/**", async (route) => {
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 2500));
     await route.continue();
+  });
+  let pointerReads = 0;
+  page.context().on("request", (r) => {
+    if (r.url().includes("/_autonomi/fixtures/pointers/")) pointerReads++;
   });
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "working");
   await page.getByTestId("enter").click();
+  await expect(page.getByTestId("door-status")).toContainText("Opening as soon as it arrives");
   await expect(page.locator(".cards")).toBeVisible({ timeout: 20_000 });
+  // One install, the door's own: Enter didn't start a second one.
+  expect(pointerReads).toBe(1);
 });
 
-test("a background fetch that fails says so, and Enter still works", async ({ page, browserName }) => {
-  test.skip(browserName === "webkit", "Playwright's request interception doesn't reach WebKit's frames");
+test("a fetch that fails says so, and Enter tries again", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "Playwright's request interception doesn't reach WebKit's service worker");
   let fail = true;
   await page.context().route("**/_autonomi/fixtures/pointers/**", (route) =>
     fail ? route.fulfill({ status: 500, body: "down" }) : route.continue(),
   );
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "error", { timeout: 15_000 });
-  await expect(page.getByTestId("door-status")).toContainText("Enter will try again");
+  await expect(page.getByTestId("door-status")).toContainText("Enter tries again");
+  await expect(page.getByTestId("enter")).toHaveText("Try again");
   fail = false;
   await page.getByTestId("enter").click();
-  await expect(page.locator(".cards")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "ready", { timeout: 15_000 });
 });
 
-test("without a site called start, the root shows the plain address page", async ({ page }) => {
-  await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: { v: 1, names: {} } }));
-  await page.goto(ROOT_URL);
-  await expect(page.locator("[data-view=landing]")).toBeVisible();
-  await expect(page.locator("[data-door]")).toHaveCount(0);
-  await expect(page.locator("h1")).toHaveText("Open a site stored on Autonomi");
-});
-
-test("both versions of the root page list the named sites as links", async ({ page }) => {
-  await page.goto(ROOT_URL);
-  const list = page.getByTestId("named-sites");
-  await expect(list.locator("a")).toHaveText(["library", "start"]);
-  await list.locator('a[data-name="library"]').click();
-  await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
-
-  // A loader whose directory has names but no "start": the plain page, with the same list.
-  const fixture = await (await page.request.get(`${ROOT_URL}_autonomi/names.json`)).json();
-  delete fixture.names.start;
-  await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: fixture }));
-  await page.goto(ROOT_URL);
-  await expect(page.locator("[data-door]")).toHaveCount(0);
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
-});
-
-test("a site that is already installed reports ready without fetching", async ({ page, browserName }) => {
-  test.skip(browserName === "webkit", WEBKIT_APART);
+test("a returning visitor goes straight from the root to Start", async ({ page, browserName }) => {
+  // WebKit on *.localhost: after the root's script redirect, the site's storage shows no
+  // install record, so Start is fetched again. To check in Safari on the real domain.
+  test.skip(browserName === "webkit", "WebKit loses the install record after a cross-host redirect on *.localhost");
   await openName(page, "start", ".cards");
   const fetches = countFetches(page);
   await page.goto(ROOT_URL);
-  await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "ready", { timeout: 15_000 });
+  await expect(page.locator(".cards")).toBeVisible({ timeout: 15_000 });
+  expect(new URL(page.url()).pathname).toBe("/");
   expect(fetches()).toBe(0);
+});
+
+test("?landing, or a loader without Start, shows the address page with the named sites", async ({ page }) => {
+  await page.goto(`${ROOT_URL}?landing`);
+  await expect(page.locator("[data-view=landing]")).toBeVisible();
+  await expect(page.locator("h1")).toHaveText("Open a site stored on Autonomi");
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "start"]);
+  await page.getByTestId("named-sites").locator('a[data-name="library"]').click();
+  await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
+
+  const names = await (await page.request.get(`${ROOT_URL}_autonomi/names.json`)).json();
+  delete names.names.start;
+  await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: names }));
+  await page.goto(ROOT_URL);
+  await expect(page.locator("[data-view=landing]")).toBeVisible();
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
+});
+
+test("the front door lists the other named sites", async ({ page }) => {
+  await page.goto(ROOT_URL);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
 });
 
 test("the warm path only answers pages on this loader", async ({ page, context }) => {

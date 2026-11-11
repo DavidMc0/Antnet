@@ -169,39 +169,43 @@ export function showLanding(opts: LandingOptions): void {
 }
 
 export interface FrontDoorOptions extends LandingOptions {
-  /** Start's address on this loader. Enter goes there. */
-  startHref: string;
+  /** What the site is called on the door: "Antnet Start". */
+  siteLabel: string;
+  /** Enter was pressed (or clicked). The caller decides what that means now. */
+  onEnter(): void;
 }
 
 export interface FrontDoorView {
-  /** Show what the background fetch of Start is doing. */
+  /** Show what the fetch of the site is doing. */
   report(r: WarmReport): void;
 }
 
 /**
- * The front door (DEMO.md 5.1): the one page a web server sends. Start is fetched in the
- * background while the visitor reads; Enter opens it, at once if it has arrived. Enter works
- * early too: the visitor then sees the ordinary loading screen.
+ * A site's front door (DEMO.md 5.1), shown on the site's own origin while it installs: the one
+ * page a web server sends. Enter opens the site, at once when it has arrived.
  */
 export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
-  const status = h("p", { class: "door-status", "data-testid": "door-status", role: "status" }, "Fetching Antnet Start…");
+  const label = opts.siteLabel;
+  const status = h("p", { class: "door-status", "data-testid": "door-status", role: "status" }, `Fetching ${label}…`);
   const bar = h("progress", { max: "1" });
-  const enter = h("a", { class: "button door-enter", href: opts.startHref, "data-testid": "enter" }, "Enter");
+  bar.removeAttribute("value");
+  const enter = h("button", { type: "button", class: "door-enter", "data-testid": "enter", onclick: () => opts.onEnter() }, "Enter");
   const door = h(
     "main",
-    { class: "card door", "data-view": "landing", "data-door": "working" },
+    { class: "card door", "data-view": "door", "data-door": "working" },
     h("h1", {}, "This is the last page a web server will send you."),
     h(
       "p",
       {},
-      "While you read this, your browser is fetching Antnet Start straight from computers on the Autonomi network, " +
+      `While you read this, your browser is fetching ${label} straight from computers on the Autonomi network, ` +
         "and checking every piece of it itself.",
     ),
-    h("p", {}, "Start and the sites it links to come from the network, not from a server."),
+    h("p", {}, `${label} and the sites it links to come from the network, not from a server.`),
     h("p", {}, "The first time takes a few seconds. After that, they open at once."),
     h("div", { class: "door-progress" }, status, bar),
     h("div", { class: "actions" }, enter),
   );
+  let step = `Fetching ${label}…`;
 
   const { form, extras } = addressTools(opts);
   mount(
@@ -221,25 +225,29 @@ export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
     report(r) {
       door.setAttribute("data-door", r.status);
       if (r.status === "ready") {
-        status.textContent = "Antnet Start is here, checked and ready.";
+        status.textContent = `${label} is here, checked and ready.`;
         bar.max = 1;
         bar.value = 1;
+        enter.focus();
         return;
       }
       if (r.status === "error") {
-        status.textContent = `Start couldn't be fetched in the background (${r.error ?? "error"}). Enter will try again.`;
+        status.textContent = `${label} couldn't be fetched: ${r.error ?? "error"}. ${r.step ?? ""} Enter tries again.`;
         bar.max = 1;
         bar.value = 0;
+        enter.textContent = "Try again";
         return;
+      }
+      if (r.step !== undefined) {
+        step = r.step;
+        bar.removeAttribute("value");
       }
       if (r.total) {
         bar.max = r.total;
         bar.value = r.done ?? 0;
-      } else {
-        bar.removeAttribute("value");
       }
       const count = r.total && r.unit === "records" ? ` ${r.done ?? 0} of ${r.total} records` : "";
-      status.textContent = `${r.step ?? "Fetching Antnet Start…"}${count}`;
+      status.textContent = `${step}${count}`;
     },
   };
 }
