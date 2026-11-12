@@ -102,14 +102,7 @@ a { color: var(--accent); }
   pointer-events: none;
 }
 
-/* The front door. Plain for now; its design pass comes later. */
-.door h1 { font-size: 1.7rem; }
-.door-progress { margin-top: 20px; }
-.door-status { margin: 0 0 8px; color: var(--muted); }
-.door[data-door="ready"] .door-status { color: var(--text); font-weight: 500; }
-.door-enter { font-size: 1.1rem; padding: 10px 28px; }
-.door[data-door="working"] .door-enter { opacity: 0.75; }
-.door-more { margin-top: 16px; }
+/* The named sites, as pills (the address page and the front door). */
 .named-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .named-list a {
   display: inline-block;
@@ -139,4 +132,641 @@ td code {
 }
 table.records th {
   font-weight: 600;
+}
+
+/* ---- The front door -------------------------------------------------------------------
+   The same family as Antnet Start, so the door and what is behind it feel like one place:
+   cool paper, deep green ink, one accent, and numbers in a monospace face. Everything here is
+   scoped to data-page="door" on <html>; the loading, info and error views keep the plain look.
+   The fonts are bundled (Instrument Sans and JetBrains Mono, Open Font License). */
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("./fonts/instrument-sans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root[data-page="door"] {
+  --bg: #f1f4f1;
+  --surface: #fbfcfb;
+  --ink: #0f1c18;
+  --muted: #586762;
+  --rule: #d5ddd8;
+  --accent: #0b7355;
+  --band: #10241e;
+  --band-ink: #eaf3ef;
+  --band-muted: #a5bcb3;
+  --band-accent: #7fe0b8;
+  --band-error: #ffab9c;
+  --shadow: 15 40 30;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --gutter: clamp(1.25rem, 4vw, 2.5rem);
+  /* The names the shared form and link styles above use. */
+  --card: var(--surface);
+  --text: var(--ink);
+  --border: var(--rule);
+  --accent-text: var(--bg);
+  --error: #b3261e;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-page="door"] {
+    --bg: #0b110f;
+    --surface: #121a17;
+    --ink: #e8f0ec;
+    --muted: #90a29b;
+    --rule: #233029;
+    --accent: #66d6aa;
+    --band: #16221e;
+    --band-ink: #e8f0ec;
+    --band-muted: #90a29b;
+    --band-accent: #66d6aa;
+    --shadow: 0 0 0;
+    --error: #ff8a7d;
+  }
+}
+
+[data-page="door"] {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+[data-page="door"] body {
+  padding: 0;
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  font-kerning: normal;
+}
+[data-page="door"] ::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+[data-page="door"] a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+[data-page="door"] :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.door-top,
+.door,
+.door-foot {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+/* Top bar and footer */
+.door-top,
+.door-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.door-top {
+  padding-top: 1.5rem;
+}
+.door-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.door-mark {
+  width: 2.1rem;
+  height: auto;
+  color: var(--accent);
+}
+.door-top-link {
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.door-top-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.door-foot {
+  position: relative;
+  flex-wrap: wrap;
+  margin-top: clamp(3rem, 7vw, 5rem);
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.door-foot::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--gutter);
+  right: var(--gutter);
+  border-top: 1px solid var(--rule);
+}
+
+/* Hero: the claim, and one line on what it means. */
+.door-hero {
+  position: relative;
+  padding-top: clamp(2.25rem, 6vw, 4.5rem);
+}
+/* A faint field of nodes behind the headline, as on Start. */
+.door-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 35%;
+  height: 24rem;
+  background: radial-gradient(circle, var(--rule) 0 1.2px, transparent 1.6px) 0 0 / 1.5rem 1.5rem;
+  -webkit-mask-image: radial-gradient(ellipse at 75% 30%, #000 0, transparent 68%);
+  mask-image: radial-gradient(ellipse at 75% 30%, #000 0, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+.door-kicker {
+  margin: 0 0 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.door h1 {
+  margin: 0;
+  max-width: 14em;
+  font-size: clamp(2.125rem, 1.1rem + 4.4vw, 4rem);
+  font-weight: 550;
+  font-stretch: 88%;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+.door-lede {
+  margin: 1.5rem 0 0;
+  max-width: 38rem;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* The live panel: the site arriving, on the dark band Start uses for where a page came from. */
+.door-live {
+  margin-top: clamp(2rem, 5vw, 3.25rem);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  background: var(--band);
+  color: var(--band-ink);
+  border-radius: 1.25rem;
+  box-shadow: 0 2rem 3.5rem -2.5rem rgb(var(--shadow) / 0.55);
+}
+.door-live-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px dashed color-mix(in srgb, var(--band-ink) 22%, transparent);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.door-live-kicker {
+  color: var(--band-accent);
+}
+.door[data-door="error"] .door-live-kicker {
+  color: var(--band-error);
+}
+.door-clock {
+  flex: none;
+  color: var(--band-muted);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Five nodes on a trail. Narrow screens: a compact row. Wide screens: Start's layout. */
+.door-trail {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  --node: 1.9rem;
+}
+.door-trail li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--band-muted);
+  transition: color 0.3s ease;
+}
+.door-trail li:not([data-state="pending"]) {
+  color: var(--band-ink);
+}
+/* The trail from one node to the next. */
+.door-trail li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--node) / 2);
+  left: calc(50% + var(--node) / 2 + 0.3rem);
+  right: calc(-50% + var(--node) / 2 + 0.3rem);
+  border-top: 1.5px dashed color-mix(in srgb, var(--band-ink) 26%, transparent);
+  transition: border-color 0.3s ease;
+}
+.door-trail li[data-state="done"]:not(:last-child)::after {
+  border-top-style: solid;
+  border-top-color: var(--band-accent);
+}
+.door-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--node);
+  height: var(--node);
+  margin-bottom: 0.55rem;
+  border: 1.5px solid color-mix(in srgb, var(--band-ink) 30%, transparent);
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+}
+.door-tick {
+  display: none;
+  width: 58%;
+  height: 58%;
+}
+/* Under way: a ring that turns. */
+li[data-state="active"] .door-node {
+  border-color: color-mix(in srgb, var(--band-accent) 30%, transparent);
+  color: var(--band-accent);
+}
+li[data-state="active"] .door-node::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border: 1.5px solid transparent;
+  border-top-color: var(--band-accent);
+  border-radius: 50%;
+  animation: door-spin 0.9s linear infinite;
+}
+li[data-state="done"] .door-node {
+  background: var(--band-accent);
+  border-color: var(--band-accent);
+  color: var(--band);
+}
+li[data-state="done"] .door-node-n {
+  display: none;
+}
+li[data-state="done"] .door-tick {
+  display: block;
+}
+li[data-state="error"] .door-node {
+  border-color: var(--band-error);
+  color: var(--band-error);
+}
+@keyframes door-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.door-trail b {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.door-node-d,
+.door-node-t {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .door-trail {
+    gap: 1.25rem;
+    --node: 2.2rem;
+  }
+  .door-trail li {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .door-trail li:not(:last-child)::after {
+    left: 2.7rem;
+    right: -0.65rem;
+  }
+  .door-node {
+    margin-bottom: 0.7rem;
+    font-size: 0.8125rem;
+  }
+  .door-trail b {
+    font-size: 1.0625rem;
+  }
+  .door-node-d {
+    display: block;
+    color: var(--band-muted);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .door-node-t {
+    display: block;
+    min-height: 1.3em;
+    margin-top: 0.4rem;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--band-accent);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* What is happening, in words, and the way in. */
+.door-live-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed color-mix(in srgb, var(--band-ink) 22%, transparent);
+}
+.door-live-text {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.door-status {
+  margin: 0;
+  font-size: clamp(1.1875rem, 1.05rem + 0.6vw, 1.5rem);
+  font-weight: 550;
+  font-stretch: 92%;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+.door-detail {
+  margin: 0.45rem 0 0;
+  color: var(--band-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+/* This visit's numbers, set like a measurement. */
+.door-detail[data-kind="summary"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--band-accent);
+}
+.door-detail[data-kind="error"] {
+  color: var(--band-error);
+  overflow-wrap: anywhere;
+}
+
+/* Enter. Quiet while the site is on its way (it still works); the page's one bright thing
+   once the site is here. */
+.door-enter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  padding: 0.7rem 1.5rem;
+  border: 1.5px solid color-mix(in srgb, var(--band-ink) 34%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--band-ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.2s ease;
+}
+.door-enter:hover {
+  border-color: var(--band-accent);
+  color: var(--band-accent);
+}
+[data-page="door"] .door-enter:focus-visible {
+  outline-color: var(--band-accent);
+  border-radius: 999px;
+}
+.door-arrow {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  transition: transform 0.2s ease;
+}
+.door[data-door="ready"] .door-enter {
+  padding: 0.7rem 1.75rem;
+  background: var(--band-accent);
+  border-color: var(--band-accent);
+  color: var(--band);
+}
+.door[data-door="ready"] .door-enter:hover {
+  background: color-mix(in srgb, var(--band-accent) 86%, #fff);
+  color: var(--band);
+}
+.door[data-door="ready"] .door-enter:hover .door-arrow {
+  transform: translateX(3px);
+}
+/* Pressed early: it is waiting on the visitor's behalf. */
+.door[data-entered][data-door="working"] .door-enter {
+  border-style: dashed;
+  border-color: var(--band-accent);
+  color: var(--band-accent);
+}
+.door[data-entered][data-door="working"] .door-arrow,
+.door[data-door="error"] .door-arrow {
+  display: none;
+}
+@media (max-width: 34rem) {
+  .door-enter {
+    width: 100%;
+  }
+}
+
+/* What changes on the other side: three plain benefits. */
+.door-benefits,
+.door-more {
+  margin-top: clamp(3rem, 7vw, 5rem);
+}
+.door h2 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-stretch: 92%;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+.door-benefits h2 {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+.door-benefits ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0 clamp(1.5rem, 4vw, 3rem);
+}
+.door-benefits li {
+  padding-top: 1.5rem;
+}
+.door-benefits h3 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+  font-weight: 550;
+  font-stretch: 88%;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.door-benefits p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  text-wrap: pretty;
+}
+
+/* Lower and quieter: other sites, and the address box. */
+.door-more {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 1.25rem clamp(1.5rem, 5vw, 4rem);
+  align-items: start;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--rule);
+}
+@media (max-width: 48rem) {
+  .door-more {
+    grid-template-columns: 1fr;
+  }
+}
+.door-more-head p {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+.door-more form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  margin: 0;
+}
+.door-more input[type="text"] {
+  min-height: 2.75rem;
+  padding: 0.55rem 0.9rem;
+  background: var(--surface);
+  border-radius: 0.6rem;
+}
+.door-more input[type="text"]::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.door-more form button {
+  grid-row: 1;
+  grid-column: 2;
+  min-height: 2.75rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: 0.6rem;
+  font-weight: 600;
+}
+.door-more .check,
+.door-more .form-error {
+  grid-column: 1 / -1;
+}
+.door-more .check {
+  font-size: 0.875rem;
+}
+.door-more .form-error:empty {
+  display: none;
+}
+.door-more .small {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+}
+.door-more .named {
+  margin-bottom: 1.5rem;
+}
+.door-more .fixtures {
+  margin-top: 1.5rem;
+}
+.door-more .named h2,
+.door-more .fixtures h2 {
+  margin: 0 0 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-stretch: 100%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.door-more .named-list {
+  margin: 0;
+}
+.door-more .named-list a {
+  padding: 0.4rem 0.95rem;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.875rem;
+}
+.door-more .fixtures ul {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.door-fine {
+  max-width: 46rem;
+  margin: clamp(2.5rem, 6vw, 4rem) 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  li[data-state="active"] .door-node::before {
+    animation: none;
+    border-color: var(--band-accent);
+  }
+  .door-trail li,
+  .door-trail li::after,
+  .door-node,
+  .door-enter,
+  .door-arrow {
+    transition: none;
+  }
+  .door[data-door="ready"] .door-enter:hover .door-arrow {
+    transform: none;
+  }
 }

@@ -24,6 +24,8 @@ function append(el: HTMLElement, children: Child[]): void {
 
 export function mount(...nodes: Node[]): void {
   const app = document.getElementById("app")!;
+  // A view that restyles the whole page (the front door) sets this again after mounting.
+  document.documentElement.removeAttribute("data-page");
   app.replaceChildren(...nodes);
 }
 

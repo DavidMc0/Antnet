@@ -60,7 +60,7 @@ test("a fetch that fails says so, and Enter tries again", async ({ page, browser
   );
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "error", { timeout: 15_000 });
-  await expect(page.getByTestId("door-status")).toContainText("Enter tries again");
+  await expect(page.getByTestId("door-status")).toContainText("couldn't be fetched");
   await expect(page.getByTestId("enter")).toHaveText("Try again");
   fail = false;
   await page.getByTestId("enter").click();

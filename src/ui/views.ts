@@ -175,10 +175,79 @@ export interface FrontDoorOptions extends LandingOptions {
   onEnter(): void;
 }
 
+/** The parts of an install, so a view can follow it without reading the step text. */
+export type InstallStage = "connect" | "find" | "fetch" | "install";
+
+export interface DoorReport extends WarmReport {
+  stage?: InstallStage;
+  /** With "ready": the record of what was just installed, for this visit's numbers. */
+  state?: SiteState | null;
+}
+
 export interface FrontDoorView {
   /** Show what the fetch of the site is doing. */
-  report(r: WarmReport): void;
+  report(r: DoorReport): void;
+  /** Enter was pressed before the site arrived: say it opens as soon as it does. */
+  entered(): void;
 }
+
+const SOURCE_URL = "https://github.com/DavidMc0/Antnet";
+
+/** Inline SVG from markup. Presentation attributes only, so the shell's CSP allows it. */
+function svg(markup: string): Element {
+  const t = document.createElement("template");
+  t.innerHTML = markup;
+  return t.content.firstElementChild!;
+}
+
+/** The mark Antnet Start uses: three dots in a row. An ant, and three nodes on a network. */
+const MARK =
+  '<svg class="door-mark" viewBox="0 0 44 18" fill="currentColor" aria-hidden="true"><circle cx="8" cy="10" r="6.5"/><circle cx="22" cy="10" r="3.6"/><circle cx="35" cy="10" r="5"/><path d="M37.5 5.5l3-4M39.5 8l4-2.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+const TICK =
+  '<svg class="door-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2L18.5 7.5"/></svg>';
+const ARROW =
+  '<svg class="door-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+function doorBrand(): HTMLElement {
+  return h("span", { class: "door-brand" }, svg(MARK), h("span", {}, "antnet"));
+}
+
+// The same units as the receipt on Antnet Start, so the door and Start agree.
+function doorBytes(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} kB`;
+  return `${n} bytes`;
+}
+function doorSeconds(ms: number | undefined): string {
+  return ms === undefined ? "" : `${(ms / 1000).toFixed(ms < 1000 ? 2 : 1)} s`;
+}
+
+/** The five nodes on the door's trail: the same five steps Antnet Start shows afterwards. */
+const TRAIL: [id: string, label: string, detail: string][] = [
+  ["connect", "Connect", "to the network"],
+  ["find", "Find", "the latest version"],
+  ["fetch", "Fetch", "its records"],
+  ["check", "Check", "every byte"],
+  ["hand", "Hand over", "to your browser"],
+];
+const CHECK = 3;
+const HAND = 4;
+const STAGE_NODE: Record<InstallStage, number> = { connect: 0, find: 1, fetch: 2, install: HAND };
+
+const BENEFITS: [title: string, text: string][] = [
+  [
+    "No server in the middle",
+    "A site arrives as records from independent computers. Your browser checks every byte against the site's address, so nothing in between can change what you see.",
+  ],
+  [
+    "Opens from an ordinary link",
+    "There is nothing to install. A normal link in a normal browser is enough, and a site you have visited before opens at once.",
+  ],
+  [
+    "Paid for once",
+    "A site is paid for when it is uploaded. There is no hosting bill, and nothing to renew.",
+  ],
+];
 
 /**
  * A site's front door (DEMO.md 5.1), shown on the site's own origin while it installs: the one
@@ -186,68 +255,203 @@ export interface FrontDoorView {
  */
 export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
   const label = opts.siteLabel;
-  const status = h("p", { class: "door-status", "data-testid": "door-status", role: "status" }, `Fetching ${label}…`);
-  const bar = h("progress", { max: "1" });
-  bar.removeAttribute("value");
-  const enter = h("button", { type: "button", class: "door-enter", "data-testid": "enter", onclick: () => opts.onEnter() }, "Enter");
+  const HINT = "A first visit usually takes 10 to 30 seconds. After that, it opens at once.";
+
+  const kicker = h("span", { class: "door-live-kicker" }, `Arriving now · ${label}`);
+  const clock = h("span", { class: "door-clock", "aria-hidden": "true" }, "");
+  const times: HTMLElement[] = [];
+  const nodes = TRAIL.map(([id, name, detail], i) => {
+    const time = h("span", { class: "door-node-t" }, "");
+    times.push(time);
+    return h(
+      "li",
+      { "data-node": id, "data-state": i === 0 ? "active" : "pending" },
+      h("span", { class: "door-node" }, h("span", { class: "door-node-n" }, String(i + 1)), svg(TICK)),
+      h("b", {}, name),
+      h("span", { class: "door-node-d" }, detail),
+      time,
+    );
+  });
+  const status = h("p", { class: "door-status", "data-testid": "door-status", role: "status" }, "Starting…");
+  const detail = h("p", { class: "door-detail", "data-testid": "door-detail" }, HINT);
+  const enterLabel = h("span", {}, "Enter");
+  const enter = h(
+    "button",
+    { type: "button", class: "door-enter", "data-testid": "enter", onclick: () => opts.onEnter() },
+    enterLabel,
+    svg(ARROW),
+  );
+
   const door = h(
     "main",
-    { class: "card door", "data-view": "door", "data-door": "working" },
-    h("h1", {}, "This is the last page a web server will send you."),
-    h(
-      "p",
-      {},
-      `While you read this, your browser is fetching ${label} straight from computers on the Autonomi network, ` +
-        "and checking every piece of it itself.",
-    ),
-    h("p", {}, `${label} and the sites it links to come from the network, not from a server.`),
-    h("p", {}, "The first time takes a few seconds. After that, they open at once."),
-    h("div", { class: "door-progress" }, status, bar),
-    h("div", { class: "actions" }, enter),
-  );
-  let step = `Fetching ${label}…`;
-
-  const { form, extras } = addressTools(opts);
-  mount(
-    brand(),
-    door,
+    { class: "door", "data-view": "door", "data-door": "working" },
     h(
       "section",
-      { class: "card door-more" },
-      h("h2", {}, "Open another site"),
-      h("p", { class: "small" }, "Type a site's short name (such as library), its 64-character address, or an ant:// link."),
-      form,
-      extras,
+      { class: "door-hero" },
+      h("p", { class: "door-kicker" }, "The front door"),
+      h("h1", {}, "This is the last page a web server will send you."),
+      h(
+        "p",
+        { class: "door-lede" },
+        "From here on, sites come straight from Autonomi, a network of independent computers. " +
+          "Your browser fetches each one itself, and checks every piece before showing it.",
+      ),
+    ),
+    h(
+      "section",
+      { class: "door-live", "aria-label": `${label}, arriving from the network` },
+      h("div", { class: "door-live-head" }, kicker, clock),
+      h("ol", { class: "door-trail" }, ...nodes),
+      h("div", { class: "door-live-foot" }, h("div", { class: "door-live-text" }, status, detail), enter),
+    ),
+    h(
+      "section",
+      { class: "door-benefits", "aria-labelledby": "door-benefits-h" },
+      h("h2", { id: "door-benefits-h" }, "What changes on the other side"),
+      h("ul", {}, ...BENEFITS.map(([title, text]) => h("li", {}, h("h3", {}, title), h("p", {}, text)))),
     ),
   );
 
+  const { form, extras } = addressTools(opts);
+  const [named, ...tools] = extras;
+  door.append(
+    h(
+      "section",
+      { class: "door-more", "aria-labelledby": "door-more-h" },
+      h(
+        "div",
+        { class: "door-more-head" },
+        h("h2", { id: "door-more-h" }, "Going somewhere else?"),
+        h("p", {}, "Type a site's short name (such as library), its 64-character address, or an ant:// link."),
+      ),
+      h("div", { class: "door-more-body" }, named, form, tools),
+    ),
+    h(
+      "p",
+      { class: "door-fine" },
+      "This first page is the loader. It is small and open source, and it comes from an ordinary web host; " +
+        "anyone can run their own. Antnet is an independent proof of concept, not an Autonomi Foundation product.",
+    ),
+  );
+
+  mount(
+    h(
+      "header",
+      { class: "door-top" },
+      doorBrand(),
+      h("a", { class: "door-top-link", href: SOURCE_URL, target: "_blank", rel: "noopener" }, "Source"),
+    ),
+    door,
+    h(
+      "footer",
+      { class: "door-foot" },
+      doorBrand(),
+      h("span", {}, "An independent proof of concept. ", h("a", { href: SOURCE_URL, target: "_blank", rel: "noopener" }, "Source")),
+    ),
+  );
+  document.documentElement.setAttribute("data-page", "door");
+  document.title = `Antnet · ${label}`;
+
+  // Where the install has got to: nodes before `current` are done, `current` is under way.
+  let current = 0;
+  let stageAt = performance.now();
+  let message = "Starting…";
+  let early = false;
+  const began = stageAt;
+  const timer = setInterval(() => {
+    clock.textContent = `${Math.floor((performance.now() - began) / 1000)} s`;
+  }, 1000);
+
+  const paint = (last: "active" | "done" | "error") =>
+    nodes.forEach((n, i) => n.setAttribute("data-state", i < current ? "done" : i === current ? last : "pending"));
+  const advance = (to: number) => {
+    if (to <= current) return;
+    const now = performance.now();
+    // Checking has no time of its own: each record is checked as it arrives.
+    if (current !== CHECK) times[current].textContent = doorSeconds(now - stageAt);
+    stageAt = now;
+    current = to;
+    paint("active");
+  };
+  const show = () => {
+    status.textContent = early ? "Opening as soon as it arrives…" : message;
+    detail.textContent = early ? message : HINT;
+  };
+
   return {
+    entered() {
+      early = true;
+      door.setAttribute("data-entered", "");
+      enterLabel.textContent = "Opening when ready";
+      show();
+    },
     report(r) {
       door.setAttribute("data-door", r.status);
       if (r.status === "ready") {
+        clearInterval(timer);
+        const s = r.state;
+        const t = s?.timings;
+        current = TRAIL.length;
+        paint("done");
+        if (t) {
+          times[0].textContent = doorSeconds(t.connectMs);
+          times[1].textContent = doorSeconds(t.resolveMs);
+          times[2].textContent = doorSeconds(t.downloadMs);
+          times[HAND].textContent = doorSeconds(t.installMs);
+        }
+        const total = doorSeconds(t?.totalMs ?? performance.now() - began);
+        kicker.textContent = `Arrived · ${label}`;
+        clock.textContent = total;
         status.textContent = `${label} is here, checked and ready.`;
-        bar.max = 1;
-        bar.value = 1;
-        enter.focus();
+        detail.setAttribute("data-kind", "summary");
+        const facts = s
+          ? [
+              s.records !== undefined ? `${s.records + 1} records` : null,
+              doorBytes(s.bytes),
+              `arrived in ${total}`,
+              "every byte checked in your browser",
+            ]
+          : ["Fetched from the network and checked in your browser."];
+        // Spans, so the facts wrap as units; the spaces between them are for screen readers and copying.
+        detail.replaceChildren(...facts.filter((f): f is string => !!f).flatMap((f) => [h("span", {}, f), " "]));
+        enterLabel.textContent = `Enter ${label}`;
+        document.title = `Ready · ${label}`;
+        enter.focus({ preventScroll: true });
         return;
       }
       if (r.status === "error") {
-        status.textContent = `${label} couldn't be fetched: ${r.error ?? "error"}. ${r.step ?? ""} Enter tries again.`;
-        bar.max = 1;
-        bar.value = 0;
-        enter.textContent = "Try again";
+        clearInterval(timer);
+        paint("error");
+        kicker.textContent = `Not fetched · ${label}`;
+        status.textContent = `${label} couldn't be fetched.`;
+        detail.setAttribute("data-kind", "error");
+        detail.textContent = [r.error, r.step].filter(Boolean).join(". ");
+        enterLabel.textContent = "Try again";
         return;
       }
-      if (r.step !== undefined) {
-        step = r.step;
-        bar.removeAttribute("value");
+      if (r.stage) {
+        advance(STAGE_NODE[r.stage]);
+        message =
+          r.stage === "connect"
+            ? "Connecting to the Autonomi network, straight from your browser…"
+            : r.stage === "find"
+              ? `Finding the latest version of ${label}…`
+              : r.stage === "fetch"
+                ? `Fetching ${label} from the computers that hold it…`
+                : "Handing over to your browser…";
+      } else if (r.step !== undefined) {
+        message = r.step;
       }
-      if (r.total) {
-        bar.max = r.total;
-        bar.value = r.done ?? 0;
+      if (r.total && current <= CHECK) {
+        const done = r.done ?? 0;
+        if (done >= r.total) {
+          advance(CHECK);
+          message = "Checking every byte against the address…";
+        } else if (r.unit === "records") {
+          message = `Fetching ${label}: ${done} of ${r.total} records`;
+        }
       }
-      const count = r.total && r.unit === "records" ? ` ${r.done ?? 0} of ${r.total} records` : "";
-      status.textContent = `${step}${count}`;
+      show();
     },
   };
 }

@@ -350,6 +350,23 @@ The user asked for the pass in Fable: clear, attractive, strong and confident wi
   Update the test's "Enter tries again" wording if the error copy changes.
 - **Avoid:** forever, unstoppable, uncensorable, revolutionary, Web3 (DEMO.md section 1).
 
+## Front door design pass: built and deployed (2026-11-12)
+
+Built in Fable, to the plan above. Only the door changed look; the loading, info, error and address pages are as before.
+
+- **Scope:** `showFrontDoor` sets `data-page="door"` on `<html>` (`mount()` clears it for every other view). The door's styles are the last block of `src/ui/style.css`, with the two fonts bundled from `src/ui/fonts/`.
+- **Layout:** top bar (mark, "antnet", Source) → hero (the `h1` and one line on what it means) → live panel on the dark band → "What changes on the other side" (three benefits) → "Going somewhere else?" (named sites, address box) → fine print → footer.
+- **Live panel:**
+  - a five-node trail (Connect, Find, Fetch, Check, Hand over), each pending, under way (turning ring), done (tick) or failed;
+  - a seconds counter, a status line, and a second line that holds the hint ("A first visit usually takes 10 to 30 seconds…"), then this visit's numbers, or the error;
+  - Enter is an outline while the site is on its way and filled once it is ready ("Enter Antnet Start"). Pressed early it reads "Opening when ready".
+  - The tab title becomes "Ready · Antnet Start", for visitors who switched tabs.
+- **Plumbing:** `InstallUI.step(text, stage)` with `connect | find | fetch | install`; the door's `done()` reads the state record for the numbers; `FrontDoorView.entered()` replaces the old step-text report.
+- **Copy change:** a failure now reads "Antnet Start couldn't be fetched." with the reason beneath (was "… Enter tries again."). `warm.spec.ts` was updated to match.
+- **Checked:** screenshots at 1280, 820, 390 and 320 px wide, light and dark, in the working, early-Enter, ready and error states; no sideways scroll at any width. Unit 74/74, Chromium e2e 67/67.
+- **Deployed 2026-11-12;** the user checked it live and is happy with it.
+- **Left for later:** the plain message for browsers without WebRTC (DEMO.md 5.5); the loading screen still has the old look, so an early deep link looks different from the door.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
@@ -361,9 +378,7 @@ Section 3.6 adds **Download Button**: Autonomirror's download page and button ge
 
 ### Next
 
-1. **The front door design pass** above, in Fable.
-2. **In DEMO.md section 10's order:**
-   - **A design pass on the front door:** a good job for Fable.
+1. **In DEMO.md section 10's order:**
    - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
    - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.
    - **The address bar.**

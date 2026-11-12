@@ -32,7 +32,7 @@ import { type SiteSource, SourceError } from "./source/types";
 import { type SiteState, type Timings, checkDue, clearState, readState, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
 import { formatBytes } from "./ui/dom";
-import { type LandingOptions, showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
+import { type InstallStage, type LandingOptions, showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
 
 
 const CONFIGURED_ROOT: string | undefined = import.meta.env.VITE_LOADER_ROOT || undefined;
@@ -152,7 +152,7 @@ interface Named {
 
 /** Where an install reports to: the loading screen, or (warm-up) the page that embedded it. */
 interface InstallUI {
-  step(text: string): void;
+  step(text: string, stage: InstallStage): void;
   progress(done: number, total?: number, unit?: "bytes" | "records"): void;
   done(): void;
   fail(title: string, message: string): void;
@@ -186,20 +186,20 @@ async function install(link: SiteLink, root: string, named?: Named, ui: InstallU
   try {
     source = await createSource();
 
-    view.step("Connecting to the Autonomi network…");
+    view.step("Connecting to the Autonomi network…", "connect");
     let t = performance.now();
     await source.connect?.();
     timings.connectMs = since(t);
 
     let archive = link.address;
     if (link.kind === "p") {
-      view.step("Finding the latest version…");
+      view.step("Finding the latest version…", "find");
       t = performance.now();
       archive = await source.resolvePointer(link.address);
       timings.resolveMs = since(t);
     }
 
-    view.step("Downloading the site…");
+    view.step("Downloading the site…", "fetch");
     t = performance.now();
     const result = await source.fetchArchive(archive, {
       maxBytes: maxArchiveBytes(),
@@ -207,7 +207,7 @@ async function install(link: SiteLink, root: string, named?: Named, ui: InstallU
     });
     timings.downloadMs = since(t);
 
-    view.step("Installing…");
+    view.step("Installing…", "install");
     await installArchive({
       origin: location.origin,
       link,
@@ -669,18 +669,19 @@ async function door(host: Extract<HostInfo, { view: "site" | "name" }>): Promise
       if (failed) return location.reload();
       if (ready) return enterSite();
       entered = true;
-      view.report({ status: "working", step: "Opening as soon as it arrives…" });
+      view.entered();
     },
   });
 
   await install(link, root, named, {
-    step: (text) => view.report({ status: "working", step: text }),
+    step: (text, stage) => view.report({ status: "working", step: text, stage }),
     progress: (done, total, unit) => view.report({ status: "working", done, total, unit }),
     done() {
       ready = true;
       resetReloadGuard();
       if (entered) return enterSite();
-      view.report({ status: "ready" });
+      // This visit's numbers, from the record the install just wrote.
+      void readState(location.origin).then((state) => view.report({ status: "ready", state }));
     },
     fail(title, message) {
       failed = true;
