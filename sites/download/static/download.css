@@ -1,0 +1,585 @@
+/* ------------------------------------------------------------------ file card */
+
+.file-card {
+  overflow: hidden;
+}
+
+.file-hero {
+  position: relative;
+  height: 170px;
+  background:
+    radial-gradient(260px 120px at 50% 50%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+
+.constellation {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.c-mesh line {
+  stroke: var(--text-faint);
+  stroke-opacity: 0.22;
+  stroke-width: 1;
+}
+.c-routes path {
+  fill: none;
+  stroke: var(--chunk);
+  stroke-width: 1.4;
+  stroke-opacity: 0;
+  stroke-dasharray: 3 5;
+  transition: stroke-opacity 0.6s;
+}
+.c-nodes circle {
+  fill: var(--text-faint);
+  opacity: 0.55;
+  transition: fill 0.5s, opacity 0.5s;
+}
+
+/* connecting: nodes twinkle while we look for peers */
+[data-state="connecting"] .c-nodes circle {
+  animation: twinkle 2.4s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ready / downloading / done: the nearest nodes light up and link to the file */
+:is([data-state="ready"], [data-state="downloading"], [data-state="done"]) .c-nodes .is-holder {
+  fill: var(--chunk);
+  opacity: 1;
+}
+:is([data-state="ready"], [data-state="downloading"], [data-state="done"]) .c-routes path {
+  stroke-opacity: 0.35;
+}
+[data-state="downloading"] .c-routes path {
+  stroke-opacity: 0.6;
+  animation: flow 1.1s linear infinite;
+  animation-delay: var(--d);
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+.c-routes path.spark {
+  animation: spark 0.7s ease-out, flow 1.1s linear infinite;
+  stroke-width: 2.4;
+}
+@keyframes spark {
+  0% {
+    stroke-opacity: 1;
+    stroke: #fff;
+  }
+  100% {
+    stroke-opacity: 0.6;
+  }
+}
+[data-state="done"] .c-routes path {
+  stroke: var(--ok);
+}
+[data-state="done"] .c-nodes .is-holder {
+  fill: var(--ok);
+}
+:is([data-state="error"], [data-state="blocked"]) .c-nodes circle {
+  opacity: 0.3;
+}
+
+.file-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 80px;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.35));
+}
+.file-badge-shape {
+  width: 100%;
+  height: 100%;
+}
+.file-badge-shape path {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+.file-badge-shape .fold {
+  fill: var(--surface-3);
+}
+.file-ext {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 56px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--accent);
+  color: #fff;
+  font: 600 11px/1.3 var(--mono);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-ext.is-long {
+  font-size: 9.5px;
+}
+[data-state="done"] .file-ext {
+  background: var(--ok);
+  color: #0a1020;
+}
+
+.file-body {
+  padding-top: 22px;
+}
+
+.file-name {
+  margin: 0;
+  font-size: clamp(22px, 5vw, 28px);
+  line-height: 1.2;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.file-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+.file-size {
+  color: var(--text);
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+}
+.size-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.size-badge.is-verified {
+  color: var(--ok-text);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  background: var(--ok-soft);
+}
+.chunk-meta::before {
+  content: "·";
+  margin-right: 10px;
+  opacity: 0.6;
+}
+
+.address-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.address-value {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-route {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.app-route-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.app-route-text {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.app-route-steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.app-route-steps strong {
+  color: var(--text);
+}
+.app-route-note {
+  margin: 10px 0 0;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.direct-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.direct-line .icon {
+  margin-top: 3px;
+  color: var(--chunk);
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.panel {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 14px;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+}
+.status-indicator {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--chunk);
+}
+.status-indicator .spinner {
+  width: 16px;
+  height: 16px;
+}
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 4px var(--ok-soft);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+.status-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+#status-title {
+  font-weight: 600;
+}
+.status-detail {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.download-btn .spinner {
+  width: 16px;
+  height: 16px;
+}
+.cancelled-note {
+  margin: -4px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+}
+
+/* ------------------------------------------------------------------ progress */
+
+.progress-head,
+.progress-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.progress-title {
+  font-weight: 600;
+}
+.progress-percent {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.progress-message {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* One segment per chunk, up to 24 per row. */
+.chunk-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 12), minmax(0, 1fr));
+  gap: 4px;
+}
+.chunk-grid span {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--chunk-empty);
+  transition: background 0.25s, box-shadow 0.25s;
+}
+.chunk-grid.is-dense span {
+  height: 10px;
+  border-radius: 3px;
+}
+.chunk-grid span.on {
+  background: var(--chunk);
+  box-shadow: 0 0 12px -3px color-mix(in srgb, var(--chunk) 80%, transparent);
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+}
+.chunk-grid span.on {
+  animation: glow 0.5s ease-out;
+}
+@keyframes glow {
+  0% {
+    filter: brightness(1.8);
+  }
+}
+
+.bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--chunk-empty);
+  overflow: hidden;
+}
+.bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--chunk), color-mix(in srgb, var(--chunk) 55%, var(--ok)));
+  transition: width 0.35s ease;
+}
+.bar.is-indeterminate .bar-fill {
+  width: 35% !important;
+  animation: slide 1.3s ease-in-out infinite;
+}
+@keyframes slide {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------ done */
+
+.done-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.done-check {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 6px var(--ok-soft);
+  animation: pop 0.45s ease-out;
+}
+.done-check svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #0a1020;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw 0.45s 0.2s ease-out forwards;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.done-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 680;
+}
+.done-text {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.done-facts {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.done-facts > div {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.done-facts > div + div {
+  border-top: 1px solid var(--border);
+}
+.done-facts dt {
+  font: 500 11px/1.9 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.done-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.hash-row dd {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.hash {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.btn.is-copied {
+  color: var(--ok-text);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+/* ------------------------------------------------------------------ invalid */
+
+.invalid-card {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin-top: 24px;
+}
+.invalid-title {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+.invalid-card p {
+  margin: 0 0 8px;
+}
+
+/* ------------------------------------------------------------------ how it works */
+
+.how {
+  margin-top: 28px;
+  padding: 0 4px;
+}
+.how-title {
+  margin: 0 0 14px;
+  font: 500 11.5px/1.2 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.how-steps li {
+  display: flex;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.how-steps strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.how-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font: 500 12px/1 var(--mono);
+  color: var(--text-muted);
+}
+.privacy {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.how > summary {
+  cursor: pointer;
+  list-style: none;
+  width: max-content;
+}
+.how > summary::-webkit-details-marker {
+  display: none;
+}
+.how > summary::after {
+  content: "+";
+  margin-left: 8px;
+}
+.how[open] > summary::after {
+  content: "–";
+}
+.how:not([open]) > summary {
+  margin-bottom: 0;
+}

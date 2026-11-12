@@ -94,7 +94,7 @@ test("?landing, or a loader without Start, shows the address page with the named
   await page.goto(`${ROOT_URL}?landing`);
   await expect(page.locator("[data-view=landing]")).toBeVisible();
   await expect(page.locator("h1")).toHaveText("Open a site stored on Autonomi");
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema", "start"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema", "download", "start"]);
   await page.getByTestId("named-sites").locator('a[data-name="library"]').click();
   await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
 
@@ -103,12 +103,12 @@ test("?landing, or a loader without Start, shows the address page with the named
   await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: names }));
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-view=landing]")).toBeVisible();
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema", "download"]);
 });
 
 test("the front door lists the other named sites", async ({ page }) => {
   await page.goto(ROOT_URL);
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema", "download"]);
 });
 
 test("the warm path only answers pages on this loader", async ({ page, context }) => {

@@ -1,0 +1,562 @@
+/* Autonomirror's download page and button generator, as an Antnet site (DEMO.md 3.6). The
+   styles are Autonomirror's own; the fonts are bundled in /fonts (Inter and IBM Plex Mono,
+   Latin subsets, Open Font License), since nothing may load from outside the archive. */
+
+@font-face {
+  font-family: "Inter Variable";
+  src: url("/fonts/inter.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Palette taken from autonomi.com: navy #131c32, indigo #232a59/#26264c, red #e91337, mint #97ffa0, aqua #97ffe7. */
+:root {
+  color-scheme: dark;
+  --bg: #0a1020;
+  --bg-glow: rgba(58, 66, 140, 0.45);
+  --grid-dot: rgba(151, 168, 210, 0.09);
+  --surface: #131c32;
+  --surface-2: #1a2440;
+  --surface-3: #232a59;
+  --border: rgba(151, 168, 210, 0.16);
+  --border-strong: rgba(151, 168, 210, 0.3);
+  --text: #eef2f8;
+  --text-muted: #a3aec2;
+  --text-faint: #6f7b93;
+  --accent: #e91337;
+  --accent-hover: #ff2d50;
+  --accent-text: #ffffff;
+  --accent-soft: rgba(233, 19, 55, 0.14);
+  --ok: #97ffa0;
+  --ok-soft: rgba(151, 255, 160, 0.12);
+  --ok-text: #97ffa0;
+  --chunk: #97ffe7;
+  --chunk-empty: rgba(151, 168, 210, 0.12);
+  --warn: #ffd37a;
+  --warn-soft: rgba(255, 211, 122, 0.12);
+  --bad: #ff7a8f;
+  --bad-soft: rgba(233, 19, 55, 0.14);
+  --focus: #8bc5ff;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+
+  --font: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5f9;
+  --bg-glow: rgba(139, 197, 255, 0.35);
+  --grid-dot: rgba(19, 28, 50, 0.07);
+  --surface: #ffffff;
+  --surface-2: #f5f7fb;
+  --surface-3: #ebeff5;
+  --border: #dde3ec;
+  --border-strong: #c5cdd7;
+  --text: #131c32;
+  --text-muted: #4d5a72;
+  --text-faint: #8994a3;
+  --accent-hover: #c80f2e;
+  --accent-soft: rgba(233, 19, 55, 0.08);
+  --ok: #1fae4b;
+  --ok-soft: rgba(31, 174, 75, 0.1);
+  --ok-text: #137a33;
+  --chunk: #1a9bd8;
+  --chunk-empty: #e3e8f0;
+  --warn: #9a6200;
+  --warn-soft: rgba(255, 185, 50, 0.16);
+  --bad: #c80f2e;
+  --bad-soft: rgba(233, 19, 55, 0.08);
+  --focus: #0b6fd6;
+  --shadow: 0 1px 2px rgba(19, 28, 50, 0.04), 0 18px 48px -24px rgba(19, 28, 50, 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 520px at 50% -140px, var(--bg-glow), transparent 70%),
+    radial-gradient(var(--grid-dot) 1px, transparent 1.2px);
+  background-size: auto, 22px 22px;
+  background-attachment: fixed;
+  color: var(--text);
+  font: 400 15px/1.55 var(--font);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  color: var(--text);
+  text-decoration-thickness: 2px;
+}
+
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 18px 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.brand:hover {
+  text-decoration: none;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 6px 18px -6px rgba(233, 19, 55, 0.7);
+}
+.brand-sub {
+  color: var(--text-faint);
+  font-weight: 450;
+}
+
+.topbar-link {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.topbar-link:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 8px 16px 40px;
+}
+main.wide {
+  max-width: 1040px;
+}
+
+.footer {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
+}
+.footer a {
+  color: var(--text-muted);
+}
+.footer .sep {
+  margin: 0 8px;
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ cards */
+
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card-pad {
+  padding: 24px;
+}
+@media (max-width: 480px) {
+  .card-pad {
+    padding: 20px 18px;
+  }
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font: 500 11.5px/1.2 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+.btn {
+  --btn-bg: var(--surface-2);
+  --btn-fg: var(--text);
+  --btn-border: var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-sm);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font: 550 14px/1.2 var(--font);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.08s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  text-decoration: none;
+  color: var(--btn-fg);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.btn-primary {
+  --btn-bg: var(--accent);
+  --btn-fg: var(--accent-text);
+  --btn-border: transparent;
+  box-shadow: 0 10px 28px -12px rgba(233, 19, 55, 0.75);
+}
+.btn-primary:hover:not(:disabled) {
+  --btn-bg: var(--accent-hover);
+  border-color: transparent;
+}
+.btn-primary:disabled {
+  --btn-bg: var(--surface-3);
+  --btn-fg: var(--text-muted);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.btn-ghost {
+  --btn-bg: transparent;
+}
+
+.btn-lg {
+  min-height: 54px;
+  padding: 12px 22px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+.btn-block {
+  width: 100%;
+}
+.btn-sm {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}
+
+.btn .btn-meta {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ spinner */
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0.8;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ notices */
+
+.notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.notice > .notice-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.notice p {
+  margin: 0;
+}
+.notice p + p {
+  margin-top: 6px;
+}
+.notice strong {
+  font-weight: 650;
+}
+.notice-ok {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+.notice-ok .notice-icon {
+  background: var(--ok);
+  color: #0a1020;
+}
+.notice-warn {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+.notice-warn .notice-icon {
+  background: var(--warn);
+  color: #0a1020;
+}
+.notice-bad {
+  background: var(--bad-soft);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent);
+}
+.notice-bad .notice-icon {
+  background: var(--accent);
+  color: #fff;
+}
+.notice-info .notice-icon {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.code-tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font: 500 11.5px/1.6 var(--mono);
+}
+
+/* ------------------------------------------------------------------ theme toggle */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.theme-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Show the icon for the theme a click switches to. */
+[data-theme="light"] .theme-toggle .icon-sun,
+.theme-toggle .icon-moon {
+  display: none;
+}
+[data-theme="light"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+/* ------------------------------------------------------------------ misc */
+
+.muted {
+  color: var(--text-muted);
+}
+.faint {
+  color: var(--text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.brand {
+  white-space: nowrap;
+}
+.label-short {
+  display: none;
+}
+@media (max-width: 520px) {
+  .brand-sub,
+  .label-long {
+    display: none;
+  }
+  .label-short {
+    display: inline;
+  }
+  .topbar-link {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+}
+
+/* ------------------------------------------------------------------ Antnet */
+
+/* The chosen view goes in #view; it takes no part in the layout, so the page lays out as
+   Autonomirror's separate pages did. */
+#view {
+  display: contents;
+}
+/* The way back to Antnet Start, quieter than the page's own link beside it. */
+.topbar-actions .antnet-start {
+  font: 500 13px/1 var(--font);
+  color: var(--text-muted);
+  opacity: 1;
+  white-space: nowrap;
+}
+/* With the Start link added, a phone's top bar takes two lines rather than running off the screen. */
+@media (max-width: 520px) {
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+}
+.topbar-actions .antnet-start:hover,
+.topbar-actions .antnet-start:focus-visible {
+  color: var(--text);
+}
+/* This visit's receipt, under the footer. */
+.antnet-strip {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  text-align: center;
+}
+.antnet-strip .antnet-receipt {
+  color: var(--text-faint);
+  font: 12px/1.6 var(--font);
+  opacity: 1;
+}
+.antnet-strip .antnet-receipt strong {
+  color: var(--text-muted);
+}
+.antnet-strip .antnet-receipt a {
+  color: var(--text-muted);
+}

@@ -3,8 +3,7 @@
 // fetched piece by piece as it plays (DEMO.md 5.8). The look is in static/style.css, the
 // player in src/player.js; this file builds the page and bundles the player.
 
-import { fileURLToPath } from "node:url";
-import { build as bundle } from "vite";
+import { bundleScript } from "../shared/bundle.mjs";
 
 export const meta = {
   title: "Cinema",
@@ -42,48 +41,10 @@ const svg = (body, cls) =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${body}</svg>`;
 const PLAY = svg('<path d="M8.2 5.3v13.4a.6.6 0 0 0 .92.5l10.4-6.7a.6.6 0 0 0 0-1L9.12 4.8a.6.6 0 0 0-.92.5z"/>', "play-icon");
 
-/**
- * The player script with the Autonomi client, bundled once per run: player/player.js and the
- * client's WebAssembly. Vite and the SDK are pinned, so the bytes are the same
- * every time and an unchanged site rebuilds to the same archive.
- */
+/** The player script with the Autonomi client (player/player.js and its WebAssembly), bundled once per run. */
 let playerFiles;
-function player() {
-  playerFiles ??= (async () => {
-    const result = await bundle({
-      configFile: false,
-      logLevel: "warn",
-      publicDir: false,
-      root: fileURLToPath(new URL(".", import.meta.url)),
-      base: "/",
-      build: {
-        write: false,
-        target: "es2022",
-        modulePreload: false,
-        assetsInlineLimit: 0,
-        rollupOptions: {
-          input: fileURLToPath(new URL("src/player.js", import.meta.url)),
-          output: {
-            entryFileNames: "player/player.js",
-            chunkFileNames: "player/[name]-[hash].js",
-            assetFileNames: "player/[name]-[hash][extname]",
-          },
-        },
-      },
-    });
-    const files = new Map();
-    for (const out of Array.isArray(result) ? result : [result]) {
-      for (const item of out.output) {
-        // The client's upload worker, with a second copy of the WebAssembly, lands outside
-        // player/. Cinema only reads, so it is left out: that halves the archive.
-        if (!item.fileName.startsWith("player/")) continue;
-        files.set(item.fileName, item.type === "chunk" ? item.code : item.source);
-      }
-    }
-    return files;
-  })();
-  return playerFiles;
-}
+const player = () =>
+  (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player" }));
 
 const HOW = [
   [

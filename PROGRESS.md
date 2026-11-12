@@ -437,6 +437,51 @@ Built in Fable, to the plan above. Only the door changed look; the loading, info
   - Before Start was uploaded, a local loader against mainnet installed Cinema by name in 7 s, and the film's first frame came 0.9 s after play.
   - The loader was then deployed with `cinema` in `names.json`. The user checked it live and reports that it works.
 
+## The Download Button: the Antnet version (ported 2026-11-12; not uploaded)
+
+Ported from github.com/DavidMc0/autonomirror at `4a2d8e3` (7 November 2026), following DEMO.md 3.6. It is the download page and the button generator, without uploads or payments. It still looks like Autonomirror; the design pass is for Fable.
+
+- **Layout:**
+  - `sites/download/src/` holds Autonomirror's TypeScript (`download.ts`, `generator.ts`, `lib/`), with `removals.ts` and `main.ts` added.
+  - `views/` holds each view's markup, taken from Autonomirror's two HTML pages.
+  - `static/` holds Autonomirror's CSS, the fonts (Inter and IBM Plex Mono, Latin subsets) and `theme.js`.
+  - `site.mjs` builds one `index.html` holding both views as `<template>`s, and bundles `src/main.ts` with the client into `app/`.
+- **Shared bundling:** the bundling moved to `sites/shared/bundle.mjs`, used by both Cinema and the Download Button. Cinema rebuilds to the same archive, so its upload is still current.
+- **One page, two views** (`"spa": true`, so every path serves the page):
+  - `/` is the generator;
+  - `/f/ant/<address>?n=&s=` is the download page;
+  - `/d/?a=…` (Autonomirror's old form) moves to the new form, keeping the name and size.
+
+  Each view loads its own stylesheet and script only when it is shown.
+- **Buttons point at `https://download.antnet.autonomirror.com/f/ant/…`** (`PUBLIC_BASE` in `site.mjs`, given to the page in a `<meta>`).
+- **Changes for Antnet:**
+  - the theme script moved to `static/theme.js` (no inline scripts);
+  - a top-bar link to Antnet Start, and the receipt under the footer;
+  - the download line now reads "This page and this file both come from the Autonomi network… Free to download."
+- **Policy:** the site's own `csp` adds the client's needs, plus `style-src 'unsafe-inline'`, for the button preview only (see `sites/README.md`).
+- **The removal list** (`src/lib/removals.ts`, DEMO.md 3.6):
+  - **On the download page:** the page reads the list through its pointer while it checks the file, with a 45 s budget. A listed file is refused as soon as the list arrives.
+  - **At Download:** Chrome and Edge open the save window first (`showSaveFilePicker`, which creates no file), wait for the list, then stream into that file. Other browsers download into memory, wait for the list, then save. So a quick click can't get round the list.
+  - **On the generator:** it refuses to make a button for a listed file.
+  - **It never fails closed.** Until a pointer is recorded, there is nothing to check.
+  - **The list file:** `{ v: 1, updated, sha256: [...] }`, where each entry is the SHA-256 of an address's lowercase hex text.
+- **Publishing the list** (`sites/removals.mjs`, run by hand):
+  - put addresses in `publish/removals.txt`, one per line with `#` comments (gitignored);
+  - `node sites/removals.mjs` writes `publish/removals.json` and prints the upload command;
+  - `node sites/removals.mjs record …` notes the uploaded address and prints `ant pointer create` the first time and `ant pointer update` after that;
+  - the pointer's key is `publish/removals.key`, and `node sites/build.mjs record removals-pointer …` records its address, which is built into the site.
+- **Tests:**
+  - **Unit:** Autonomirror's own tests for addresses, sizes, links, progress and snippets, ported to `tests/unit/download/`. The snippet tests run under jsdom, added as a dev dependency at Autonomirror's 30.1.1. There are also tests for the list and the publishing script. 195 unit tests in all.
+  - **Browser:** `download.spec.ts` checks the two views, the old-link move, a broken link, the pre-filled generator, the preview's styling and that the policy raises no errors. `DOWNLOAD_LIVE=1` adds a real download of `lucky.jpg` from mainnet: it streamed, verified and showed its hash in 11 s. Chromium 78/78.
+- **Not yet tested:**
+  - **Refusing a listed file in a browser:** the logic is unit-tested, but no list is published yet.
+  - **Firefox's in-memory download from mainnet:** Playwright's Firefox can't connect from `localhost`.
+  - **Real Safari.**
+- **Before uploading:**
+  1. Create the removal list's pointer key and record its address, so it is built in. This is free: `ant pointer keygen` and `ant pointer address`.
+  2. The design pass, in Fable.
+  3. Decide whether Cinema's "Download this film" and the Library's EPUB buttons (DEMO.md 3.6) go in the same round. Each means re-uploading that site, and Start lists every site's size.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

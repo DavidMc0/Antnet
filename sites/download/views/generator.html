@@ -1,0 +1,156 @@
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">⬇</span>
+        <span>Download Button <span class="brand-sub">· Autonomi demo</span></span>
+      </a>
+      <div class="topbar-actions">
+        <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light mode" title="Switch to light mode">
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" /></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z" /></svg>
+        </button>
+        {{startLink}}
+        <a class="topbar-link" href="https://try.autonomi.com" target="_blank" rel="noopener"><span class="label-long">Browse Autonomi files</span><span class="label-short">Browse files</span> ↗</a>
+      </div>
+    </header>
+
+    <main class="wide gen">
+      <section class="gen-intro">
+        <h1 class="gen-title">Autonomi Download Button</h1>
+        <p class="gen-lede">Turn any public Autonomi file into a download button for your site. Downloads come straight from the network, not from a server, and so does this page.</p>
+      </section>
+
+      <div class="gen-grid">
+        <!-- ------------------------------------------------ 1. the file -->
+        <section class="card card-pad gen-step" aria-labelledby="step1">
+          <h2 class="step-title" id="step1"><span class="step-num">1</span> Your file</h2>
+
+          <form id="file-form" novalidate autocomplete="off">
+            <div class="field">
+              <div class="field-head">
+                <label for="address">Autonomi address</label>
+                <span class="counter mono" id="address-counter" aria-live="polite">0 of 64</span>
+              </div>
+              <textarea
+                id="address"
+                class="input mono address-input"
+                rows="2"
+                spellcheck="false"
+                autocapitalize="off"
+                autocorrect="off"
+                placeholder="Paste a public file address"
+                aria-describedby="address-hint"
+              ></textarea>
+              <p class="hint" id="address-hint">The 64-character address printed by <code>ant file upload --public</code>. Spaces, <code>0x</code> or a whole link are fine.</p>
+              <div class="samples">
+                <span class="faint">Try a sample:</span>
+                <button type="button" class="chip" data-sample="lucky">lucky.jpg</button>
+                <button type="button" class="chip" data-sample="welcome">Welcome.md</button>
+                <button type="button" class="chip" data-sample="large">64 MB test file</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="name">File name</label>
+              </div>
+              <input id="name" class="input" type="text" required placeholder="my-mod-v1.2.zip" maxlength="200" aria-describedby="name-hint" />
+              <p class="hint" id="name-hint">The network doesn't store names, so the button carries it.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-check" id="check-btn" disabled>
+              <span class="spinner" id="check-spinner" hidden></span>
+              <span id="check-label">Check address</span>
+            </button>
+          </form>
+
+          <div class="check-result" id="check-result" aria-live="polite" hidden></div>
+
+        </section>
+
+        <!-- ------------------------------------------------ 2. the button -->
+        <section class="card card-pad gen-step" aria-labelledby="step2">
+          <h2 class="step-title" id="step2"><span class="step-num">2</span> Your button</h2>
+
+          <fieldset class="field">
+            <legend>Button style</legend>
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="style" value="light" checked /><span>Light</span></label>
+              <label><input type="radio" name="style" value="dark" /><span>Dark</span></label>
+              <label><input type="radio" name="style" value="minimal" /><span>Minimal link</span></label>
+            </div>
+            <label class="show-address"><input type="checkbox" id="show-address" /> <span>Also show the full Autonomi address under the button, so people can still find the file if this page ever moves</span></label>
+          </fieldset>
+
+          <div class="preview">
+            <div class="preview-bar">
+              <span class="preview-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="preview-label">Preview on your site</span>
+              <div class="seg seg-sm" role="radiogroup" aria-label="Preview background">
+                <label><input type="radio" name="host" value="light" checked /><span>Light site</span></label>
+                <label><input type="radio" name="host" value="dark" /><span>Dark site</span></label>
+              </div>
+            </div>
+            <iframe
+              id="preview"
+              class="preview-frame"
+              title="Button preview"
+              sandbox="allow-popups allow-popups-to-escape-sandbox"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          </div>
+
+        </section>
+
+        <!-- ------------------------------------------------ 3. embed code -->
+        <section class="card card-pad gen-step gen-embed" aria-labelledby="step3">
+          <h2 class="step-title" id="step3"><span class="step-num">3</span> Embed code</h2>
+
+          <div class="embed-locked" id="embed-locked">
+            <p class="muted" id="embed-locked-text">Check your address to get the embed code.</p>
+          </div>
+
+          <div class="embed" id="embed" hidden>
+            <div class="notice notice-warn" id="embed-warning" hidden>
+              <span class="notice-icon" aria-hidden="true">!</span>
+              <div><p><strong>Generated without a successful check.</strong> The button may lead to a file that can't be downloaded.</p></div>
+            </div>
+
+            <div class="code-block">
+              <div class="code-head">
+                <label for="out-html">HTML</label>
+                <span class="faint">Inline styles only, paste into any site or CMS</span>
+                <button class="btn btn-sm" type="button" id="copy-html" data-copy-label="Copy">Copy</button>
+              </div>
+              <textarea id="out-html" class="input mono code" rows="10" readonly spellcheck="false"></textarea>
+            </div>
+
+            <div class="code-block">
+              <div class="code-head">
+                <label for="out-md">Markdown</label>
+                <span class="faint">For READMEs and forums</span>
+                <button class="btn btn-sm" type="button" id="copy-md" data-copy-label="Copy">Copy</button>
+              </div>
+              <textarea id="out-md" class="input mono code" rows="3" readonly spellcheck="false"></textarea>
+            </div>
+
+            <div class="code-block">
+              <div class="code-head">
+                <label for="out-link">Direct link</label>
+              </div>
+              <div class="link-row">
+                <input id="out-link" class="input mono code" type="text" readonly spellcheck="false" />
+                <button class="btn btn-sm" type="button" id="copy-link" data-copy-label="Copy">Copy</button>
+                <a class="btn btn-sm" id="open-link" href="#" target="_blank" rel="noopener">Open ↗</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      Demo<span class="sep">·</span>Downloads are free and come from the Autonomi network<span class="sep">·</span>Powered by
+      <a href="https://autonomi.com/?ref=download-button-demo" target="_blank" rel="noopener">Autonomi</a>
+    </footer>
+
+    

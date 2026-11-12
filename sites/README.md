@@ -15,6 +15,8 @@ sites/
   start/             Antnet Start: site.mjs builds index.html; static/ is copied as-is
   library/           The Library: site.mjs, static/, books.mjs, content/ (the book texts)
   cinema/            Cinema: site.mjs, static/, src/player.js (bundled with the Autonomi client at build time)
+  download/          The Download Button: site.mjs, views/ (each view's markup), src/ (TypeScript), static/
+  removals.mjs       builds and records the Download Button's removal list (published by hand)
 ```
 
 ## Working on a site locally
@@ -50,6 +52,13 @@ exactly as for mainnet; the fixtures build writes a test directory that maps the
   - a centred layout, with the screen sized so the play button and the counter are in view when the page opens;
   - the poster is a frame from the film itself (1 min 36 s in), grabbed from the stream.
 
+- **The Download Button** keeps Autonomirror's own look for now:
+  - navy, with Autonomi red and mint;
+  - Inter for text and IBM Plex Mono for addresses;
+  - a light/dark toggle.
+
+  Its code is ported from github.com/DavidMc0/autonomirror and still needs a design pass to sit with the other sites.
+
 Fonts are bundled in each site's `static/fonts/`, with their licence files (SIL Open Font License). They are the
 Latin subsets from the Fontsource packages.
 
@@ -67,9 +76,11 @@ The look of each site is free to change. These parts are load-bearing:
 
   Put fonts, images and scripts in the site's `static/` folder. That is also what makes the offline moment work.
 
-  **Cinema is the one exception to "nothing from outside":** its film stays on the network. Its `site.mjs` exports
-  its whole policy as `csp`, which adds `'wasm-unsafe-eval'` and `connect-src https: wss:` for the Autonomi client.
-  The inline rules still apply to it.
+  **Cinema and the Download Button are the exceptions to "nothing from outside":** their files stay on the network.
+  Each `site.mjs` exports its whole policy as `csp`, which adds `'wasm-unsafe-eval'` and `connect-src https: wss:` for
+  the Autonomi client. The Download Button also allows inline *styles*, and only styles: its button preview is an
+  `srcdoc` frame, which takes the page's policy, showing markup that carries its own `style` attributes. Inline
+  scripts are still not allowed anywhere.
 - **Keep `ctx.headTags`, `ctx.startLink` and `ctx.receipt`** in every page. They are:
   - `headTags`: the shared stylesheet and the receipt script;
   - `startLink`: the link back to Start;
@@ -89,6 +100,11 @@ The look of each site is free to change. These parts are load-bearing:
   - `[data-play]`, `[data-status]`, `[data-streamed]`, `[data-visit]`;
   - `[data-trouble]` with its title, text and `[data-retry]`;
   - `[data-address-toggle]` and `[data-address-full]`.
+- **The Download Button's elements and attributes that its scripts and tests rely on:** Autonomirror's ids (see
+  `views/*.html` and `src/download.ts`, `src/generator.ts`). On top of those:
+  - `#view` and the two `<template id="view-…">` elements;
+  - `<meta name="download-base">` and `<meta name="removals-pointer">`;
+  - `#app[data-state]` and `#app[data-removals]` (`loading`, `none`, `loaded`, `unavailable`).
 - **Start's elements that tests or scripts rely on:**
   - `.cards` and `.card-link`;
   - `.receipt-main`;

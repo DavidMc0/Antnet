@@ -5,6 +5,7 @@
 //   node sites/build.mjs record <site> <address>  note the address an upload printed (0x is fine)
 //        [--cost "<what it cost>"]                 optionally, what the upload cost
 //   node sites/build.mjs record start-pointer <address>
+//   node sites/build.mjs record removals-pointer <address>   the Download Button's removal list
 //
 // Sites link to each other by short name (/_autonomi/go/name/<name>/), so no archive contains
 // another site's address and they can be built and uploaded in any order. The addresses live
@@ -32,7 +33,7 @@ const NAMES = join(ROOT, "names.json");
 const OUT = join(ROOT, "publish", "sites");
 
 /** Content sites, in the order Start lists them. Start itself is built from their sizes. */
-export const CONTENT_SITES = ["library", "cinema"];
+export const CONTENT_SITES = ["library", "cinema", "download"];
 
 /** The CSP every demo site declares: nothing from outside its own archive. */
 const CSP =
@@ -202,6 +203,9 @@ async function record(addresses, args) {
 
   if (name === "start-pointer") {
     addresses.startPointer = address;
+  } else if (name === "removals-pointer") {
+    // Built into the Download Button, which reads its removal list through it (DEMO.md 3.6).
+    addresses.removalsPointer = address;
   } else if (name === "start" || CONTENT_SITES.includes(name)) {
     // Record what was built last (the archive in publish/sites/), not a fresh build, so the
     // recorded hash and date are those of the file that was uploaded.
@@ -214,7 +218,7 @@ async function record(addresses, args) {
       addresses.sites[name] = { address, sha256: built.sha256, published: built.published, since, ...(cost ? { cost } : {}) };
     }
   } else {
-    throw new Error(`Unknown site "${name}". Sites: start-pointer, ${CONTENT_SITES.join(", ")}, start.`);
+    throw new Error(`Unknown site "${name}". Sites: start-pointer, removals-pointer, ${CONTENT_SITES.join(", ")}, start.`);
   }
   await saveAddresses(addresses);
   console.log(`Recorded ${name}: ${address}`);

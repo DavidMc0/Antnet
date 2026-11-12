@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`htmlSnippet > dark matches snapshot 1`] = `
+"<a href="https://example.github.io/autonomirror/f/ant/711c7e20006ff3e0ac6c1f3063286a0c1a3e4c409642e8c526173fa60bb7078a?n=lucky.jpg&amp;s=312400000" target="_blank" rel="noopener" title="Free to download. Served by the Autonomi network, not this site."
+   style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font:600 15px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none;white-space:nowrap;background:#131c32;color:#ffffff;border:1px solid #232a59">
+  <span aria-hidden="true" style="color:#97ffa0">⬇</span>
+  <span style="display:inline-flex;flex-direction:column;gap:4px">
+    <span style="display:inline-flex;gap:8px"><span>Download lucky.jpg</span> <span style="font-weight:400;opacity:.7">· 312 MB</span></span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;line-height:1;letter-spacing:.02em"><svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 150 150" fill="#e91337" style="flex:none;display:block"><path d="M4 74A73 73 0 0 1 148.5 72L136 66A72 72 0 0 0 72 20C60 19 50 22 50 32V42C49 58 30 72 4 74Z"/><path fill-rule="evenodd" d="M49 76C72 56 118 44 149 74A73 73 0 0 1 34 136C26 120 30 96 49 76ZM114 95C90 100 72 114 76 129C104 131 127 120 127 100C126 96 120 94 114 95Z"/></svg><span style="opacity:.6">Powered by Autonomi</span></span>
+  </span>
+</a>"
+`;
+
+exports[`htmlSnippet > light matches snapshot 1`] = `
+"<a href="https://example.github.io/autonomirror/f/ant/711c7e20006ff3e0ac6c1f3063286a0c1a3e4c409642e8c526173fa60bb7078a?n=lucky.jpg&amp;s=312400000" target="_blank" rel="noopener" title="Free to download. Served by the Autonomi network, not this site."
+   style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font:600 15px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none;white-space:nowrap;background:#ffffff;color:#131c32;border:1px solid #c5cdd7">
+  <span aria-hidden="true" style="color:#e91337">⬇</span>
+  <span style="display:inline-flex;flex-direction:column;gap:4px">
+    <span style="display:inline-flex;gap:8px"><span>Download lucky.jpg</span> <span style="font-weight:400;opacity:.7">· 312 MB</span></span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;line-height:1;letter-spacing:.02em"><svg aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 150 150" fill="#e91337" style="flex:none;display:block"><path d="M4 74A73 73 0 0 1 148.5 72L136 66A72 72 0 0 0 72 20C60 19 50 22 50 32V42C49 58 30 72 4 74Z"/><path fill-rule="evenodd" d="M49 76C72 56 118 44 149 74A73 73 0 0 1 34 136C26 120 30 96 49 76ZM114 95C90 100 72 114 76 129C104 131 127 120 127 100C126 96 120 94 114 95Z"/></svg><span style="opacity:.6">Powered by Autonomi</span></span>
+  </span>
+</a>"
+`;
+
+exports[`htmlSnippet > minimal matches snapshot 1`] = `"<a href="https://example.github.io/autonomirror/f/ant/711c7e20006ff3e0ac6c1f3063286a0c1a3e4c409642e8c526173fa60bb7078a?n=lucky.jpg&amp;s=312400000" target="_blank" rel="noopener" title="Free to download. Served by the Autonomi network, not this site." style="text-decoration:underline">Download lucky.jpg from Autonomi (312 MB)</a>"`;

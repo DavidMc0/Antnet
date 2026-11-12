@@ -1,0 +1,431 @@
+/* ------------------------------------------------------------------ intro */
+
+.gen-intro {
+  max-width: 700px;
+  margin: 12px auto 30px;
+  text-align: center;
+}
+.gen-title {
+  margin: 0;
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.08;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+.gen-lede {
+  margin: 14px auto 0;
+  max-width: 560px;
+  color: var(--text-muted);
+  font-size: clamp(15px, 2.4vw, 17px);
+}
+
+/* ------------------------------------------------------------------ grid: file + embed on the left, button on the right */
+
+.gen-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 920px) {
+  .gen-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "file button"
+      "embed button";
+    align-items: start;
+  }
+  .gen-step:nth-child(1) {
+    grid-area: file;
+  }
+  .gen-step:nth-child(2) {
+    grid-area: button;
+    position: sticky;
+    top: 20px;
+  }
+  .gen-embed {
+    grid-area: embed;
+  }
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.step-num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: #ff6b82;
+  font: 600 13px/1 var(--mono);
+}
+[data-theme="light"] .step-num {
+  color: var(--accent);
+}
+.gen-embed.is-ready .step-num {
+  background: var(--ok-soft);
+  color: var(--ok-text);
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.field {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.field label,
+.field legend {
+  font-weight: 600;
+  font-size: 14px;
+}
+.field legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.hint {
+  margin: 6px 0 0;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.hint code {
+  color: var(--text-muted);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input::placeholder {
+  color: var(--text-faint);
+}
+.input:hover {
+  border-color: var(--border-strong);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent);
+}
+.input.mono {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+.address-input {
+  resize: vertical;
+  min-height: 64px;
+  word-break: break-all;
+}
+.address-input.is-valid {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+
+.counter {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.counter.is-complete {
+  color: var(--ok-text);
+}
+.counter.is-complete::before {
+  content: "✓ ";
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 12.5px/1.5 var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.chip:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.btn-check {
+  margin-top: 4px;
+}
+.btn-check .spinner {
+  width: 16px;
+  height: 16px;
+}
+
+/* ------------------------------------------------------------------ check result */
+
+.check-result {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.check-result .spinner {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--chunk);
+}
+.check-result.is-checking {
+  color: var(--text-muted);
+}
+.check-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+.check-result.is-ok {
+  align-items: center;
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+.check-result.is-ok .check-icon {
+  background: var(--ok);
+  color: #0a1020;
+}
+.check-result.is-failed {
+  background: var(--bad-soft);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent);
+}
+.check-result.is-failed .check-icon {
+  background: var(--accent);
+  color: #fff;
+}
+.check-body {
+  min-width: 0;
+}
+.check-body p {
+  margin: 0 0 4px;
+}
+.check-body .muted {
+  font-size: 13.5px;
+}
+.check-body .code-tag {
+  overflow-wrap: anywhere;
+}
+.check-actions {
+  margin-top: 10px;
+}
+
+/* ------------------------------------------------------------------ segmented control */
+
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.seg label {
+  position: relative;
+  font-weight: 500;
+}
+.seg input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.seg span {
+  display: block;
+  padding: 6px 14px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg span:hover {
+  color: var(--text);
+}
+.seg input:checked + span {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border);
+}
+.seg input:focus-visible + span {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.seg-sm {
+  border-radius: 9px;
+  padding: 2px;
+}
+.seg-sm span {
+  padding: 3px 9px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+/* ------------------------------------------------------------------ preview */
+
+.preview {
+  margin: 0 0 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.preview-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.preview-label {
+  flex: 1;
+  color: var(--text-faint);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview-frame {
+  display: block;
+  width: 100%;
+  height: 150px;
+  border: 0;
+  background: #fff;
+}
+
+/* ------------------------------------------------------------------ embed code */
+
+.embed-locked {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  text-align: center;
+}
+.embed-locked p {
+  margin: 0;
+}
+
+.embed {
+  display: grid;
+  gap: 18px;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.code-head label {
+  font-weight: 600;
+  font-size: 14px;
+}
+.code-head .faint {
+  flex: 1;
+  font-size: 12.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-head .btn {
+  margin-left: auto;
+}
+.input.code {
+  font-size: 12.5px;
+  line-height: 1.55;
+  resize: vertical;
+  color: var(--text-muted);
+  white-space: pre;
+  overflow-x: auto;
+}
+textarea.input.code {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.link-row .input {
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.link-row .btn {
+  min-height: 40px;
+  white-space: nowrap;
+}
+@media (max-width: 440px) {
+  .preview-label {
+    visibility: hidden;
+  }
+}
+
+/* Kept from Autonomirror's upload section, which the Antnet version leaves out. */
+.show-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-weight: 400;
+  font-size: 14px;
+}
+.show-address input {
+  margin-top: 3px;
+}
