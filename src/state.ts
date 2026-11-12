@@ -1,6 +1,6 @@
 // The site state record in Cache Storage (spec 3.2). Readable by the shell and the service worker.
 
-import { CHECK_INTERVAL_MS, META_CACHE, STATE_PATH } from "./config";
+import { CHECK_INTERVAL_MS, META_CACHE, STATE_PATH, STREAMS_PATH } from "./config";
 import type { SiteLink } from "./host";
 import type { SiteSettings } from "./site";
 
@@ -90,6 +90,45 @@ export async function writeState(origin: string, state: SiteState): Promise<void
 export async function clearState(origin: string): Promise<void> {
   const cache = await caches.open(META_CACHE);
   await cache.delete(stateUrl(origin));
+}
+
+/**
+ * A file a site streamed from Autonomi through the media bridge (DEMO.md 5.8), as the worker
+ * saw it. The stream URL carries the file's name, size and type, but not its address: the
+ * site's page opened the file and reads it, and the worker only relays byte ranges.
+ */
+export interface StreamRecord {
+  name: string;
+  size: number;
+  type: string;
+  firstAt: number;
+  lastAt: number;
+}
+
+/** How many streamed files the record keeps, most recent first. */
+const MAX_STREAM_RECORDS = 20;
+
+export async function readStreams(origin: string): Promise<StreamRecord[]> {
+  try {
+    if (!(await caches.has(META_CACHE))) return [];
+    const res = await (await caches.open(META_CACHE)).match(new URL(STREAMS_PATH, origin).href);
+    const list = res ? ((await res.json()) as unknown) : [];
+    return Array.isArray(list) ? (list as StreamRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Note that a file was streamed now. The same name and size count as the same file. */
+export async function recordStream(origin: string, file: { name: string; size: number; type: string }, now = Date.now()): Promise<void> {
+  const list = await readStreams(origin);
+  const same = list.find((s) => s.name === file.name && s.size === file.size);
+  const entry: StreamRecord = { ...file, firstAt: same?.firstAt ?? now, lastAt: now };
+  const next = [entry, ...list.filter((s) => s !== same)].slice(0, MAX_STREAM_RECORDS);
+  await (await caches.open(META_CACHE)).put(
+    new URL(STREAMS_PATH, origin).href,
+    new Response(JSON.stringify(next), { headers: { "Content-Type": "application/json" } }),
+  );
 }
 
 export function sameLink(a: SiteLink, b: SiteLink): boolean {

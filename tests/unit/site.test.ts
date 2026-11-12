@@ -152,6 +152,12 @@ describe("reserved paths and cache keys", () => {
     expect(isReservedPath("_autonomix/y")).toBe(false);
     expect(isReservedPath("docs/autonomi-loader-sw.js")).toBe(false);
   });
+  it("reserves the media bridge's paths, which it answers before the site (DEMO.md 5.8)", () => {
+    expect(isReservedPath("__autonomi_stream/abc/file")).toBe(true);
+    expect(isReservedPath("media/__autonomi_stream/x")).toBe(true);
+    expect(isReservedPath("__autonomi_stream")).toBe(false);
+    expect(isReservedPath("my__autonomi_stream/x")).toBe(false);
+  });
   it("percent-encodes each segment of a cache key", () => {
     expect(cachePathFor("a b/c?.html")).toBe("/a%20b/c%3F.html");
   });

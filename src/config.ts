@@ -12,6 +12,14 @@ export const CHECK_PATH = "/_autonomi/check";
 /** That script, served by the service worker and added to pointer and named sites' pages. */
 export const CHECK_SCRIPT_PATH = "/_autonomi/check.js";
 
+/**
+ * Media streamed from Autonomi (DEMO.md 5.8): any same-origin path containing this is answered
+ * by the SDK's media bridge in the loader's worker, as in the SDK's own autonomi-stream-sw.js.
+ */
+export const STREAM_MARKER = "/__autonomi_stream/";
+/** The loader's record of what a site streamed, for its info page. */
+export const STREAMS_PATH = "/_autonomi/streams.json";
+
 /** Largest archive the loader will download (spec 5.1). */
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 

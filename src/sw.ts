@@ -3,10 +3,10 @@
 // never talks to Autonomi. Built as one self-contained classic script.
 
 import CHECK_SCRIPT from "./check-client.js?raw";
-import { CHECK_SCRIPT_PATH, DOOR_PATH, RESERVED_PREFIX, SW_PATH, siteCacheName } from "./config";
+import { CHECK_SCRIPT_PATH, DOOR_PATH, RESERVED_PREFIX, STREAM_MARKER, SW_PATH, siteCacheName } from "./config";
 import { classifyHost, goLinkTarget } from "./host";
 import { cachePathFor, parseRange, resolvePath } from "./site";
-import { type SiteState, readState } from "./state";
+import { type SiteState, readState, recordStream } from "./state";
 
 declare const self: ServiceWorkerGlobalScope;
 declare const __LOADER_ROOT__: string;
@@ -28,6 +28,17 @@ self.addEventListener("fetch", (event) => {
 
   // Rule 1: only same-origin GET and HEAD.
   if (url.origin !== self.location.origin) return;
+
+  // Rule 0: media streamed from Autonomi (DEMO.md 5.8). The loader only notes the stream for
+  // the info page and leaves it alone: the SDK's bridge, bundled after this code (vite.config.ts),
+  // answers it. This listener has to run first, because in Chromium a listener after the one
+  // that answered never runs.
+  if (url.pathname.includes(STREAM_MARKER)) {
+    const noted = noteStream(url);
+    if (noted) event.waitUntil(noted);
+    return;
+  }
+
   if (req.method !== "GET" && req.method !== "HEAD") return;
 
   // Rule 2: reserved paths go to the network, except portable go-links, and a site's front
@@ -60,6 +71,26 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(handle(req, url));
 });
+
+/** Media sessions already noted while this worker has been running. */
+const notedSessions = new Set<string>();
+
+/**
+ * Note a stream once per media session: a player makes many range requests for one file.
+ * The URL's name and type are the page's to choose, so they are only shown, never acted on.
+ */
+function noteStream(url: URL): Promise<void> | null {
+  const session = url.pathname.split(STREAM_MARKER, 2)[1]?.split("/", 1)[0] ?? "";
+  const size = Number(url.searchParams.get("size"));
+  if (!/^[a-f0-9]{32}$/.test(session) || !Number.isSafeInteger(size) || size <= 0) return null;
+  if (notedSessions.has(session)) return null;
+  notedSessions.add(session);
+  const name = (url.searchParams.get("name") || "autonomi-file").slice(0, 200);
+  const type = (url.searchParams.get("type") || "application/octet-stream").slice(0, 100);
+  return recordStream(self.location.origin, { name, size, type }).catch((e) =>
+    console.warn("[autonomi-loader] couldn't note a stream", e),
+  );
+}
 
 async function handle(req: Request, url: URL): Promise<Response> {
   const state = await readState(self.location.origin);

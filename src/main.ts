@@ -29,7 +29,7 @@ import { type NameEntry, fetchNames } from "./names";
 import { WARM_PATH, warmReporter } from "./warm";
 import { createSource } from "./source";
 import { type SiteSource, SourceError } from "./source/types";
-import { type SiteState, type Timings, checkDue, clearState, readState, sameLink, writeState } from "./state";
+import { type SiteState, type Timings, checkDue, clearState, readState, readStreams, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
 import { formatBytes } from "./ui/dom";
 import { type InstallStage, type LandingOptions, showError, showFrontDoor, showInfo, showLanding, showLoading } from "./ui/views";
@@ -485,6 +485,7 @@ async function info(ident: Ident, label: string, status?: string): Promise<void>
     name,
     label,
     state,
+    streams: await readStreams(location.origin),
     sourceName: source,
     status,
     onCheck: async () => {

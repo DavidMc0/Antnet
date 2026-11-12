@@ -367,6 +367,48 @@ Built in Fable, to the plan above. Only the door changed look; the loading, info
 - **Deployed 2026-11-12;** the user checked it live and is happy with it.
 - **Left for later:** the plain message for browsers without WebRTC (DEMO.md 5.5); the loading screen still has the old look, so an early deep link looks different from the door.
 
+## Cinema, step 1: checking the film (2026-11-12)
+
+`tools/media-probe.mjs <address>` (needs `npx cross-env VITE_SOURCE=autonomi vite --port 5180 --strictPort`) opens a public file with the SDK and reads only its head and tail.
+
+- **The film at `a6fbc263…e7a1a` is WebM, not MP4:** AV1 video at 1920×1080, Opus stereo audio at 48 kHz, 10 min 35 s, 162.5 MB (about 2 Mbit/s).
+  - Its index (Cues) is in the last 2.6 kB, inside the SDK's 64 KiB tail prime. Media starts at byte 661.
+  - The SDK reports it as `public-file-….bin`, `application/octet-stream`, so it isn't recognised as media: pass `primePlayback: true`. The stream worker takes the type from the media URL's `type` query parameter, so set `type=video/webm` on `source.url` before giving it to the `<video>`.
+- **Plays in Playwright Chromium** (dev server, the SDK's own stream worker, two runs):
+
+| | Run 1 | Run 2 |
+| --- | --- | --- |
+| Connect | 0.8 s | 0.9 s |
+| `createMediaSource` (opens the file) | 12.1 s | 12.3 s |
+| First frame after `src` is set | 8.2 s | 3.5 s |
+| Seek to 50% / 85% / 20% | 1.8 / 15.8 / 4.0 s | 3.3 / 7.7 / 4.0 s |
+| 60 s of playback | no stalls, 0 dropped frames | no stalls, 219 of 2106 frames dropped |
+
+- **So a cold start is about 16–21 s, not the 3–4 s DEMO.md 3.4 expected.** Most of it is opening the file (about 12 s), which can start as soon as the page loads, behind the poster, before Play is pressed.
+- **Firefox:** not tested. From the `localhost` dev server, Playwright Firefox can't connect to any seed at all (WebRTC fails), but it does on the live loader, so test it there in step 2.
+- **Codecs:** Chromium, Firefox and Playwright's Windows WebKit all say they can play WebM with AV1 and Opus. Windows WebKit isn't Safari, though. Real Safari decodes AV1 only on Apple hardware with an AV1 decoder (M3 Macs and later, iPhone 15 Pro and later), so this film probably won't play on older Macs or iPhones. **Confirmed on the Mac mini (M1, Safari), 2026-11-12:** `canPlayType` for WebM AV1 + Opus returns `""`, so Safari there can't play it. The same goes for every Mac before M3 and every iPhone before the 15 Pro. **Open decision for the user:** keep this film and say so on Safari, upload an H.264 MP4 copy (about 250 MB), or pack a short clip.
+
+- **The replacement, uploaded by the user (12 November 2026):** `b1d797857bfb241c5123164b86cb78882f78d24c0d57a5567cbc67739bf7f13c`, 64 records (63 chunks and the DataMap), 239.4 MB as the CLI counts it, 3.43 ANT plus 0.000012 ETH gas. It is Blender's `bbb_sunflower_1080p_30fps_normal.mp4` with the AC-3 5.1 track dropped (`ffmpeg -map 0:0 -map 0:1 -c copy -movflags +faststart`): H.264 High 1920×1080 at 30 fps, MP3 stereo, index at the start, 251,070,017 bytes, 10 min 35 s, 3.2 Mbit/s. `media-probe.mjs` confirms the network copy is the same.
+
+## Cinema, step 2: the media bridge in the loader's worker (built 2026-11-12; not deployed)
+
+- **The bridge:** `vite.config.ts` appends the pinned SDK's `autonomi-stream-sw.js`, in its own function scope, to the built `autonomi-loader-sw.js`, in dev and in builds alike, so it always matches the installed SDK. A site passes `serviceWorkerUrl: "/autonomi-loader-sw.js"` to `createMediaSource`.
+- **Order matters:** the loader's code comes first. In Chromium, once one fetch listener has answered, later listeners never run. So the loader's listener sees `/__autonomi_stream/` URLs first, notes them and steps aside, and the bridge's listener answers them.
+- **What the loader notes:** once per media session, the file's name, size and type (from the stream URL; the page chooses them) in `/_autonomi/streams.json` in the meta cache. The info page shows them under "Streamed from Autonomi". The worker never sees the address: the page opens the file and the worker only relays byte ranges.
+- **Reserved:** archive files under any `__autonomi_stream/` folder are listed as ignored, since the bridge would answer those paths first.
+- **Tests:** the new `fixtures/stream` site plays its own clip through the bridge, answering the worker's range requests as the SDK's page side does (`stream.js`). `stream.spec.ts` covers playback and seeking, exact byte ranges with the bridge's headers (206, 416, `sandbox`, `nosniff`), and the info-page listing. Chromium 70/70 and unit 75/75 pass; Firefox passes all three stream tests, and WebKit the two that don't decode the clip.
+- **Real SDK on mainnet through the loader's worker** (dev server, Playwright Chromium, the new film, `type=video/mp4` set on the URL):
+
+| | Run 1 | Run 2 |
+| --- | --- | --- |
+| `createMediaSource` (opens the file) | 6.8 s | 6.1 s |
+| First frame after `src` is set | 1.7 s | 3.0 s |
+| Seek to 50% / 85% / 20% | 2.6 / 12.5 / 14.8 s | 4.5 / 11.8 / 11.1 s |
+| 60 s of playback | no stalls, 0 dropped frames | no stalls, 0 dropped frames |
+
+- **So a cold start is about 9–10 s,** about half the AV1 film's. Most of it is opening the file, which Cinema can do as the page loads. Seeks far from what has already played take 11–15 s, so Cinema's status line should say so while it seeks.
+- **Still to do:** Firefox and Safari with the real SDK, on the live loader once Cinema exists (step 3). Deploy this loader change before uploading Cinema.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

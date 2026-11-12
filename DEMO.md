@@ -78,7 +78,7 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
 
 ### 3.4 Cinema — streaming video
 
-- **Content:** the full *Big Buck Bunny* in 1080p, **streamed from its own address on Autonomi**, not packed into the site: public file `a6fbc2631fd860976cca35786887bbed8c4e80d8b287b0d597c92a50a83e7a1a`. Credit: "© 2008 Blender Foundation, bigbuckbunny.org, CC BY 3.0".
+- **Content:** the full *Big Buck Bunny* in 1080p, **streamed from its own address on Autonomi**, not packed into the site: public file `b1d797857bfb241c5123164b86cb78882f78d24c0d57a5567cbc67739bf7f13c` (H.264 and MP3 in MP4, index at the start, 251 MB, uploaded 12 November 2026 for 3.43 ANT; it plays in every browser). The earlier candidate, `a6fbc263…e7a1a`, is AV1 in WebM, which Safari can't play on Macs before M3 or iPhones before the 15 Pro (PROGRESS.md). Credit: "© 2008 Blender Foundation, bigbuckbunny.org, CC BY 3.0".
 - **What it shows:** a full-length film starts in a few seconds and seeks anywhere, with no video host. The site itself is small; the film is fetched piece by piece as it plays.
 - **How:** the Cinema page includes the browser SDK itself and plays the film with `client.createMediaSource(address, { serviceWorkerUrl: "/autonomi-loader-sw.js" })`. The SDK's own media bridge handles the byte-range requests; the loader's worker passes them through to it (section 5.8). Reading needs no wallet.
 - **What to expect:** SDK 0.1.5's own mainnet audit measured the first frame at about 3 s typical in Chromium, with some over 6 s, and a seek to 85% of a 55 MB video at 2–4 s. Add about a second for the page to connect. Measured in Playwright Chromium and WebKit only, not real Firefox or Safari.

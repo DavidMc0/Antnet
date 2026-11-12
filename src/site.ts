@@ -206,7 +206,13 @@ function specificity(pattern: string): number {
 
 /** Reserved for the loader: `_autonomi/…` and the service worker script (path without leading "/"). */
 export function isReservedPath(path: string): boolean {
-  return path === "_autonomi" || path.startsWith("_autonomi/") || path === "autonomi-loader-sw.js";
+  return (
+    path === "_autonomi" ||
+    path.startsWith("_autonomi/") ||
+    path === "autonomi-loader-sw.js" ||
+    // The media bridge answers these paths first (DEMO.md 5.8), so a file here could never be served.
+    `/${path}`.includes("/__autonomi_stream/")
+  );
 }
 
 /** The cache key (an absolute URL path) for a site file path. */

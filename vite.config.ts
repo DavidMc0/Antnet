@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { type Plugin, build, defineConfig, loadEnv } from "vite";
 
@@ -7,6 +8,28 @@ const NAMES_FILE = fileURLToPath(new URL("./names.json", import.meta.url));
 const NAMES_OUT = "_autonomi/names.json";
 const SW_FILE = "autonomi-loader-sw.js";
 const SW_ENTRY = fileURLToPath(new URL("./src/sw.ts", import.meta.url));
+/**
+ * The SDK's media bridge (DEMO.md 5.8), from the pinned SDK version. An origin can have only
+ * one service worker, so a site that streams from Autonomi uses the loader's, which carries
+ * this bridge. Rebuilt with the loader, so it always matches the installed SDK.
+ */
+const STREAM_SW = createRequire(import.meta.url).resolve("@withautonomi/ant-browser-sdk/autonomi-stream-sw.js");
+
+/**
+ * The SDK's bridge, in a scope of its own, after the loader's worker. The loader's fetch
+ * listener must come first: in Chromium, once one listener has answered a fetch, the later
+ * ones never run (seen 12 November 2026). So the loader's listener notes a stream URL
+ * (/__autonomi_stream/…) and steps aside, and the bridge's listener then answers it. The
+ * bridge's message listener stays too: Firefox needs the page's keep-awake messages.
+ */
+function withStreamBridge(loaderWorker: string): string {
+  const bridge = readFileSync(STREAM_SW, "utf8");
+  return (
+    "// The Autonomi browser SDK's media bridge (autonomi-stream-sw.js), MIT OR Apache-2.0.\n" +
+    loaderWorker +
+    `\n(function () {\n${bridge}\n})();\n`
+  );
+}
 
 /**
  * CSP for the shell page in production builds. Dev injects inline styles, so it is build-only.
@@ -51,7 +74,7 @@ function serviceWorker(loaderRoot: string): Plugin {
     const outputs = Array.isArray(result) ? result : [result];
     for (const out of outputs) {
       if (!("output" in out)) continue;
-      for (const item of out.output) if (item.type === "chunk") return item.code;
+      for (const item of out.output) if (item.type === "chunk") return withStreamBridge(item.code);
     }
     throw new Error("Service worker bundle produced no code");
   }

@@ -3,7 +3,7 @@
 import type { SiteLink } from "../host";
 import type { NameEntry } from "../names";
 import type { WarmReport } from "../warm";
-import { type SiteState, sameLink } from "../state";
+import { type SiteState, type StreamRecord, sameLink } from "../state";
 import { type Child, formatBytes, formatMs, formatTime, h, mount } from "./dom";
 
 function brand(): HTMLElement {
@@ -463,6 +463,8 @@ export interface InfoOptions {
   name?: { name: string; entry: NameEntry | null | "unreadable" };
   label: string;
   state: SiteState | null;
+  /** Files this site streamed from Autonomi through the media bridge (DEMO.md 5.8). */
+  streams?: StreamRecord[];
   sourceName: string;
   /** Runs a check and re-renders the page with the outcome. */
   onCheck(): Promise<void>;
@@ -524,6 +526,38 @@ function recordsSection(state: SiteState): HTMLElement | null {
     arrivals.length
       ? h("p", { class: "small" }, `Chunks arrived ${arrivals.map((a) => formatMs(a.ms)).join(", ")} after the download began.`)
       : null,
+  );
+}
+
+/** What a site streamed from Autonomi beyond its own archive (DEMO.md 5.8). */
+function streamsSection(streams?: StreamRecord[]): HTMLElement | null {
+  if (!streams?.length) return null;
+  return h(
+    "section",
+    { "data-testid": "streams" },
+    h("h2", {}, "Streamed from Autonomi"),
+    h(
+      "p",
+      { class: "small" },
+      "Besides its own files, this site streamed these from the Autonomi network, through the loader's " +
+        "media bridge. The site's page chose and opened each file and checked what it read; the loader " +
+        "only passed the pieces to the player, so it knows their names and sizes but not their addresses.",
+    ),
+    h(
+      "table",
+      { class: "records" },
+      h("tr", {}, h("th", {}, "File"), h("th", {}, "Size"), h("th", {}, "Type"), h("th", {}, "Last streamed")),
+      ...streams.map((s) =>
+        h(
+          "tr",
+          {},
+          h("td", {}, h("code", {}, s.name)),
+          h("td", {}, formatBytes(s.size)),
+          h("td", {}, s.type),
+          h("td", {}, formatTime(s.lastAt)),
+        ),
+      ),
+    ),
   );
 }
 
@@ -605,6 +639,7 @@ export function showInfo(opts: InfoOptions): void {
       ),
       table,
       state ? recordsSection(state) : null,
+      streamsSection(opts.streams),
       ignored,
       h(
         "div",
