@@ -115,13 +115,13 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
   - **Cinema** gets a "Download this film" button made with the generator, so the demo shows an embed in use. The film is large, so on stage it only starts.
   - **Library** gets a "Download as EPUB" button for one book (Standard Ebooks publishes EPUBs of its public-domain editions; upload one as a public file). It finishes in seconds and shows the verified hash.
 - **Removal list** (decided 12 November 2026; section 11):
-  - **Where the page gets it:** first live from autonomirror.com, which must allow the Antnet origin with CORS. If that fails, from the newest copy on Autonomi, found through a pointer that only Autonomirror's key can move. The page reads the pointer in parallel, since it is connecting to Autonomi anyway.
+  - **What it is for:** it refuses files on Autonomirror's list (copyright notices, illegal material, malware, phishing, breaches of the terms). It removes nothing from Autonomi; it only stops this page from handing those files out. Its main value is protecting the domain. Buttons made with the generator point at `download.antnet.autonomirror.com`, and browser blocklists tend to block whole domains, so one bad file could get the whole loader flagged. The list lets Antnet stop serving a reported file quickly.
+  - **Where the page gets it: only from Autonomi.** The page reads it from the newest copy, found through a pointer that only Autonomirror's key can move. Nothing is fetched from autonomirror.com, so the page, the file and the list all come from the network. The page reads the pointer while it connects to fetch the file, so the check adds no wait.
   - **Never in the archive,** because older versions of the page stay readable and can't be updated. Every version follows the pointer, so all of them get the latest list.
-  - **Copies are published whenever the list changes,** from wherever the key is, not by the web server. So an outage doesn't make the list go stale.
-  - **Never fails closed.** Only listed files are refused. If neither list can be read, every other file still downloads, and the buttons never stop because a server is down or gone. If Autonomirror's server disappears for good, the last copy stays in force indefinitely.
+  - **Copies are published by hand** by the user, with a funded wallet, whenever the list changes. A script in this repository builds the file of hashes and prints the upload and pointer commands. A removal takes effect once its copy is published.
+  - **Never fails closed.** Only listed files are refused. If the list can't be read, every other file still downloads. The last published copy stays in force indefinitely.
   - **Applies on every loader:** it is Autonomirror's page and Autonomirror's list. Autonomirror is responsible for downloads through its own server, gateway and list, not for what others build on Autonomi.
-  - **The copies hold SHA-256 hashes of the removed addresses, not the addresses,** so a permanent public copy isn't an index of removed files. The page hashes the address it is asked for. If the server's list holds plain addresses, consider switching it to hashes too.
-  - **Who publishes the copies:** Autonomirror's own code, or a script run by hand for the demo. Still to decide.
+  - **The copies hold SHA-256 hashes of the removed addresses, not the addresses,** so a permanent public copy isn't an index of removed files. The page hashes the address it is asked for.
 - **Surprise:** a line under the button: "This page and this file both came from the Autonomi network. Free to download." After a download, the page shows the hashes it checked.
 - **Wording:** Autonomirror's rules apply: "free to download", never "free mirror", "forever" or "can't be taken down".
 - **Checks:** a cold open of a `/f/ant/…` link; a reload on that link; a save through the picker in Chrome; a buffered download in Firefox and Safari; the hash shown matches the file's published SHA-256; the generator's snippets point at the Antnet address.
@@ -156,7 +156,7 @@ Every site has a small "Antnet Start" link in its header, written as a portable 
 
 ### 4.3 One look per site
 
-Different type and colour for each site, the same quiet footer on all. Light and dark themes. No trackers, no external fonts or scripts: everything a site needs is in its archive, so nothing on any page comes from anywhere but the network. The two exceptions are reads from Autonomi itself (Cinema's film, the Download Button's files) and the Download Button's removal list, if it keeps one.
+Different type and colour for each site, the same quiet footer on all. Light and dark themes. No trackers, no external fonts or scripts: everything a site needs is in its archive, so nothing on any page comes from anywhere but the network. The one exception is reads from Autonomi itself: Cinema's film, and the Download Button's files and removal list.
 
 ### 4.4 Fine print (on Start)
 
@@ -433,7 +433,7 @@ The upload, the name check and the pointer update take real time. In a recording
 - [ ] Start's update notice appears after a pointer update, and "Earlier versions" opens v1.
 - [ ] The `ant` keyword works in Chrome and Firefox, and Alt+Shift+A opens the in-page bar on every demo site.
 - [ ] Licence and credit lines present: Docs (MIT/Apache, source and commit, "Unofficial mirror"), Cinema (Blender Foundation, CC BY 3.0), Library (public-domain status).
-- [ ] Every archive under 12 MiB; no site requests anything from outside its own archive, except reads from Autonomi (Cinema, Download Button) and the Download Button's removal list.
+- [ ] Every archive under 12 MiB; no site requests anything from outside its own archive, except reads from Autonomi (Cinema; the Download Button's files and removal list).
 - [ ] Download Button: the checks in section 3.6, plus the EPUB and film buttons on Library and Cinema.
 - [ ] Cinema: ten cold plays in Chromium; note time to first frame and to each seek. Ten minutes of continuous playback in Chrome, Firefox and Safari.
 - [ ] Every hand-picked name opens its site, and a test claim goes through the GitHub form and Action end to end, including a rejected one.
@@ -455,7 +455,7 @@ The upload, the name check and the pointer update take real time. In a recording
 ## 11. Open decisions
 
 - ~~**Domain** for the demo.~~ Decided 11 November: the loader root is `antnet.autonomirror.com`, on the user's VPS. (`antnet.site` was considered; it isn't owned.)
-- ~~**Download Button removal list:** when the list can't be fetched, fail closed everywhere, or only on `antnet.autonomirror.com`?~~ Decided 12 November: never fail closed. The live list comes first, then the newest copy on Autonomi through a pointer, and only listed files are refused, on every loader. Details are in section 3.6. This differs from the Autonomirror MVP's fail-closed rule (MVP spec, section 20), so update that spec to match.
+- ~~**Download Button removal list:** when the list can't be fetched, fail closed everywhere, or only on `antnet.autonomirror.com`?~~ Decided 12 November: never fail closed. The list is read only from Autonomi, through a pointer, and the user publishes it by hand. Only listed files are refused, on every loader. Details are in section 3.6. This differs from the Autonomirror MVP's fail-closed rule (MVP spec, section 20), so update that spec to match.
 - **Names policy:** are a GitHub account and a one-claim-a-day limit the right bar for the demo, and is 14 days the right release period for a name whose site stops claiming it?
 - **Address bar shortcut:** is Alt+Shift+A the right default, and should the in-page bar be on for every site or only for sites that opt in?
 - ~~**Is Colony the right app?**~~ Decided: keep the simulation, named ColonySim.

@@ -441,10 +441,13 @@ Built in Fable, to the plan above. Only the door changed look; the loading, info
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
 
-- **The site's CSP must loosen** (as for Cinema): `script-src 'self' 'wasm-unsafe-eval'` and `connect-src 'self' https: wss:` for the bundled SDK, plus `https://autonomirror.com` if it fetches the removal list. Use `cspExtra` in its `site.mjs`; the shared CSP replaces `script-src`, so build the policy rather than appending a second `script-src`.
+- **The site's CSP must loosen as Cinema's does:** export the whole policy as `csp` in its `site.mjs`, with `'wasm-unsafe-eval'` and `connect-src 'self' https: wss:` for the bundled SDK. No autonomirror.com entry is needed.
 - **The Library's "Download as EPUB" button means a Library v2 upload.** Upload it together with Start v2.
 - **`/f/ant/…` paths are fine:** the loader reserves only `/_autonomi/…`, and `"spa": true` serves deep links and reloads.
-- **Removal list, decided 12 November:** live list first, then the newest copy on Autonomi through a pointer. It never fails closed, and only listed files are refused, on every loader (DEMO.md 3.6). Still open: who publishes the copies (Autonomirror's code, or a hand-run script for the demo).
+- **Removal list, decided 12 November:**
+  - It is read only from Autonomi, through a pointer, as a file of SHA-256 hashes of the removed addresses. Nothing is fetched from autonomirror.com.
+  - It never fails closed. Only listed files are refused, on every loader.
+  - The user publishes the copies by hand, with a funded wallet. Build a script that writes the file of hashes and prints the upload and pointer commands (DEMO.md 3.6).
 
 ### Next
 
