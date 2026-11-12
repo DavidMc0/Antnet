@@ -42,7 +42,7 @@
 
           <p class="direct-line">
             <svg class="icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="2.2" fill="currentColor"/><circle cx="16" cy="4.5" r="2.2" fill="currentColor"/><circle cx="16" cy="15.5" r="2.2" fill="currentColor"/><path d="M6 9 14 5.3M6 11l8 3.7" stroke="currentColor" stroke-width="1.5"/></svg>
-            <span>This page and this file both come from the Autonomi network. Your browser fetches the file straight from the nodes that hold it. Free to download.</span>
+            <span><strong>This page and this file both come from the Autonomi network.</strong> Your browser fetches the file straight from the nodes that hold it. Free to download.</span>
           </p>
 
           <!-- ------------------------------------------------ connecting / ready -->
@@ -146,8 +146,9 @@
           </div>
 
           <!-- ------------------------------------------------ the same file through the app -->
-          <div class="app-route">
-            <h2 class="app-route-title">Or download it with the Autonomi app</h2>
+          <!-- Folded away while the browser route works; the script opens it when it doesn't. -->
+          <details class="app-route" id="app-route">
+            <summary class="app-route-title">Or download it with the Autonomi app</summary>
             <p class="app-route-text">Every file on Autonomi has a unique address, and the free desktop app can fetch this file using it. That's a good choice for very large files, or if this page doesn't work for you.</p>
             <div class="address-row">
               <code class="address-value" id="address-full"></code>
@@ -158,7 +159,7 @@
               <li>Open <strong>Files</strong>, choose <strong>Download</strong> and paste the address.</li>
             </ol>
             <p class="app-route-note">The app is also used to run nodes, the computers that store files for the network. You don't need to run one to download.</p>
-          </div>
+          </details>
         </div>
       </section>
 

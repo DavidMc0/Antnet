@@ -222,7 +222,7 @@ main.wide {
   width: 100%;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 16px 32px;
+  padding: 24px 16px 16px;
   color: var(--text-faint);
   font-size: 13px;
   text-align: center;
@@ -541,6 +541,23 @@ main.wide {
 .topbar-actions .antnet-start:focus-visible {
   color: var(--text);
 }
+.topbar-actions .antnet-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 4px;
+}
+/* Antnet's mark, three dots in a row, drawn small beside the link. */
+.topbar-actions .antnet-start::before {
+  content: "";
+  flex: none;
+  width: 21px;
+  height: 8px;
+  background:
+    radial-gradient(circle at 4px 50%, currentColor 0 3.2px, transparent 3.7px),
+    radial-gradient(circle at 11.5px 50%, currentColor 0 1.8px, transparent 2.3px),
+    radial-gradient(circle at 17.5px 50%, currentColor 0 2.5px, transparent 3px);
+}
 /* This visit's receipt, under the footer. */
 .antnet-strip {
   width: 100%;
@@ -548,6 +565,12 @@ main.wide {
   margin: 0 auto;
   padding: 0 16px 32px;
   text-align: center;
+}
+.antnet-strip .antnet-receipt:not([hidden]) {
+  display: inline-block;
+  max-width: 44rem;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 .antnet-strip .antnet-receipt {
   color: var(--text-faint);

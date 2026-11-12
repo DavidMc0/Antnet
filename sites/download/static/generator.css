@@ -19,7 +19,7 @@
   font-size: clamp(15px, 2.4vw, 17px);
 }
 
-/* ------------------------------------------------------------------ grid: file + embed on the left, button on the right */
+/* ------------------------------------------------------------------ grid: file and button side by side, embed code across the bottom */
 
 .gen-grid {
   display: grid;
@@ -31,19 +31,28 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "file button"
-      "embed button";
-    align-items: start;
+      "embed embed";
+    align-items: stretch;
   }
   .gen-step:nth-child(1) {
     grid-area: file;
   }
   .gen-step:nth-child(2) {
     grid-area: button;
-    position: sticky;
-    top: 20px;
   }
   .gen-embed {
     grid-area: embed;
+  }
+  /* With the full width to use: the HTML on the left, Markdown and the link beside it. */
+  .gen-embed .embed {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .gen-embed .embed > .notice {
+    grid-column: 1 / -1;
+  }
+  .gen-embed .embed > .code-block:nth-child(2) {
+    grid-row: span 2;
   }
 }
 
@@ -362,6 +371,8 @@
 
 .embed {
   display: grid;
+  /* A fixed track, so long code can't push the card wider than a phone's screen. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 .code-head {
@@ -418,13 +429,15 @@ textarea.input.code {
 }
 
 /* Kept from Autonomirror's upload section, which the Antnet version leaves out. */
-.show-address {
+.field .show-address {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
+  color: var(--text-muted);
   font-weight: 400;
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
 }
 .show-address input {
   margin-top: 3px;

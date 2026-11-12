@@ -583,3 +583,102 @@
 .how:not([open]) > summary {
   margin-bottom: 0;
 }
+
+/* ------------------------------------------------------------------ Antnet design pass */
+
+/* The line that says where this page and this file came from: the point of the page, so its
+   first sentence carries weight. */
+.direct-line {
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--chunk) 22%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--chunk) 6%, transparent);
+}
+.direct-line strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The app route, folded away: the page has one job while the browser route works. */
+.app-route > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.app-route > summary::-webkit-details-marker {
+  display: none;
+}
+.app-route > summary::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  rotate: 45deg;
+  translate: 0 -2px;
+  transition: rotate 0.15s ease, translate 0.15s ease;
+}
+.app-route[open] > summary::after {
+  rotate: -135deg;
+  translate: 0 2px;
+}
+.app-route > summary:hover,
+.app-route[open] > summary {
+  color: var(--text);
+}
+.app-route[open] > summary {
+  font-size: 15px;
+  font-weight: 600;
+}
+.app-route > summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* A file removed from this page: say so plainly, with nothing lit and no other way in. */
+[data-refused] .file-hero {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+[data-refused] .file-badge {
+  opacity: 0.55;
+}
+[data-refused] .file-ext {
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+[data-refused] .file-name {
+  color: var(--text-muted);
+}
+[data-refused] .direct-line,
+[data-refused] .app-route,
+[data-refused] .how,
+[data-refused] .size-badge,
+[data-refused] .chunk-meta {
+  display: none;
+}
+[data-refused] .file-size {
+  color: var(--text-muted);
+}
+[data-refused] .panel .notice {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+[data-refused] .panel .notice-icon {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-route > summary::after {
+    transition: none;
+  }
+}

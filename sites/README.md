@@ -52,12 +52,15 @@ exactly as for mainnet; the fixtures build writes a test directory that maps the
   - a centred layout, with the screen sized so the play button and the counter are in view when the page opens;
   - the poster is a frame from the film itself (1 min 36 s in), grabbed from the stream.
 
-- **The Download Button** keeps Autonomirror's own look for now:
+- **The Download Button** keeps Autonomirror's own look, which is its character among these sites:
   - navy, with Autonomi red and mint;
   - Inter for text and IBM Plex Mono for addresses;
-  - a light/dark toggle.
+  - a constellation of nodes behind each file, and a grid that lights as chunks arrive;
+  - a light/dark toggle (the only site with one).
 
-  Its code is ported from github.com/DavidMc0/autonomirror and still needs a design pass to sit with the other sites.
+  Its code is ported from github.com/DavidMc0/autonomirror. The design pass kept the look and worked on how the
+  page behaves as an Antnet site: the download card has one job, with the Autonomi-app route folded away until the
+  browser route fails; a removed file has its own plain state; the generator's embed code sits across the bottom.
 
 Fonts are bundled in each site's `static/fonts/`, with their licence files (SIL Open Font License). They are the
 Latin subsets from the Fontsource packages.

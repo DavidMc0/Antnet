@@ -477,10 +477,22 @@ Ported from github.com/DavidMc0/autonomirror at `4a2d8e3` (7 November 2026), fol
   - **Refusing a listed file in a browser:** the logic is unit-tested, but no list is published yet.
   - **Firefox's in-memory download from mainnet:** Playwright's Firefox can't connect from `localhost`.
   - **Real Safari.**
+- **Removal list pointer (2026-11-12):** `f3e9e13c…7ae9`, recorded and built into the site. Its key is `publish/removals.key`, which is gitignored; the user was asked to back it up. No list is published yet.
+- **Design pass (2026-11-12, in Fable):** the user was happy for it to keep Autonomirror's look, which already sets it apart from the other sites. The pass changed how it works as an Antnet site:
+  - **Download page:**
+    - the "Autonomi app" route is a closed `<details id="app-route">`, which the script opens when the browser route fails (blocked or error);
+    - the "This page and this file both come from the Autonomi network" line is a mint-edged callout with a strong first sentence;
+    - a removed file sets `#app[data-refused]`: nothing lit, no badge, no other route offered, and the title "Not available".
+  - **Generator:**
+    - the embed code runs across the bottom, HTML beside Markdown and the link, where it used to leave a hole under step 2;
+    - long code no longer pushes the card off a phone's screen;
+    - the "Also show the full address" label is normal weight.
+  - **Antnet pieces:** the Start link carries Antnet's three-dot mark; the receipt sits under the footer behind a hairline; the top bar wraps to two lines on phones.
+  - **Checked by screenshot:** connecting, ready, downloading, done, blocked, error, removed (stood in for by hand, since no list is published), broken link, and the generator empty and checked, in dark and light, at 1280, 390 and 320 px. No sideways scroll.
+  - **Tests:** unit 195/195; Chromium 79/79 with `DOWNLOAD_LIVE=1`, including the real download.
 - **Before uploading:**
-  1. Create the removal list's pointer key and record its address, so it is built in. This is free: `ant pointer keygen` and `ant pointer address`.
-  2. The design pass, in Fable.
-  3. Decide whether Cinema's "Download this film" and the Library's EPUB buttons (DEMO.md 3.6) go in the same round. Each means re-uploading that site, and Start lists every site's size.
+  1. Decide whether Cinema's "Download this film" and the Library's EPUB buttons (DEMO.md 3.6) go in the same round. Each means re-uploading that site, and Start lists every site's size.
+  2. Upload `publish/sites/download.tar` and record it, then Start v3 and its pointer, then deploy the loader so `names.json` carries `download`.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

@@ -198,6 +198,9 @@ async function refuseIfListed(status: RemovalStatus): Promise<void> {
 
 function showRemoved(): void {
   controller?.abort();
+  // A removed file gets its own look, and no other route to it is offered from here.
+  app.dataset.refused = "removed";
+  document.title = "Not available · Download";
   showBlocked(
     "This file isn't available here",
     "It has been removed from this download page, for example after a copyright notice or a report of harmful content. This page and its buttons won't serve it.",
@@ -398,7 +401,13 @@ function showBlocked(title: string, text: string, appLink = false): void {
   setText($("blocked-title"), title);
   setText($("blocked-text"), text);
   $("blocked-app").hidden = !appLink;
+  openAppRoute();
   setState("blocked");
+}
+
+/** When the browser route doesn't work, show the other way to get the file. */
+function openAppRoute(): void {
+  $<HTMLDetailsElement>("app-route").open = true;
 }
 
 function showTooLarge(size: number): void {
@@ -418,6 +427,7 @@ function showError(info: FriendlyError, action: typeof retryAction): void {
   $("error-code").title = info.message;
   $("error-network").hidden = !(action === "connect" || info.connection);
   setText($("retry-btn"), action === "connect" ? "Reconnect" : "Try again");
+  openAppRoute();
   setState("error");
 }
 
