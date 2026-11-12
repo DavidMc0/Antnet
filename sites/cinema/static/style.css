@@ -1,0 +1,634 @@
+/* Cinema. A night out: the house lights are down, the sign is lit, and the screen is the
+   brightest thing in the room. Aubergine dark, one warm marquee amber, and tall poster
+   lettering (Big Shoulders Display) over a plain text face (DM Sans). Both are bundled in
+   /fonts under the Open Font License; nothing loads from outside. By day (a light colour
+   scheme) the lobby is pale lilac, and the screen stays dark. */
+
+@font-face {
+  font-family: "Big Shoulders Display";
+  src: url("/fonts/big-shoulders-display.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/dm-sans.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark light;
+  --house: #0e0b16;
+  --house-lift: #171226;
+  --ink: #f4ecdc;
+  --muted: #a79fb8;
+  --rule: #2c2540;
+  --amber: #ffb648;
+  --amber-ink: #1c1206;
+  --glow: 255 170 60;
+  --violet: 120 90 220;
+  --danger: #ff9d8a;
+  /* The screen keeps these whatever the scheme. */
+  --screen: #05040a;
+  --screen-ink: #f4ecdc;
+  --screen-muted: #b9b2c6;
+  --display: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Impact, sans-serif;
+  --text: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --gutter: clamp(1.1rem, 4vw, 2.5rem);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --house: #efecf6;
+    --house-lift: #f9f7fd;
+    --ink: #1a1430;
+    --muted: #5f5876;
+    --rule: #d6d0e4;
+    --amber: #b5560a;
+    --amber-ink: #fff6e8;
+    --glow: 190 110 20;
+    --violet: 110 80 200;
+    --danger: #a3271b;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  /* The screen's glow reaches past the page edge on a phone; it mustn't make the page scroll sideways. */
+  overflow-x: clip;
+  background: var(--house);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+::selection {
+  background: rgb(var(--glow) / 0.35);
+}
+a {
+  color: var(--amber);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+[hidden] {
+  display: none !important;
+}
+
+.marquee,
+main,
+.credits {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+/* ---- The sign over the door ------------------------------------------------------------ */
+
+.marquee {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1.25rem;
+}
+/* Lit lettering between two rows of bulbs. */
+.sign {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 0.15rem;
+  color: var(--amber);
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.sign-text {
+  /* Letter-spacing leaves a gap after the last letter; take it back so the bulbs line up. */
+  margin-right: -0.24em;
+  text-shadow: 0 0 1.1rem rgb(var(--glow) / 0.45);
+}
+.sign::before,
+.sign::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: radial-gradient(circle, currentColor 0 1.4px, transparent 1.9px) 0 0 / 9px 4px repeat-x;
+  opacity: 0.85;
+}
+.sign::before {
+  top: 0;
+}
+.sign::after {
+  bottom: 0;
+}
+.antnet-start {
+  font-family: var(--text);
+  font-size: 0.875rem;
+  color: var(--muted);
+  opacity: 1;
+}
+.antnet-start:hover,
+.antnet-start:focus-visible {
+  color: var(--amber);
+}
+
+/* ---- Now showing ------------------------------------------------------------------------- */
+
+.feature {
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+  text-align: center;
+}
+.now {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  padding: 0.3rem 0.8rem 0.25rem;
+  border: 1px solid rgb(var(--glow) / 0.55);
+  border-radius: 999px;
+  color: var(--amber);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(3rem, 1.4rem + 8.5vw, 7rem);
+  font-weight: 800;
+  letter-spacing: 0.012em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.billing {
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  letter-spacing: 0.04em;
+}
+.billing span {
+  margin: 0 0.35em;
+  color: var(--amber);
+}
+
+/* ---- The screen ---------------------------------------------------------------------------
+   As wide as the page allows, but never taller than the window leaves room for, so the play
+   button and the counter are in view when the page opens. */
+
+.screen {
+  position: relative;
+  width: min(100%, max(20rem, (100svh - 25rem) * 16 / 9));
+  margin: clamp(1.5rem, 4vw, 2.5rem) auto 0;
+}
+/* Light from the screen, spilling into the room. */
+.screen::before {
+  content: "";
+  position: absolute;
+  inset: 8% -6% -10%;
+  background:
+    radial-gradient(60% 55% at 30% 60%, rgb(var(--glow) / 0.3), transparent 70%),
+    radial-gradient(60% 60% at 72% 55%, rgb(var(--violet) / 0.42), transparent 72%);
+  filter: blur(2.5rem);
+  pointer-events: none;
+  z-index: -1;
+}
+.frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--screen);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 2rem 4rem -1.5rem rgb(0 0 0 / 0.7);
+}
+.film {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--screen);
+  object-fit: contain;
+}
+/* Before the film runs: a soft vignette over the poster, so the button and status read. */
+.frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(5 4 10 / 0.3), transparent 45%),
+    linear-gradient(to bottom, rgb(5 4 10 / 0.55), transparent 30%);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+[data-state="playing"] .frame::after {
+  opacity: 0;
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(4.25rem, 11vw, 6.25rem);
+  aspect-ratio: 1;
+  padding: 0;
+  translate: -50% -50%;
+  border: 0;
+  border-radius: 50%;
+  background: #ffb648;
+  color: #1c1206;
+  box-shadow:
+    0 0 0 0.5rem rgb(255 182 72 / 0.22),
+    0 1rem 2.5rem rgb(0 0 0 / 0.5);
+  cursor: pointer;
+  transition:
+    scale 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.3s ease;
+}
+.play:hover {
+  scale: 1.06;
+  box-shadow:
+    0 0 0 0.75rem rgb(255 182 72 / 0.26),
+    0 1rem 2.5rem rgb(0 0 0 / 0.5);
+}
+.play:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.play-icon {
+  width: 46%;
+  height: 46%;
+  margin-left: 6%;
+}
+/* Pressed before the film was open: the button becomes a turning ring. */
+[data-state="waiting"] .play {
+  background: rgb(5 4 10 / 0.55);
+  box-shadow: none;
+  pointer-events: none;
+}
+[data-state="waiting"] .play-icon {
+  display: none;
+}
+[data-state="waiting"] .play::before {
+  content: "";
+  width: 62%;
+  aspect-ratio: 1;
+  border: 3px solid rgb(255 182 72 / 0.25);
+  border-top-color: #ffb648;
+  border-radius: 50%;
+  animation: turn 0.9s linear infinite;
+}
+[data-state="playing"] .play,
+[data-state="trouble"] .play {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* A slim line saying what is happening. Top left, clear of the browser's own controls. */
+.status {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: calc(100% - 1.5rem);
+  margin: 0;
+  padding: 0.4rem 0.8rem 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: rgb(5 4 10 / 0.72);
+  color: var(--screen-ink);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  text-align: left;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.3s ease;
+}
+.status-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1.5px solid rgb(255 182 72 / 0.3);
+  border-top-color: #ffb648;
+  border-radius: 50%;
+  animation: turn 0.9s linear infinite;
+}
+[data-state="ready"] .status-dot {
+  border-color: #ffb648;
+  background: #ffb648;
+  animation: none;
+}
+[data-state="playing"] .status,
+[data-state="trouble"] .status {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-state="playing"][data-fetching] .status {
+  opacity: 1;
+}
+
+/* When something fails: plain words on the screen, and one way forward. */
+.trouble {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  background: rgb(5 4 10 / 0.86);
+  color: var(--screen-ink);
+  text-align: center;
+}
+.trouble p {
+  margin: 0;
+  max-width: 34rem;
+}
+.trouble-title {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 1rem + 2.4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.trouble-text {
+  color: var(--screen-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.retry {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffb648;
+  color: #1c1206;
+  font: 600 1rem/1.2 var(--text);
+  cursor: pointer;
+}
+.retry:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* Under the screen: what has been streamed, and this visit's timings. */
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1.5rem;
+  margin-top: 0.9rem;
+  font-size: 0.875rem;
+  text-align: left;
+}
+.readout p {
+  margin: 0;
+}
+.meter {
+  color: var(--muted);
+}
+.meter strong {
+  color: var(--amber);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.visit {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The claim ------------------------------------------------------------------------------ */
+
+main > section + section {
+  margin-top: clamp(3.5rem, 8vw, 6rem);
+}
+.claim {
+  text-align: center;
+}
+.claim h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2.75rem, 1.6rem + 6vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.claim p {
+  max-width: 34rem;
+  margin: 1rem auto 0;
+  font-size: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+/* ---- How it reaches your screen: three ticket stubs ----------------------------------------- */
+
+.how h2,
+.small-print h2 {
+  margin: 0 0 1.25rem;
+  font-family: var(--display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.how ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+}
+.how li {
+  position: relative;
+  padding: 1.25rem 1.25rem 1.35rem;
+  background: var(--house-lift);
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+}
+/* The stub's tear line. */
+.how li::before {
+  content: "";
+  position: absolute;
+  top: 3.6rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  border-top: 1px dashed var(--rule);
+}
+.how-n {
+  display: block;
+  height: 2.35rem;
+  color: var(--amber);
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.how h3 {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.how li p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+.address {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.address code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  color: var(--ink);
+}
+.address-toggle {
+  margin-left: 0.4rem;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed var(--amber);
+  background: none;
+  color: var(--amber);
+  font: inherit;
+  cursor: pointer;
+}
+.address-full {
+  display: block;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Small print, credits -------------------------------------------------------------------- */
+
+.small-print ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 46rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.small-print li {
+  position: relative;
+  padding: 0 0 0.6rem 1.25rem;
+  text-wrap: pretty;
+}
+.small-print li::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.6em;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--amber);
+  opacity: 0.7;
+}
+
+.credits {
+  margin-top: clamp(3.5rem, 8vw, 6rem);
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+.credits::before {
+  content: "";
+  display: block;
+  height: 4px;
+  margin-bottom: 1.75rem;
+  background: radial-gradient(circle, var(--rule) 0 1.4px, transparent 1.9px) center / 9px 4px repeat-x;
+}
+.credits p {
+  max-width: 44rem;
+  margin: 0 auto 0.5rem;
+  text-wrap: pretty;
+}
+.credits cite {
+  font-style: normal;
+  color: var(--ink);
+}
+.antnet-receipt {
+  font-family: var(--text);
+  font-size: 0.8125rem;
+  opacity: 1;
+}
+.antnet-receipt strong {
+  color: var(--ink);
+}
+
+@media (max-width: 34rem) {
+  .readout {
+    flex-direction: column;
+  }
+  .meter-of {
+    display: block;
+  }
+  .status {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play,
+  .status,
+  .frame::after {
+    transition: none;
+  }
+  .play:hover {
+    scale: none;
+  }
+  .status-dot,
+  [data-state="waiting"] .play::before {
+    animation-duration: 2.4s;
+  }
+}

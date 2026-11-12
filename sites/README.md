@@ -14,6 +14,7 @@ sites/
   shared/            pieces every site includes: receipt.js, antnet.css
   start/             Antnet Start: site.mjs builds index.html; static/ is copied as-is
   library/           The Library: site.mjs, static/, books.mjs, content/ (the book texts)
+  cinema/            Cinema: site.mjs, static/, src/player.js (bundled with the Autonomi client at build time)
 ```
 
 ## Working on a site locally
@@ -42,6 +43,13 @@ exactly as for mainnet; the fixtures build writes a test directory that maps the
   - chapters open with a raised initial and a first line in small capitals;
   - each book has a contents list and a reading time, both built from the text.
 
+- **Cinema** is a night out:
+  - an aubergine-dark house with one warm marquee amber; by day (a light colour scheme) the lobby is pale lilac
+    and the screen stays dark;
+  - Big Shoulders Display, in capitals, for the sign, the film's title and the claim, over DM Sans for text;
+  - a centred layout, with the screen sized so the play button and the counter are in view when the page opens;
+  - the poster is a frame from the film itself (1 min 36 s in), grabbed from the stream.
+
 Fonts are bundled in each site's `static/fonts/`, with their licence files (SIL Open Font License). They are the
 Latin subsets from the Fontsource packages.
 
@@ -58,6 +66,10 @@ The look of each site is free to change. These parts are load-bearing:
   - no web fonts, images or scripts from other hosts.
 
   Put fonts, images and scripts in the site's `static/` folder. That is also what makes the offline moment work.
+
+  **Cinema is the one exception to "nothing from outside":** its film stays on the network. Its `site.mjs` exports
+  its whole policy as `csp`, which adds `'wasm-unsafe-eval'` and `connect-src https: wss:` for the Autonomi client.
+  The inline rules still apply to it.
 - **Keep `ctx.headTags`, `ctx.startLink` and `ctx.receipt`** in every page. They are:
   - `headTags`: the shared stylesheet and the receipt script;
   - `startLink`: the link back to Start;
@@ -71,6 +83,12 @@ The look of each site is free to change. These parts are load-bearing:
   address bar.
 - **Light and dark themes,** following `prefers-color-scheme`.
 - **Each archive under 12 MiB,** so it stays four network records. `node sites/build.mjs` prints the sizes.
+- **Cinema's elements that `src/player.js` and the tests rely on:**
+  - `[data-player]`, with `data-state` (`preparing`, `waiting`, `ready`, `playing`, `trouble`) and the film's
+    `data-address`, `data-bytes`, `data-type` and `data-file`;
+  - `[data-play]`, `[data-status]`, `[data-streamed]`, `[data-visit]`;
+  - `[data-trouble]` with its title, text and `[data-retry]`;
+  - `[data-address-toggle]` and `[data-address-full]`.
 - **Start's elements that tests or scripts rely on:**
   - `.cards` and `.card-link`;
   - `.receipt-main`;

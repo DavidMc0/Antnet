@@ -12,7 +12,7 @@ const LIBRARY = "demo: The Library";
 test("Start says where it came from: the claim, the receipt, this visit's timings", async ({ page }) => {
   await openName(page, "start", ".cards");
   await expect(page.locator(".claim")).toContainText("wasn't sent by a web server");
-  await expect(page.locator(".card-title")).toHaveText(["The Library"]);
+  await expect(page.locator(".card-title")).toHaveText(["The Library", "Cinema"]);
   const receipt = page.locator(".receipt-main");
   await expect(receipt).toBeVisible();
   await expect(receipt).toContainText("No server sent this page");

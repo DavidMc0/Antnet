@@ -7,6 +7,13 @@
       "published": "2026-11-11",
       "since": "2026-11-11",
       "cost": "0.3213 ANT, plus 0.000004 ETH gas"
+    },
+    "cinema": {
+      "address": "e4b5d6a03d71fdf65dd3740f537fd7bf91c550c0090fe80c2254e14a05f2e705",
+      "sha256": "b2ebf15d8689b582c953d3086c299b712d44fd5a097d8a56b0c75512ab51077a",
+      "published": "2026-11-12",
+      "since": "2026-11-12",
+      "cost": "0.2411 ANT, plus 0.000004 ETH gas"
     }
   },
   "start": [
@@ -15,6 +22,12 @@
       "sha256": "44eec577e3d9055f70fe07422fccb3ccdb31fd1b363c08d15d2999a763167f0b",
       "date": "2026-11-11",
       "cost": "0.3738 ANT, plus 0.000004 ETH gas"
+    },
+    {
+      "address": "648bfeb9e62f4079379b8b6f10e0b39b59e55416315a483895ad330a49349e76",
+      "sha256": "a817e719b768af3d0be599e98098fbdda357f93f3a37a630519d45b8dcb36e71",
+      "date": "2026-11-12",
+      "cost": "0.2285 ANT, plus 0.000004 ETH gas"
     }
   ]
 }

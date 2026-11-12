@@ -409,6 +409,34 @@ Built in Fable, to the plan above. Only the door changed look; the loading, info
 - **So a cold start is about 9–10 s,** about half the AV1 film's. Most of it is opening the file, which Cinema can do as the page loads. Seeks far from what has already played take 11–15 s, so Cinema's status line should say so while it seeks.
 - **Still to do:** Firefox and Safari with the real SDK, on the live loader once Cinema exists (step 3). Deploy this loader change before uploading Cinema.
 
+## Cinema, step 3: the site (built 2026-11-12, in Fable; live the same day)
+
+- **The site** (`sites/cinema/`, name `cinema`, second in `CONTENT_SITES`): one page with the poster, a play button, a status line, the "Streamed so far" counter, this visit's timings, the "No video host." claim, three points on how it works, small print and credits. Its look is described in `sites/README.md`.
+- **The player** (`src/player.js`, bundled by Vite with the Autonomi client when the site is built):
+  - connects and opens the film as soon as the page loads, behind the poster, and attaches it with `preload="metadata"`;
+  - play pressed early waits and starts as soon as the film is open; pressed when ready, it starts at once;
+  - once playing, the browser's own controls take over; a status line returns only while a seek or stall lasts over 0.7 s;
+  - the counter adds up the byte ranges the worker asks the page for, counting each part once;
+  - failures say what happened on the screen, with "Try again" (no WebRTC, no service workers, can't connect, film not found, can't decode, stopped mid-film).
+- **Archive:** 6.1 MiB, the same bytes on every build. The client's upload worker, with a second copy of the WebAssembly, is left out.
+- **Policy:** Cinema exports its whole CSP as `csp` (new in `build.mjs`): the shared policy plus `'wasm-unsafe-eval'` and `connect-src 'self' https: wss:`.
+- **Measured locally** (the fixture loader, Playwright Chromium, the film from mainnet):
+
+| | Pressed early | Pressed when ready (two runs) |
+| --- | --- | --- |
+| Connected | 0.9 s | 0.8 s, 0.9 s |
+| Film found | 5.4 s | 6.1 s, 6.7 s |
+| First frame after play | 8.9 s (most of it waiting for the film to open) | at once, 0.4 s |
+| Streamed after 10 s of film | 12 MB | 11 MB, 13 MB |
+
+- **Tests:** `cinema.spec.ts` checks the page, its policy, the address toggle and an early press, with no network. `CINEMA_LIVE=1` adds a test that streams from mainnet: play, the counter, a seek to the middle, and the info-page listing. All pass in Chromium; Firefox passes the three that need no network. `warm.spec.ts` now counts only the page's own fetches, since Start's cards fetch two sites in the background.
+- **Not yet checked:** real Firefox and Safari, which need Cinema on the live loader; and Start v2's Cinema card by eye.
+- **Published (2026-11-12):**
+  - Cinema: `e4b5d6a0…2e705`, 4 records, 0.2411 ANT.
+  - Start v2: `648bfeb9…49e76`, 0.2285 ANT; it adds Cinema's card and the card warm-up. Start's pointer was updated to it.
+  - Before Start was uploaded, a local loader against mainnet installed Cinema by name in 7 s, and the film's first frame came 0.9 s after play.
+  - The loader was then deployed with `cinema` in `names.json`. The user checked it live and reports that it works.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
@@ -420,7 +448,8 @@ Section 3.6 adds **Download Button**: Autonomirror's download page and button ge
 
 ### Next
 
-1. **In DEMO.md section 10's order:**
+1. **Next:** the Download Button (DEMO.md 3.6). It reuses Cinema's set-up: the SDK bundled into the site, its own `csp`, and the loader's worker. Then ColonySim and the Docs.
+2. **In DEMO.md section 10's order:**
    - **Cinema streaming** (section 5.8), then ColonySim and the Docs. Upload Start v2 with the next new site.
    - **The loading screen and "can't connect" page,** including a plain message for browsers without WebRTC.
    - **The address bar.**

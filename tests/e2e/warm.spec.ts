@@ -7,12 +7,23 @@
 import { type Page, expect, test } from "@playwright/test";
 import { ROOT_URL, nameUrl, openName } from "./helpers";
 
-/** Count requests for site content (archives and pointers) from now on. */
+/**
+ * Count the page's own requests for site content (archives and pointers) from now on.
+ * Start's cards fetch the sites they list in hidden frames, as soon as Start shows; those
+ * are other sites arriving, not this page being fetched again, so frames don't count.
+ */
 function countFetches(page: Page): () => number {
   let n = 0;
   page.context().on("request", (r) => {
     // Archives and pointer reads; the pages' own list of test sites doesn't count.
-    if (/\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) n++;
+    if (!/\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) return;
+    let inFrame = false;
+    try {
+      inFrame = r.frame() !== page.mainFrame();
+    } catch {
+      // A service worker's request has no frame; count it.
+    }
+    if (!inFrame) n++;
   });
   return () => n;
 }
@@ -83,7 +94,7 @@ test("?landing, or a loader without Start, shows the address page with the named
   await page.goto(`${ROOT_URL}?landing`);
   await expect(page.locator("[data-view=landing]")).toBeVisible();
   await expect(page.locator("h1")).toHaveText("Open a site stored on Autonomi");
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "start"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema", "start"]);
   await page.getByTestId("named-sites").locator('a[data-name="library"]').click();
   await expect(page.locator(".shelf")).toBeVisible({ timeout: 15_000 });
 
@@ -92,12 +103,12 @@ test("?landing, or a loader without Start, shows the address page with the named
   await page.context().route("**/_autonomi/names.json", (route) => route.fulfill({ json: names }));
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-view=landing]")).toBeVisible();
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema"]);
 });
 
 test("the front door lists the other named sites", async ({ page }) => {
   await page.goto(ROOT_URL);
-  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library"]);
+  await expect(page.getByTestId("named-sites").locator("a")).toHaveText(["library", "cinema"]);
 });
 
 test("the warm path only answers pages on this loader", async ({ page, context }) => {

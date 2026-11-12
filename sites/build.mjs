@@ -32,7 +32,7 @@ const NAMES = join(ROOT, "names.json");
 const OUT = join(ROOT, "publish", "sites");
 
 /** Content sites, in the order Start lists them. Start itself is built from their sizes. */
-export const CONTENT_SITES = ["library"];
+export const CONTENT_SITES = ["library", "cinema"];
 
 /** The CSP every demo site declares: nothing from outside its own archive. */
 const CSP =
@@ -96,8 +96,9 @@ async function assemble(name, mod, built) {
     name,
     title: mod.meta.title,
     ...mod.settings,
-    // A site may add directives to the shared policy (Start adds frame-src for warm-up).
-    headers: { "/*": { "Content-Security-Policy": mod.cspExtra ? `${CSP}; ${mod.cspExtra}` : CSP }, ...mod.settings?.headers },
+    // A site may add directives to the shared policy (Start adds frame-src for warm-up), or
+    // state its whole policy when it needs to loosen one (Cinema runs the Autonomi client).
+    headers: { "/*": { "Content-Security-Policy": mod.csp ?? (mod.cspExtra ? `${CSP}; ${mod.cspExtra}` : CSP) }, ...mod.settings?.headers },
   };
   files.set(".autonomi-site.json", enc.encode(JSON.stringify(settings, null, 2) + "\n"));
   const tar = packFiles(files);
