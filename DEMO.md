@@ -114,7 +114,14 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
 - **Files to download in the demo:**
   - **Cinema** gets a "Download this film" button made with the generator, so the demo shows an embed in use. The film is large, so on stage it only starts.
   - **Library** gets a "Download as EPUB" button for one book (Standard Ebooks publishes EPUBs of its public-domain editions; upload one as a public file). It finishes in seconds and shows the verified hash.
-- **Removal list:** if the current site checks Autonomirror's list of removed files, the Antnet version fetches it live from autonomirror.com (which must allow the Antnet origin with CORS). It is never baked into the archive, because older versions of the page stay readable and can't be updated. What happens when the list can't be fetched is an open decision (section 11).
+- **Removal list** (decided 12 November 2026; section 11):
+  - **Where the page gets it:** first live from autonomirror.com, which must allow the Antnet origin with CORS. If that fails, from the newest copy on Autonomi, found through a pointer that only Autonomirror's key can move. The page reads the pointer in parallel, since it is connecting to Autonomi anyway.
+  - **Never in the archive,** because older versions of the page stay readable and can't be updated. Every version follows the pointer, so all of them get the latest list.
+  - **Copies are published whenever the list changes,** from wherever the key is, not by the web server. So an outage doesn't make the list go stale.
+  - **Never fails closed.** Only listed files are refused. If neither list can be read, every other file still downloads, and the buttons never stop because a server is down or gone. If Autonomirror's server disappears for good, the last copy stays in force indefinitely.
+  - **Applies on every loader:** it is Autonomirror's page and Autonomirror's list. Autonomirror is responsible for downloads through its own server, gateway and list, not for what others build on Autonomi.
+  - **The copies hold SHA-256 hashes of the removed addresses, not the addresses,** so a permanent public copy isn't an index of removed files. The page hashes the address it is asked for. If the server's list holds plain addresses, consider switching it to hashes too.
+  - **Who publishes the copies:** Autonomirror's own code, or a script run by hand for the demo. Still to decide.
 - **Surprise:** a line under the button: "This page and this file both came from the Autonomi network. Free to download." After a download, the page shows the hashes it checked.
 - **Wording:** Autonomirror's rules apply: "free to download", never "free mirror", "forever" or "can't be taken down".
 - **Checks:** a cold open of a `/f/ant/…` link; a reload on that link; a save through the picker in Chrome; a buffered download in Firefox and Safari; the hash shown matches the file's published SHA-256; the generator's snippets point at the Antnet address.
@@ -448,7 +455,7 @@ The upload, the name check and the pointer update take real time. In a recording
 ## 11. Open decisions
 
 - ~~**Domain** for the demo.~~ Decided 11 November: the loader root is `antnet.autonomirror.com`, on the user's VPS. (`antnet.site` was considered; it isn't owned.)
-- **Download Button removal list:** when the list can't be fetched, fail closed everywhere (as the Autonomirror MVP does), or only on `antnet.autonomirror.com` and warn on other loaders? See the Autonomirror MVP spec, section 20.
+- ~~**Download Button removal list:** when the list can't be fetched, fail closed everywhere, or only on `antnet.autonomirror.com`?~~ Decided 12 November: never fail closed. The live list comes first, then the newest copy on Autonomi through a pointer, and only listed files are refused, on every loader. Details are in section 3.6. This differs from the Autonomirror MVP's fail-closed rule (MVP spec, section 20), so update that spec to match.
 - **Names policy:** are a GitHub account and a one-claim-a-day limit the right bar for the demo, and is 14 days the right release period for a name whose site stops claiming it?
 - **Address bar shortcut:** is Alt+Shift+A the right default, and should the in-page bar be on for every site or only for sites that opt in?
 - ~~**Is Colony the right app?**~~ Decided: keep the simulation, named ColonySim.

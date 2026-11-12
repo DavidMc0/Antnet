@@ -444,7 +444,7 @@ Section 3.6 adds **Download Button**: Autonomirror's download page and button ge
 - **The site's CSP must loosen** (as for Cinema): `script-src 'self' 'wasm-unsafe-eval'` and `connect-src 'self' https: wss:` for the bundled SDK, plus `https://autonomirror.com` if it fetches the removal list. Use `cspExtra` in its `site.mjs`; the shared CSP replaces `script-src`, so build the policy rather than appending a second `script-src`.
 - **The Library's "Download as EPUB" button means a Library v2 upload.** Upload it together with Start v2.
 - **`/f/ant/…` paths are fine:** the loader reserves only `/_autonomi/…`, and `"spa": true` serves deep links and reloads.
-- **Open decision:** how the removal list fails when it can't be fetched (DEMO.md section 11).
+- **Removal list, decided 12 November:** live list first, then the newest copy on Autonomi through a pointer. It never fails closed, and only listed files are refused, on every loader (DEMO.md 3.6). Still open: who publishes the copies (Autonomirror's code, or a hand-run script for the demo).
 
 ### Next
 
