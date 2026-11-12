@@ -29,5 +29,6 @@
       "date": "2026-11-12",
       "cost": "0.2285 ANT, plus 0.000004 ETH gas"
     }
-  ]
+  ],
+  "removalsPointer": "f3e9e13cc573779fea17f23af503de2e5ae4d607ff4400875ddd0fadf11e7ae9"
 }
