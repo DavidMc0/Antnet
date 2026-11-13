@@ -632,3 +632,44 @@ main > section + section {
     animation-duration: 2.4s;
   }
 }
+
+/* ---- Take a copy home: the Download Button's own button, as an embed --------------------- */
+
+.take-home {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  border: 1px dashed rgb(var(--glow) / 0.45);
+  border-radius: 0.9rem;
+  text-align: center;
+}
+.take-home h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.take-home p {
+  margin: 0.7rem auto 0;
+  max-width: 32rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+.take-home-button {
+  margin-top: 1.25rem;
+}
+/* The generator's button keeps its own look; only its long name may wrap on a narrow screen. */
+.take-home-button .dl-embed a {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.take-home .take-home-note {
+  margin-top: 0.9rem;
+  font-size: 0.8125rem;
+}

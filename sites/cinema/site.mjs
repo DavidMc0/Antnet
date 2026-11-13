@@ -4,6 +4,7 @@
 // player in src/player.js; this file builds the page and bundles the player.
 
 import { bundleScript } from "../shared/bundle.mjs";
+import { BUTTON_CSS, downloadButtons } from "../shared/button.mjs";
 
 export const meta = {
   title: "Cinema",
@@ -70,6 +71,18 @@ const FINE_PRINT = [
 export async function build(ctx) {
   const files = new Map(await player());
 
+  // "Download this film": a button made by the Download Button's generator (DEMO.md 3.6), leading
+  // to the download page on this loader, which is itself on Autonomi.
+  const buttons = downloadButtons();
+  const filmButton = await buttons.add({
+    style: "dark",
+    href: ctx.hrefFor("download", `/f/ant/${FILM.address}?n=${encodeURIComponent(FILM.file)}&s=${FILM.bytes}`),
+    fileName: FILM.file,
+    size: FILM.bytes,
+    address: FILM.address,
+  });
+  files.set(BUTTON_CSS, buttons.css());
+
   const how = HOW.map(
     ([title, text], i) => `    <li>
       <span class="how-n">${i + 1}</span>
@@ -88,6 +101,7 @@ export async function build(ctx) {
 <title>Cinema · ${ctx.esc(FILM.title)}</title>
 ${ctx.headTags}
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/${BUTTON_CSS}">
 <script type="module" src="/player/player.js"></script>
 </head>
 <body>
@@ -126,6 +140,13 @@ ${ctx.headTags}
 <section class="claim" aria-labelledby="claim-h">
   <h2 id="claim-h">No video host.</h2>
   <p>This film streams from Autonomi nodes, and its publisher pays nothing more however many people watch.</p>
+</section>
+
+<section class="take-home" aria-labelledby="take-home-h">
+  <h2 id="take-home-h">Take a copy home</h2>
+  <p>This button was made with the <a href="${ctx.hrefFor("download")}">Download Button</a>, and pasted in as any website would. It leads to a download page that is on Autonomi too, and your browser checks every piece of the film as it saves it.</p>
+  <div class="take-home-button">${filmButton}</div>
+  <p class="take-home-note">Chrome and Edge save it straight to disk; other browsers hold it in memory first.</p>
 </section>
 
 <section class="how" aria-labelledby="how-h">

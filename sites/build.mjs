@@ -6,6 +6,7 @@
 //        [--cost "<what it cost>"]                 optionally, what the upload cost
 //   node sites/build.mjs record start-pointer <address>
 //   node sites/build.mjs record removals-pointer <address>   the Download Button's removal list
+//   node sites/build.mjs record file <path> <address>          a file a site offers to download (an EPUB)
 //
 // Sites link to each other by short name (/_autonomi/go/name/<name>/), so no archive contains
 // another site's address and they can be built and uploaded in any order. The addresses live
@@ -66,6 +67,15 @@ async function loadSite(name) {
   return import(pathToFileURL(join(HERE, name, "site.mjs")).href);
 }
 
+/** Files uploaded for the sites to offer as downloads, by file name: { address, bytes }. */
+async function uploadedFiles() {
+  try {
+    return JSON.parse(await readFile(ADDRESSES, "utf8")).files ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /** What a site's build() gets: links, shared markup and helpers. */
 function context(extra = {}) {
   const startHref = goLink.name("start");
@@ -109,7 +119,7 @@ async function assemble(name, mod, built) {
 /** Build a content site. `published` is its publish date (YYYY-MM-DD), shown on the site. */
 export async function buildContentSite(name, { published }) {
   const mod = await loadSite(name);
-  return assemble(name, mod, await mod.build(context({ published })));
+  return assemble(name, mod, await mod.build(context({ published, files: await uploadedFiles() })));
 }
 
 /**
@@ -198,9 +208,23 @@ async function record(addresses, args) {
   const costAt = args.indexOf("--cost");
   const cost = costAt >= 0 ? args.splice(costAt, 2)[1] : undefined;
   const [, name, raw] = args;
+
+  if (name === "file") {
+    // A file a site offers to download, such as one of the Library's EPUBs: recorded by name,
+    // with its size, so the site can build its download button.
+    const path = args[2];
+    const fileAddress = hex(args[3]);
+    if (!path || !isHex(fileAddress)) throw new Error("Usage: node sites/build.mjs record file <path> <64-hex address>");
+    const bytes = (await readFile(path)).length;
+    const key = path.split(/[\\/]/).at(-1);
+    addresses.files = { ...addresses.files, [key]: { address: fileAddress, bytes } };
+    await saveAddresses(addresses);
+    console.log(`Recorded ${key}: ${fileAddress} (${bytes} bytes)`);
+    return;
+  }
+
   const address = hex(raw);
   if (!isHex(address)) throw new Error("Usage: node sites/build.mjs record <site> <64-hex address> [--cost \"…\"]");
-
   if (name === "start-pointer") {
     addresses.startPointer = address;
   } else if (name === "removals-pointer") {

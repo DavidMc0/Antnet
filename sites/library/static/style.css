@@ -760,3 +760,21 @@ h3 {
     color: #000;
   }
 }
+
+/* ---- Download as EPUB: the Download Button's own button, on the book's cloth --------------- */
+
+.book-download {
+  margin: 2rem 0 0;
+}
+/* The generator's button keeps its own look; only a long title may wrap on a narrow screen. */
+.book-download .dl-embed a {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.book-head .book-download-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8em;
+  opacity: 0.75;
+  text-indent: 0;
+}

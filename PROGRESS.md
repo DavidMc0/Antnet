@@ -494,6 +494,27 @@ Ported from github.com/DavidMc0/autonomirror at `4a2d8e3` (7 November 2026), fol
   1. Decide whether Cinema's "Download this film" and the Library's EPUB buttons (DEMO.md 3.6) go in the same round. Each means re-uploading that site, and Start lists every site's size.
   2. Upload `publish/sites/download.tar` and record it, then Start v3 and its pointer, then deploy the loader so `names.json` carries `download`.
 
+## Demo download buttons: in progress (2026-11-12, paused; uncommitted)
+
+The user asked for the demo buttons before publishing, and for EPUB buttons on all four books.
+
+- **Done, uncommitted:**
+  - `sites/shared/button.mjs` makes a button with the generator's own `snippets.ts` (via Vite's `runnerImport`). It turns each inline style into a class in `download-button.css`, so Cinema and the Library keep `style-src 'self'`.
+  - **Cinema:** a "Take a copy home" section under the claim, with the Dark button for the film, linking through `/_autonomi/go/name/download/f/ant/…`.
+  - **Library:** each book page has a Light "Download The Time Machine.epub" button on its cloth header, with the note "The Standard Ebooks EPUB, unchanged". A book whose EPUB isn't recorded yet gets no button.
+  - **`node sites/build.mjs record file <path> <address>`** records a file's address and size in `sites/addresses.json` under `files`, keyed by file name.
+  - **Checked by screenshot**, with a stand-in address that was then removed: both buttons, at 1280 and 320 px, with no sideways scroll and no policy errors.
+- **The EPUBs** are downloaded to `publish/epub/` (gitignored):
+  - `h-g-wells_the-time-machine.epub`
+  - `robert-louis-stevenson_the-strange-case-of-dr-jekyll-and-mr-hyde.epub`
+  - `arthur-conan-doyle_a-study-in-scarlet.epub`
+  - `oscar-wilde_the-importance-of-being-earnest.epub`
+- **Tests:** unit 195/195. Chromium 77 passed, with 1 failure in `m3.spec.ts:114` ("pointer sites get the loader's check script"): `page.request.get` gets ECONNREFUSED to 127.0.0.1:4173. It fails the same way with these changes stashed, so it isn't caused by them. Look into it separately.
+- **Next session:**
+  1. Commit this work.
+  2. The user uploads the four EPUBs (`ant file upload publish/epub/<file> --public`) and pastes the addresses. Record each with `record file`.
+  3. Rebuild. Library, Cinema and Download need uploading, then Start v3 and its pointer, then a deploy.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

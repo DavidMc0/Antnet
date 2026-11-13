@@ -3,6 +3,7 @@
 
 import { readFile } from "node:fs/promises";
 import { BOOKS } from "./books.mjs";
+import { BUTTON_CSS, downloadButtons } from "../shared/button.mjs";
 
 export const meta = {
   title: "The Library",
@@ -86,6 +87,7 @@ function page(ctx, { title, body, bodyAttrs = "" }) {
 <title>${ctx.esc(title)}</title>
 ${ctx.headTags}
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/${BUTTON_CSS}">
 </head>
 <body ${bodyAttrs}>
 <header class="masthead">
@@ -145,6 +147,26 @@ ${shelf}
     }),
   );
 
+  // "Download as EPUB": Standard Ebooks' own EPUB of each book, uploaded to Autonomi as a public
+  // file, behind a button made by the Download Button's generator (DEMO.md 3.6). A book whose
+  // EPUB hasn't been recorded yet (sites/build.mjs record file …) gets no button.
+  const buttons = downloadButtons();
+  const epubButton = async (b) => {
+    const epub = ctx.files?.[`${b.source.replace("/", "_")}.epub`];
+    if (!epub) return "";
+    const fileName = `${b.title}.epub`;
+    const button = await buttons.add({
+      style: "light",
+      href: ctx.hrefFor("download", `/f/ant/${epub.address}?n=${encodeURIComponent(fileName)}&s=${epub.bytes}`),
+      fileName,
+      size: epub.bytes,
+      address: epub.address,
+    });
+    return `<div class="book-download">${button}<p class="book-download-note">The Standard Ebooks EPUB, unchanged. It comes from Autonomi too.</p></div>`;
+  };
+  const epubs = await Promise.all(books.map(epubButton));
+  files.set(BUTTON_CSS, buttons.css());
+
   books.forEach((b, i) => {
     const next = books[(i + 1) % books.length];
     files.set(
@@ -159,6 +181,7 @@ ${shelf}
   <p class="book-kicker">${ctx.esc(b.author)}</p>
   <h1>${ctx.esc(b.title)}</h1>
   <p class="byline">${b.year} · ${ctx.esc(b.time)}</p>
+  ${epubs[i]}
 </header>
 ${contentsHtml(ctx, contents(b.html))}
 ${b.html}
