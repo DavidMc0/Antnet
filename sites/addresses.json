@@ -30,5 +30,23 @@
       "cost": "0.2285 ANT, plus 0.000004 ETH gas"
     }
   ],
-  "removalsPointer": "f3e9e13cc573779fea17f23af503de2e5ae4d607ff4400875ddd0fadf11e7ae9"
+  "removalsPointer": "f3e9e13cc573779fea17f23af503de2e5ae4d607ff4400875ddd0fadf11e7ae9",
+  "files": {
+    "h-g-wells_the-time-machine.epub": {
+      "address": "12d83535271754f03e3484886d2412166695cc5d579eb02eb27a37c18264f1bc",
+      "bytes": 535571
+    },
+    "robert-louis-stevenson_the-strange-case-of-dr-jekyll-and-mr-hyde.epub": {
+      "address": "61e8f3c848f8bf350c7cd523eacdf3cfb2e83f7e4da84dac80f949d6d643fa5b",
+      "bytes": 492233
+    },
+    "arthur-conan-doyle_a-study-in-scarlet.epub": {
+      "address": "b80566c7b28b851439bc3684a39f2512e9a67b19340982b2e288616aca4ad24c",
+      "bytes": 616394
+    },
+    "oscar-wilde_the-importance-of-being-earnest.epub": {
+      "address": "3ef25c1dc4408827348141b0dd3270e8d6a028b804a242a2241ad99b662c8629",
+      "bytes": 419067
+    }
+  }
 }
