@@ -575,7 +575,7 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **Start's fine print** says the same, so Start is now v6 (`publish/sites/start.tar`, SHA-256 `83d6414b…ef7f`), to be uploaded in place of v5.
   - Section 5.10 (a 1 kB stub with shared, cached loader code, and a published loader build) is planned, not built.
 - **Done and live:** Start v6 `ae5078da…9edd` (0.2571 ANT); Start's pointer updated to it; the loader deployed. Checked on the live site in Chromium: the new front door heading, Start's four cards (Cinema's new wording, ColonySim's card) and its fine print, and ColonySim and Cinema opening by name.
-- **Next:** the Autonomi Developer Docs site, once Autonomi's GitHub is reachable (source repository, licence, commit). Section 5.10 (stub and published loader) is in DEMO.md's build order, step 6.
+- **Next:** the Autonomi Developer Docs site, once Autonomi's GitHub is reachable (source repository, licence, commit). Section 5.10 (stub and published loader) is in DEMO.md's build order, step 6. **With the next change to the loader, Cinema or the Download Button:** include the Autonomi browser SDK's licence notice (its `LICENSE-MIT` / `LICENSE-APACHE`, © 2026 Autonomi) in the built output, for example as a licence file beside the bundled SDK, since both licences ask for the notice wherever the SDK is redistributed. The repository has carried MIT OR Apache-2.0 licence files since `5509d3a`.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
