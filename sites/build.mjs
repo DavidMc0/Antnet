@@ -34,7 +34,7 @@ const NAMES = join(ROOT, "names.json");
 const OUT = join(ROOT, "publish", "sites");
 
 /** Content sites, in the order Start lists them. Start itself is built from their sizes. */
-export const CONTENT_SITES = ["library", "cinema", "download"];
+export const CONTENT_SITES = ["library", "colonysim", "cinema", "download"];
 
 /** The CSP every demo site declares: nothing from outside its own archive. */
 const CSP =

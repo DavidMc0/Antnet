@@ -15,6 +15,7 @@ sites/
   start/             Antnet Start: site.mjs builds index.html; static/ is copied as-is
   library/           The Library: site.mjs, static/, books.mjs, content/ (the book texts)
   cinema/            Cinema: site.mjs, static/, src/player.js (bundled with the Autonomi client at build time)
+  colonysim/         ColonySim: site.mjs, src/ (sim.ts, save.ts, render.ts, main.ts; TypeScript, bundled), static/
   download/          The Download Button: site.mjs, views/ (each view's markup), src/ (TypeScript), static/
   removals.mjs       builds and records the Download Button's removal list (published by hand)
 ```

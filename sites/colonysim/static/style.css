@@ -1,0 +1,142 @@
+/* ColonySim: a plain first look, to be replaced by the design pass. The colony's own colours are
+   the --sim-* properties, read by src/render.ts. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #f6f3ea;
+  --ink: #2b2a26;
+  --muted: #6b675c;
+  --line: #d9d3c3;
+  --accent: #b5532a;
+
+  --sim-ground: #efe8d6;
+  --sim-wall: #5b5346;
+  --sim-food: #4f8a3a;
+  --sim-trail: #d9822b;
+  --sim-home: #5b7fa6;
+  --sim-ant: #2b2420;
+  --sim-carry: #4f8a3a;
+  --sim-nest: #7a4a2a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1a17;
+    --ink: #ece6d6;
+    --muted: #a39d8d;
+    --line: #3a3730;
+    --accent: #e08a5a;
+
+    --sim-ground: #24221d;
+    --sim-wall: #8a8170;
+    --sim-food: #7cc25e;
+    --sim-trail: #f0a24a;
+    --sim-home: #6f93bd;
+    --sim-ant: #f3ecdc;
+    --sim-carry: #9be07a;
+    --sim-nest: #c07a4a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, sans-serif;
+}
+
+.masthead,
+main,
+.colophon {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.home { color: inherit; font-weight: 700; text-decoration: none; }
+
+h1 { margin: 12px 0 4px; font-size: 1.8rem; }
+.lede { margin: 0 0 16px; color: var(--muted); }
+
+.stage { position: relative; }
+
+#colony {
+  display: block;
+  width: 100%;
+  aspect-ratio: 192 / 120;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--sim-ground);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.corner {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.tools,
+.run { display: flex; gap: 6px; }
+
+button {
+  font: inherit;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+button.quiet { color: var(--muted); }
+
+.stats { margin: 4px 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.storage-warning { color: var(--accent); }
+
+.about { margin-top: 28px; max-width: 42em; }
+.about h2 { font-size: 1.1rem; }
+
+.colophon {
+  margin-top: 32px;
+  padding-top: 16px;
+  padding-bottom: 32px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 520px) {
+  .corner { position: static; margin-top: 6px; padding: 0; background: none; }
+}

@@ -516,6 +516,28 @@ The user asked for the demo buttons before publishing, and for EPUB buttons on a
 - **Checked live** (scratch script, Chromium and Firefox): Start v3 shows the library, cinema and download cards. Cinema's button links to the film. In Firefox, The Time Machine's button opens the Download page in a new tab (the generator's snippets use `target="_blank"`), and the saved EPUB's SHA-256 matches the original. There were no console errors.
 - **Fixed:** the `m3.spec.ts:114` ECONNREFUSED failure. The test made an unused `page.request.get` from Node, which went to IPv4 `127.0.0.1` while the preview server listens on `::1`. The request is removed, and e2e passes at 78 tests, with 2 skipped.
 
+## ColonySim: built, plain look; waiting for the design pass (2026-11-13)
+
+DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, with no Autonomi client and no WebAssembly.
+
+- **`src/sim.ts`:** the colony on a 192×120 grid. It is pure and seeded, so the same seed always gives the same colony. Searching ants lay "home" scent and carrying ants lay "food" scent. Each follows the other's, so trails form, bend round walls and fade once the food runs out.
+  - The colony starts with 70 ants. A new ant costs 20 food, up to 420.
+  - A day is 14,400 steps, about two minutes at normal speed.
+  - A small windfall pile turns up every sixth of a day while food is low, so an idle colony keeps foraging.
+- **`src/save.ts`:** saves to `localStorage` (`colonysim:v1`) on this site's own origin. It saves every 5 s, on `pagehide` and when the tab is hidden. Scents are rounded to 1/255. A save that is missing, broken or in another format starts a new colony. If storage is blocked, the page shows a line saying the colony won't be kept.
+- **`src/render.ts`:** draws on a canvas. Every colour comes from a `--sim-*` CSS property, so the look lives in `static/style.css`.
+- **`src/main.ts`:** the brushes (Food, Wall, Clear), drawn by dragging and working with touch; Pause; Faster (×4); Start a new colony; and the corner line ("Day N of your colony…").
+- **Start:** ColonySim is second in `CONTENT_SITES`, after the Library. Start already had an icon for it.
+- **Tests:**
+  - 9 unit tests (`tests/unit/colonysim/`): determinism, foraging and growth, walls, windfalls, days, the save round trip, and broken saves.
+  - One e2e test in `demo.spec.ts`: the colony runs, a wall is drawn, and after a reload the colony is restored, still running, with the same wall and founding date.
+  - The warm-up test now counts only the Library's own fetches: ColonySim's card is still warming when it clicks.
+  - Totals: 204 unit and 79 e2e tests pass.
+- **Checked by screenshot:** light, dark and 360 px, with no sideways scroll and no console errors.
+- **Next:**
+  1. The design pass, for Fable.
+  2. Upload ColonySim, then Start v4 and its pointer, then deploy, so `names.json` carries `colonysim`.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

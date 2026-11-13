@@ -12,7 +12,7 @@ const LIBRARY = "demo: The Library";
 test("Start says where it came from: the claim, the receipt, this visit's timings", async ({ page }) => {
   await openName(page, "start", ".cards");
   await expect(page.locator(".claim")).toContainText("wasn't sent by a web server");
-  await expect(page.locator(".card-title")).toHaveText(["The Library", "Cinema", "Download Button"]);
+  await expect(page.locator(".card-title")).toHaveText(["The Library", "ColonySim", "Cinema", "Download Button"]);
   const receipt = page.locator(".receipt-main");
   await expect(receipt).toBeVisible();
   await expect(receipt).toContainText("No server sent this page");
@@ -53,8 +53,9 @@ test("Start fetches each listed site in the background; opening it then needs no
   await expect(card.locator("[data-status]")).toHaveText("Ready");
 
   let fetches = 0;
+  // Only the Library's own: the other cards may still be warming in the background.
   page.context().on("request", (r) => {
-    if (/\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) fetches++;
+    if (new URL(r.url()).hostname.startsWith("library.") && /\/_autonomi\/fixtures\/(pointers\/|[0-9a-f]{64}\.tar)/.test(r.url())) fetches++;
   });
   await card.locator(".card-link").click();
   await expect(page.locator(".shelf")).toBeVisible();
@@ -125,4 +126,32 @@ test("a missing book page shows the Library's own 404", async ({ page }) => {
   const res = await page.goto(nameUrl("library", "/books/no-such-book/"));
   expect(res?.status()).toBe(404);
   await expect(page.locator("h1")).toHaveText("Not on this shelf");
+});
+
+test("ColonySim runs, saves itself and is still there after a reload", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await openName(page, "colonysim", "#colony");
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("colonysim:v1") ?? "null")?.step ?? 0);
+  await expect.poll(saved, { timeout: 15_000 }).toBeGreaterThan(0);
+
+  // Draw a wall across the middle; it is saved with the colony.
+  const box = (await page.locator("#colony").boundingBox())!;
+  await page.getByRole("button", { name: "Wall" }).click();
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.7, { steps: 8 });
+  await page.mouse.up();
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem("colonysim:v1")!));
+
+  await page.reload();
+  await expect(page.locator("#colony")).toBeVisible();
+  await expect(page.locator("body")).toHaveAttribute("data-restored", "");
+  await expect.poll(saved, { timeout: 15_000 }).toBeGreaterThan(before.step);
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem("colonysim:v1")!));
+  expect(after.founded).toBe(before.founded);
+  expect(after.wall).toBe(before.wall);
+  await expect(page.locator("[data-day]")).toHaveText("Day 1");
+  expect(errors).toEqual([]);
 });
