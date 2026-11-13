@@ -494,7 +494,7 @@ Ported from github.com/DavidMc0/autonomirror at `4a2d8e3` (7 November 2026), fol
   1. Decide whether Cinema's "Download this film" and the Library's EPUB buttons (DEMO.md 3.6) go in the same round. Each means re-uploading that site, and Start lists every site's size.
   2. Upload `publish/sites/download.tar` and record it, then Start v3 and its pointer, then deploy the loader so `names.json` carries `download`.
 
-## Demo download buttons: in progress (2026-11-12, paused; uncommitted)
+## Demo download buttons: done and live (2026-11-13)
 
 The user asked for the demo buttons before publishing, and for EPUB buttons on all four books.
 
@@ -510,10 +510,11 @@ The user asked for the demo buttons before publishing, and for EPUB buttons on a
   - `arthur-conan-doyle_a-study-in-scarlet.epub`
   - `oscar-wilde_the-importance-of-being-earnest.epub`
 - **Tests:** unit 195/195. Chromium 77 passed, with 1 failure in `m3.spec.ts:114` ("pointer sites get the loader's check script"): `page.request.get` gets ECONNREFUSED to 127.0.0.1:4173. It fails the same way with these changes stashed, so it isn't caused by them. Look into it separately.
-- **Next session:**
-  1. Commit this work.
-  2. The user uploads the four EPUBs (`ant file upload publish/epub/<file> --public`) and pastes the addresses. Record each with `record file`.
-  3. Rebuild. Library, Cinema and Download need uploading, then Start v3 and its pointer, then a deploy.
+- **Published 2026-11-13:**
+  - The four EPUBs, recorded under `files`. Each SHA-256 matched the file on disk.
+  - Library v2 `f5c75fa5…cd521` (0.2849 ANT), Cinema v2 `b3d7795e…0c651` (0.2306 ANT), Download Button `161b69a0…e48b6` (0.2665 ANT), Start v3 `bcdc36d7…77ae3` (0.4964 ANT). Start's pointer was updated to v3, and the loader was deployed with `download` in `names.json`.
+- **Checked live** (scratch script, Chromium and Firefox): Start v3 shows the library, cinema and download cards. Cinema's button links to the film. In Firefox, The Time Machine's button opens the Download page in a new tab (the generator's snippets use `target="_blank"`), and the saved EPUB's SHA-256 matches the original. There were no console errors.
+- **Still open:** the `m3.spec.ts:114` ECONNREFUSED failure noted above.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
