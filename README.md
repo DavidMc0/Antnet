@@ -111,3 +111,24 @@ are subdomains of `localhost`, which browsers resolve without any setup.
 | `node tools/prepare-publish.mjs` | Build the mainnet test archives into `publish/` |
 
 `publish/` is gitignored, because it also holds pointer owner keys.
+
+## Licence
+
+Antnet's code is licensed under either of
+
+- the Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE)), or
+- the MIT licence ([LICENSE-MIT](LICENSE-MIT)),
+
+at your option. Unless you say otherwise, any contribution you submit for inclusion is licensed
+the same way, without any additional terms.
+
+The demo sites include work by others, which keeps its own licence:
+
+- **Fonts:** each is under the SIL Open Font License; its licence file sits beside it in the site's
+  `fonts/` folder.
+- **Big Buck Bunny** (Cinema): © 2008 Blender Foundation, [bigbuckbunny.org](https://www.bigbuckbunny.org/),
+  under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- **The Library's books:** the [Standard Ebooks](https://standardebooks.org/) editions, which their
+  editors dedicate to the public domain.
+- **The Autonomi browser SDK** (`@withautonomi/ant-browser-sdk`), bundled into the loader, Cinema and
+  the Download Button: © 2026 Autonomi, under MIT or Apache-2.0.
