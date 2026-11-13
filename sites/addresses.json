@@ -60,6 +60,12 @@
       "sha256": "e49dd72b7db4a8fc05f4d49ecf015e94099986a5a4dd46844e944925f7a36ca1",
       "date": "2026-11-13",
       "cost": "0.2598 ANT (gas: 0.000004 ETH)"
+    },
+    {
+      "address": "ae5078da8e3edb59e9548cad2a84634d4b27f0d374b6c0864fb16dc9de099edd",
+      "sha256": "83d6414b82e6f58cf114b34276edbe1cdcc7cb141bda64c03caf3150be43ef7f",
+      "date": "2026-11-13",
+      "cost": "0.2571 ANT (gas: 0.000004 ETH)"
     }
   ],
   "removalsPointer": "f3e9e13cc573779fea17f23af503de2e5ae4d607ff4400875ddd0fadf11e7ae9",
