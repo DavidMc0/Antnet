@@ -1,6 +1,6 @@
 # Antnet demo plan
 
-*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
+*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. Antnet Local, the loader as a desktop app, and its page on the demo site were added on 13 November (sections 3.8 and 12), and the same day put on hold: only the preparatory work in section 12.0 is planned. A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
 
 ## 1. What the demo has to do
 
@@ -131,6 +131,14 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
 - **Content:** a single page, "Hello from 14 November", made in front of the audience.
 - **What it shows:** how little it takes to publish, and Start updating to include it (journey step 5). It gets the name `hello` by the same claim route visitors use (section 5.9).
 
+### 3.8 Antnet Local — run Antnet on your own computer
+
+- **Name:** `local`, so `local.antnet.autonomirror.com`. Not part of the three-minute tour; linked from Start's fine print (section 4.4).
+- **What it shows:** the last web host in the story can go too. The page offers Antnet Local (section 12), a small desktop app that serves the loader from the visitor's own computer, for Windows, macOS and Linux.
+- **The installers are files on Autonomi**, downloaded through buttons made with the Download Button generator (section 3.6), with a GitHub Releases link beside each. So the page that offers the app, and the app itself, both come from the network.
+- **Details are in section 12.8.**
+- **On hold** with the rest of section 12. Until the app is built, there is no `local` site.
+
 ### Not included: a copy of autonomi.com
 
 It would make a strong sixth site, but only with the Autonomi Foundation's agreement. The site isn't openly licensed, a full copy of an organisation's homepage on another domain looks like an imitation of it, and an upload can't be withdrawn. If they are willing, the best version is one they publish themselves and hold the pointer key for: "the Autonomi website, served from Autonomi".
@@ -164,7 +172,7 @@ Different type and colour for each site, the same quiet footer on all. Light and
 - Some networks block the kind of connection this needs. If a site won't load, try another network.
 - These are static sites and apps. There is no server-side code.
 - A small share of content on the network can't yet be reached from browsers.
-- The first page (the loader) still comes from an ordinary web host. It is small, open source, and anyone can run their own.
+- The first page (the loader) still comes from an ordinary web host. It is small, open source, and anyone can run their own. *If Antnet Local is built (section 12), add:* "or run it on your own computer with [Antnet Local](https://local.antnet.autonomirror.com/)". In Antnet Local this line reads: "The loader runs on your own computer (Antnet Local, version x.y.z)."
 - Short names like `cinema.antnet.autonomirror.com` come from a directory kept by Antnet, in public. The address behind each one is shown on its info page.
 - Antnet is an independent proof of concept, not an Autonomi Foundation product.
 
@@ -285,6 +293,7 @@ Addresses on the network are 64 characters long, which is right for checking con
 | `library` | Library | its archive address |
 | `download` | Download Button | its archive address |
 | `hello` | The guest site | claimed live (journey step 5) |
+| `local` | Antnet Local's page (section 3.8), only if it is built | its archive address |
 
 **Rules for every name**
 
@@ -435,6 +444,7 @@ The upload, the name check and the pointer update take real time. In a recording
 - [ ] Licence and credit lines present: Docs (MIT/Apache, source and commit, "Unofficial mirror"), Cinema (Blender Foundation, CC BY 3.0), Library (public-domain status).
 - [ ] Every archive under 12 MiB; no site requests anything from outside its own archive, except reads from Autonomi (Cinema; the Download Button's files and removal list).
 - [ ] Download Button: the checks in section 3.6, plus the EPUB and film buttons on Library and Cinema.
+- [ ] If Antnet Local is shared at the same time: the checks in section 12.9, and every installer on the `local` page matches its published SHA-256.
 - [ ] Cinema: ten cold plays in Chromium; note time to first frame and to each seek. Ten minutes of continuous playback in Chrome, Firefox and Safari.
 - [ ] Every hand-picked name opens its site, and a test claim goes through the GitHub form and Action end to end, including a rejected one.
 - [ ] `publish/start.key` backed up somewhere other than the laptop.
@@ -451,6 +461,7 @@ The upload, the name check and the pointer update take real time. In a recording
 6. **Loading screen, "can't connect" page and the address bar** (section 5.7): the OpenSearch keyword first, as it is small, then the in-page shortcut.
 7. **The name claim form and Action**, tested with a throwaway site.
 8. **Checks, recording, share.**
+9. **Antnet Local: preparatory work only** (section 12.0), after the demo is shared. Nothing in section 12 is built unless the decision there says so.
 
 ## 11. Open decisions
 
@@ -462,3 +473,129 @@ The upload, the name check and the pointer update take real time. In a recording
 - **Ask the Foundation** about the docs mirror label and about publishing autonomi.com themselves?
 - **Pointer read time.** About 19 s on a new connection is the demo's slowest step. Warm-up hides it. Raised with the SDK maintainers on 11 November (`docs/sdk-issue-read-latency.md`).
 - **Offline.** Installed sites keep working without a connection, and the tests cover it, but the demo doesn't make a point of it: that is normal for anything a browser has already downloaded.
+- **Antnet Local's name.** "Antnet Local" (used in this document) or "Local Antnet Gateway"? In Autonomi, a gateway usually fetches from the network on the browser's behalf, as AntTP does. Antnet Local doesn't: the browser still does all the fetching. "Gateway" becomes accurate if the native client is added (section 12.10).
+- **Antnet Local's host layout and port:** `<label>.antnet.localhost` or `<label>.localhost`, and which fixed port (section 12.3).
+- **Code signing budget** for Antnet Local: an Apple Developer ID and a Windows signing certificate or Azure Trusted Signing (section 12.7).
+- **Open at login:** on or off by default for Antnet Local?
+- **Who else uses `ant://`?** Autonomi's own apps, or tools such as AntTP, may register the same scheme. If two apps claim it, links open unpredictably. Find out before Antnet Local registers it (section 12.0).
+- **Whether to build Antnet Local at all** (section 12.0). On hold: it would be an ongoing maintenance job (three platforms, signing, an updater), which isn't wanted for now.
+
+---
+
+## 12. Antnet Local — the loader on your own computer
+
+*Added 13 November 2026. Not needed for the demo's first share. Nothing here has been tested yet.*
+
+### 12.0 Status: on hold, preparatory work only
+
+Decided on 13 November: Antnet Local is worth having, but as an app it is an ongoing maintenance job (three platforms, code signing, an updater, release keys), and that isn't wanted for now. So the plan is to refine the concept with small, cheap pieces of work, and not to build or ship the app.
+
+**Preparatory work** (in this order, each useful on its own):
+
+1. **Publish `names.json` on Autonomi behind Antnet's own pointer** (section 12.4). The hosted loader benefits too: a name change no longer needs a deploy, and anyone can compare the host's copy with the published one. This is the largest piece and the one most worth doing.
+2. **Find out who else registers `ant://`** (section 11).
+3. **The one-day test** in section 12.9's first item: a plain program, with no tray and no installer, serving the loader on `*.antnet.localhost` and listening on both `127.0.0.1` and `::1`. Record what works in each browser, Safari above all.
+4. **Choose the app's framework** from what the test showed: Tauri for its installers and updater, or a plain Rust program with a tray library, which is lighter if Tauri's built-in browser view would go unused.
+
+**What would start the build:** the test passes in the main browsers, the demo shows real interest in running the loader locally, and there is someone to maintain it with a signing budget. Without signing, offer only the plain program, labelled "test build", never unsigned installers (section 12.7).
+
+**In one sentence:** a small desktop app for Windows, macOS and Linux that serves the Antnet loader from the visitor's own computer, so opening an Autonomi site involves no web host at all. The loader comes from their machine, and every site still comes from Autonomi nodes over WebRTC and is checked in their browser.
+
+**What it adds**
+
+- **It removes the last caveat in the fine print** (section 4.4): that the loader comes from an ordinary web host. With Antnet Local, nothing on the internet takes part except Autonomi nodes.
+- **It keeps working when `antnet.autonomirror.com` doesn't:** if the host is down, blocked on a network, or flagged by a browser blocklist.
+- **`ant://` links open from anywhere on the computer** (email, chat, documents), because the installer registers the scheme with the operating system. A website can't do that.
+
+**What it doesn't change:** it isn't faster, and networks that block UDP still can't connect, because the browser makes the same WebRTC connections as before. The native client could fix the second later (section 12.10).
+
+### 12.1 Why a local server, not a downloaded HTML file
+
+The loader depends on three things a page opened from a file (`file://`) doesn't get:
+
+- **A service worker,** which only registers on http(s) origins. It serves installed sites and handles their navigations (spec section 3).
+- **One origin per site.** Every `file://` page shares one opaque origin, so sites could read each other's storage.
+- **A secure context,** which the SDK requires (HTTPS or localhost).
+
+A loopback server fixes all three. Browsers treat `localhost` and names ending in `.localhost` as secure contexts and send them to the computer itself, so the loader runs unchanged, with one subdomain per site as on the hosted version. A single-file HTML loader (the site rendered into a sandboxed frame) was considered; it would break SPAs, storage and streaming, so it is left as a possible later option.
+
+### 12.2 What the user sees
+
+1. They download the installer for their system from the `local` page (section 12.8) and run it.
+2. An Antnet icon appears in the system tray (Windows, Linux) or menu bar (macOS), and their normal browser opens at `http://antnet.localhost:<port>/`: the same front door as the hosted demo, then Start at `http://start.antnet.localhost:<port>/`.
+3. From then on it behaves like the hosted version. The `ant` keyword (section 5.7 A) works the same way, through the OpenSearch description on the local root.
+
+**Tray menu:** Open Antnet Start; Open an address… (a small box that accepts the same inputs as `?open=`, including a full `antnet.autonomirror.com` URL); Open at login; About (version, and whether updates are checked); Quit.
+
+**`ant://` links** go to `http://antnet.localhost:<port>/?open=ant://…`, which the root page already handles.
+
+**When the app isn't running,** installed sites should still open from the browser's own storage, because their service worker serves them without the host (spec rule 2). Only sites not yet installed, update checks and name changes need the app. This is expected from the spec's rules but untested here.
+
+### 12.3 How it works
+
+- **One binary** with the loader's production build embedded, built with the loader root set to `antnet.localhost:<port>`. It serves the shell for every host and path, exactly as the wildcard host does (section 5.6), with `index.html` and the service worker sent as `Cache-Control: no-cache`.
+- **No network beyond loopback.** It listens on `127.0.0.1` and `::1` only. Its one outbound request is the optional update check (section 12.6).
+- **Host layout.** Two choices, both untested:
+  - `<label>.antnet.localhost`: every site shares the registrable domain `antnet.localhost`, as they share `antnet.autonomirror.com` when hosted. Warm-up (section 5.2) should work, and cookie isolation between sites is incomplete in the same way. **Recommended**, so the local and hosted versions behave alike.
+  - `<label>.localhost`: each site is its own site, so cookies are fully isolated, but warm-up through frames probably breaks, because browsers keep framed storage from other sites apart.
+- **A fixed port.** An origin includes its port, so a changed port orphans every installed site and its saved data (ColonySim's colonies, for example). Pick one unusual port. If it is taken at first launch, try a short fixed list of fallbacks, remember the one used, and show the address in the About box.
+- **Loopback safety.** Reject any request whose Host header isn't `antnet.localhost` or a subdomain of it at this port, which blocks DNS-rebinding attacks. Serve only GET and HEAD, except the names endpoint (section 12.4), which accepts a write only with the root's own `Origin`. Chrome also asks the visitor before any public website can reach a local address. The app holds no keys or accounts, under the same rule as the hosted shell (spec section 4).
+
+### 12.4 Names without a host
+
+When hosted, `names.json` comes from the host (section 5.9). Locally there is no host to update it, so the item listed there as "later" becomes a requirement: **publish each version of `names.json` on Autonomi behind Antnet's own pointer.**
+
+- **The app ships with a copy** of `names.json` from its build, so names work from the first launch.
+- **Updating it:** whenever the front door or Start is open, a hidden frame on the root (`/_autonomi/local/sync`, the same mechanism as section 5.3) resolves the names pointer in the background, downloads the file (checked by the SDK) and sends it to the app with `PUT /_autonomi/local/names`. The app checks the format and the name rules, and keeps it only if its `updated` date is newer. Shells read `/_autonomi/names.json` from the app as before.
+- **Worth doing first, and on its own:** the hosted loader can read the same pointer, so this helps whether or not the app is built (section 12.0).
+- **Publishing:** by hand, like the removal list (section 3.6). After the Action merges a claim, the maintainer runs a script that prints the upload and pointer commands. Local users see a new name once that copy is published.
+- **Trust:** a stale copy can only point a name at an older target. The info page shows the full chain, as it does when hosted.
+
+### 12.5 What changes on the sites
+
+- **Nothing in the archives.** Portable links (`/_autonomi/go/…`), name links and `?open=` already work on any loader root.
+- **Wording.** The loader knows it is local when its root ends in `.localhost`. Start's top line gains a second sentence there: "Even the loader came from your own computer." The fine print line about the web host changes as shown in section 4.4. The info page shows "Loader: Antnet Local x.y.z".
+- **Links shared on the web** point at `antnet.autonomirror.com` and open there. To open one locally, paste it into Open an address…, or use the `ant` keyword. A browser extension that redirects them is a later option.
+- **The Download Button** keeps its hosted base URL for links and embed codes. Opened locally, the download page works as usual.
+
+### 12.6 Updates
+
+- **Loader updates ship inside signed app updates.** The loader's code runs in every site's origin, so it should be as trustworthy as the app itself. The app's updater checks a signed manifest on GitHub Releases. This is the one request the app makes to anything but loopback; it is on by default and can be turned off in the tray menu. The `local` page says both plainly, in its "What it does on your computer" part.
+- **Later:** loader releases published on Autonomi behind Antnet's pointer, read by the app itself once it has a native client (section 12.10), so updates need no server either.
+
+### 12.7 Building and packaging
+
+- **Rust and Tauri,** used for the tray icon and the installers, not as a browser. A plain Rust program with a tray library is the lighter alternative; choose after the test (section 12.0). One codebase produces an MSI or NSIS installer for Windows, a universal DMG for macOS (Intel and Apple silicon) and an AppImage and `.deb` for Linux, plus a signed updater. A plain command-line binary (`antnet-local --port …`) for headless or power users comes from the same code.
+- **`ant://` registration:** in the Windows installer (registry), the macOS app bundle (`CFBundleURLTypes`) and the Linux `.desktop` file (`x-scheme-handler/ant`). An AppImage doesn't register itself, so the `.deb` is the main Linux package.
+- **Signing decides how polished it feels.** Unsigned apps get SmartScreen warnings on Windows and Gatekeeper warnings on macOS. macOS needs an Apple Developer ID and notarisation; Windows needs a signing certificate or Azure Trusted Signing. Until those are in place, don't offer unsigned installers: recent macOS makes the visitor allow an unsigned app in System Settings before it opens, and most people stop there. Offer only the plain command-line program, labelled "test build".
+- **Where:** each installer is published as a public file on Autonomi and offered through the Download Button, with GitHub Releases beside it and the SHA-256 of every file on the `local` page.
+- **Desktop only.** iOS doesn't allow an app to run a local web server in the background, and Android makes it awkward. Phones keep using the hosted loader.
+
+### 12.8 The `local` page
+
+A small Antnet site (section 3.8) in the demo's style, with its own look.
+
+1. **Headline:** "Run Antnet on your own computer." Then one line: "The loader runs on your machine, so no web host takes part. Sites still come straight from the Autonomi network."
+2. **Three benefits** from the top of this section: no web host, works when the website doesn't, `ant://` links from anywhere.
+3. **Download:** the visitor's platform is detected and offered first, with the others below. Each entry has a Download Button link (the file on Autonomi), a GitHub Releases link, the size and the SHA-256.
+4. **What it does on your computer:** runs one small program that serves pages to your own browser and nothing else; sends nothing anywhere except the optional update check; how to quit it and uninstall it. Installed sites stay in the browser until its site data is cleared.
+5. **Limits:** desktop only; networks that block UDP still can't connect; Safari's status (section 12.9).
+6. **Already installed?** A plain link: "Open Start in Antnet Local" (`http://start.antnet.localhost:<port>/`). The page doesn't try to detect the app, because Chrome would ask the visitor's permission first.
+
+### 12.9 Tests
+
+- **First, in a day:** a bare binary serving the loader on `*.antnet.localhost`, opened in Safari, Firefox and Chrome on macOS, and in Chrome, Edge and Firefox on Windows and Linux. Check that the names resolve, that the page is a secure context, that the service worker registers and that the SDK connects. Safari is the main unknown; if it fails, the app opens Start in another installed browser and the `local` page says Safari isn't supported yet.
+- Every demo site opens from cold and from cache; video seeks; Docs search works; ColonySim's saved state survives quitting and restarting the app.
+- Warm-up works under the chosen host layout.
+- With the app quit: installed sites still open, and a site not yet installed shows the browser's ordinary connection error (nothing else can answer without the app; the `local` page explains this).
+- A names update published through the pointer reaches the app and is picked up by the next due check.
+- An `ant://` link opened from another app (an email client, a text editor) opens the right site.
+- Port collision: a second program on the port makes the app use a fallback and show it.
+- A request with a foreign Host header, and a names write from another origin, are both refused.
+- Each installer installs, registers `ant://`, starts at login only when chosen, updates through the signed updater, and uninstalls cleanly.
+
+### 12.10 Later
+
+- **The native client inside the app.** It could fetch sites itself on networks that block UDP, read pointers for names and loader updates without a page open, and would make the app a gateway in the usual Autonomi sense.
+- **A browser extension** that sends `antnet.autonomirror.com` links to Antnet Local when it is running.
+- **A single-file HTML loader** for simple static sites, for people who can't install anything (section 12.1).
