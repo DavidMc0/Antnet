@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updated": "2026-11-12T20:14:55Z",
+  "updated": "2026-11-13T15:52:06Z",
   "names": {
     "start": {
       "kind": "p",
@@ -9,13 +9,18 @@
     },
     "library": {
       "kind": "i",
-      "address": "9dd1fcae0e27248c4c3a87e3676e3ac03d100bab7a63eaa7b410c8c7abf785ae",
+      "address": "f5c75fa50def6629f276005e677f0e764acb992f1ed84db27c0a3b7ca4bcd521",
       "since": "2026-11-11"
     },
     "cinema": {
       "kind": "i",
-      "address": "e4b5d6a03d71fdf65dd3740f537fd7bf91c550c0090fe80c2254e14a05f2e705",
+      "address": "b3d7795e0c074eb8ec99cbec3c1ab26cfd343b1c2ca3659798d51c76c690c651",
       "since": "2026-11-12"
+    },
+    "download": {
+      "kind": "i",
+      "address": "161b69a001da9969df0b58ffce8a74635ccce06279e85ac66c0f9e373bbe48b6",
+      "since": "2026-11-13"
     }
   }
 }

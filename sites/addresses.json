@@ -2,18 +2,25 @@
   "startPointer": "797c42a3c98e910a027825f7f3785175d9c80750baa1e564e1401166354be5f1",
   "sites": {
     "library": {
-      "address": "9dd1fcae0e27248c4c3a87e3676e3ac03d100bab7a63eaa7b410c8c7abf785ae",
-      "sha256": "722da4e3980c7e68dbcbc102641daac40f8f8abc668c23e5f6f9a7e7fe745044",
-      "published": "2026-11-11",
+      "address": "f5c75fa50def6629f276005e677f0e764acb992f1ed84db27c0a3b7ca4bcd521",
+      "sha256": "9e4daaf8a01239052140cdf3f450a9894caac649479eaa668a16340f3436b7c5",
+      "published": "2026-11-13",
       "since": "2026-11-11",
-      "cost": "0.3213 ANT, plus 0.000004 ETH gas"
+      "cost": "0.2849 ANT (gas: 0.000004 ETH)"
     },
     "cinema": {
-      "address": "e4b5d6a03d71fdf65dd3740f537fd7bf91c550c0090fe80c2254e14a05f2e705",
-      "sha256": "b2ebf15d8689b582c953d3086c299b712d44fd5a097d8a56b0c75512ab51077a",
-      "published": "2026-11-12",
+      "address": "b3d7795e0c074eb8ec99cbec3c1ab26cfd343b1c2ca3659798d51c76c690c651",
+      "sha256": "4033a2e7c4a2a60dede66fd545748c0bd75f21cced1f1d5605991141d8fba84d",
+      "published": "2026-11-13",
       "since": "2026-11-12",
-      "cost": "0.2411 ANT, plus 0.000004 ETH gas"
+      "cost": "0.2306 ANT (gas: 0.000004 ETH)"
+    },
+    "download": {
+      "address": "161b69a001da9969df0b58ffce8a74635ccce06279e85ac66c0f9e373bbe48b6",
+      "sha256": "323f828f5d4579b58c71aab0d4c595bb0228ab4cd2b1e87f437f27600ef9f989",
+      "published": "2026-11-13",
+      "since": "2026-11-13",
+      "cost": "0.2665 ANT (gas: 0.000004 ETH)"
     }
   },
   "start": [
