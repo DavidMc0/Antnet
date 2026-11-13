@@ -1,142 +1,717 @@
-/* ColonySim: a plain first look, to be replaced by the design pass. The colony's own colours are
-   the --sim-* properties, read by src/render.ts. */
+/* ColonySim: a terracotta tray of sand on a sunny table.
+   - Fredoka throughout: round and friendly, with heavy numbers.
+   - Terracotta for the tray and the accent, leaf green for food, warm umber ink.
+   - The page follows the visitor's light or dark setting. The colony doesn't: it keeps its own
+     clock, with day and night inside the tray (src/render.ts), so the --sim-* colours are the
+     same in both. */
+
+@font-face {
+  font-family: "Fredoka";
+  src: url("/fonts/fredoka.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light dark;
-  --bg: #f6f3ea;
-  --ink: #2b2a26;
-  --muted: #6b675c;
-  --line: #d9d3c3;
-  --accent: #b5532a;
+  --page: #f5ead6;
+  --page-glow: #fff7e6;
+  --ink: #2e1d13;
+  --muted: #7b6552;
+  --line: #e3d0b0;
+  --card: #fcf5e6;
+  --card-edge: #ead8b8;
+  --clay: #c4552d;
+  --clay-light: #e38a62;
+  --clay-deep: #96381a;
+  --leaf: #45882f;
+  --leaf-ink: #ffffff;
+  --stone: #6f6a66;
+  --chip: rgba(255, 248, 235, 0.86);
+  --chip-ink: #2e1d13;
+  --shadow: rgba(110, 50, 15, 0.35);
 
-  --sim-ground: #efe8d6;
-  --sim-wall: #5b5346;
-  --sim-food: #4f8a3a;
-  --sim-trail: #d9822b;
-  --sim-home: #5b7fa6;
-  --sim-ant: #2b2420;
-  --sim-carry: #4f8a3a;
-  --sim-nest: #7a4a2a;
+  /* The colony's own colours, read by src/render.ts. */
+  --sim-ground: #ecd9b4;
+  --sim-speck: #7a5230;
+  --sim-stone: #8b8580;
+  --sim-stone-light: #d9d4cc;
+  --sim-leaf: #3f8f2c;
+  --sim-leaf-light: #7cc142;
+  --sim-trail: #d2501f;
+  --sim-home: #5d86b8;
+  --sim-ant: #2a1710;
+  --sim-ant-night: #cbd3ee;
+  --sim-mound: #9b6a3c;
+  --sim-hole: #1d0f08;
+  --sim-night: #0c1c62;
+  --sim-ember: #ff9a3d;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1b1a17;
-    --ink: #ece6d6;
-    --muted: #a39d8d;
-    --line: #3a3730;
-    --accent: #e08a5a;
-
-    --sim-ground: #24221d;
-    --sim-wall: #8a8170;
-    --sim-food: #7cc25e;
-    --sim-trail: #f0a24a;
-    --sim-home: #6f93bd;
-    --sim-ant: #f3ecdc;
-    --sim-carry: #9be07a;
-    --sim-nest: #c07a4a;
+    --page: #18110c;
+    --page-glow: #2a1b12;
+    --ink: #f5e8d2;
+    --muted: #b59e85;
+    --line: #3b2b20;
+    --card: #221812;
+    --card-edge: #3a2a1e;
+    --clay: #cf6238;
+    --clay-light: #e88f66;
+    --clay-deep: #8a3418;
+    --leaf: #5fa843;
+    --leaf-ink: #10200a;
+    --stone: #a39d97;
+    --shadow: rgba(0, 0, 0, 0.6);
   }
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(1100px 520px at 50% -120px, var(--page-glow), transparent 72%),
+    var(--page);
   color: var(--ink);
-  font: 16px/1.55 system-ui, sans-serif;
+  font: 400 1.0625rem/1.55 "Fredoka", ui-rounded, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .masthead,
 main,
 .colophon {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 20px;
 }
+
+/* ------------------------------------------------------------------ masthead and intro */
 
 .masthead {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 16px;
+  padding-bottom: 6px;
 }
 
-.home { color: inherit; font-weight: 700; text-decoration: none; }
+.home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
 
-h1 { margin: 12px 0 4px; font-size: 1.8rem; }
-.lede { margin: 0 0 16px; color: var(--muted); }
+.home .mark {
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+  border-radius: 11px;
+  background: var(--clay);
+  color: #fff6e8;
+  box-shadow: 0 2px 0 var(--clay-deep);
+}
 
-.stage { position: relative; }
+.antnet-start {
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 20px;
+  margin: 14px 0 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.6vw, 2.7rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  flex: 1 1 22em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+  text-wrap: balance;
+}
+
+/* ------------------------------------------------------------------ the tray */
+
+.stage {
+  --rim: 11px;
+  position: relative;
+  padding: var(--rim);
+  border-radius: 28px;
+  background: linear-gradient(155deg, var(--clay-light) 0%, var(--clay) 42%, var(--clay-deep) 100%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 235, 215, 0.55),
+    inset 0 -2px 0 rgba(60, 15, 0, 0.35),
+    0 3px 0 var(--clay-deep),
+    0 26px 44px -22px var(--shadow);
+}
 
 #colony {
   display: block;
   width: 100%;
   aspect-ratio: 192 / 120;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 18px;
   background: var(--sim-ground);
   touch-action: none;
   cursor: crosshair;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The rim's shadow on the sand. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: var(--rim);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 5px 14px rgba(60, 22, 4, 0.5),
+    inset 0 0 0 1px rgba(40, 12, 0, 0.3);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #colony[data-brush] {
+    cursor: none;
+  }
 }
 
 .corner {
   position: absolute;
-  left: 10px;
-  bottom: 8px;
+  z-index: 1;
+  left: calc(var(--rim) + 12px);
+  top: calc(var(--rim) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 2 * var(--rim) - 24px);
   margin: 0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  font-size: 0.85rem;
+  padding: 6px 14px 6px 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--chip-ink);
+  font-size: 0.92rem;
+  line-height: 1.3;
+  box-shadow: 0 2px 10px -2px rgba(40, 15, 0, 0.4);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   pointer-events: none;
 }
+
+.corner strong {
+  font-weight: 600;
+}
+
+.sky {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: #ffd76a;
+  color: #b3470f;
+  transition: background 1.2s, color 1.2s;
+}
+
+.sky .icon {
+  grid-area: 1 / 1;
+  width: 18px;
+  height: 18px;
+  transition: opacity 1.2s, transform 1.2s;
+}
+
+.sky-moon {
+  opacity: 0;
+  transform: rotate(-60deg) scale(0.6);
+}
+
+.stage[data-time="dusk"] .sky,
+.stage[data-time="dawn"] .sky {
+  background: #ffb26b;
+}
+
+.stage[data-time="night"] .sky {
+  background: #26306b;
+  color: #f4f1d8;
+}
+
+.stage[data-time="night"] .sky-sun {
+  opacity: 0;
+  transform: rotate(60deg) scale(0.6);
+}
+
+.stage[data-time="night"] .sky-moon {
+  opacity: 1;
+  transform: none;
+}
+
+/* How far through its day the colony is: a line along the bottom of the chip. */
+.day-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--clay);
+  opacity: 0.75;
+  transform: scaleX(var(--day, 0));
+  transform-origin: left;
+}
+
+.corner-under {
+  display: none;
+  margin: 10px 4px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.paused-note,
+.toast {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  pointer-events: none;
+}
+
+.paused-note {
+  right: calc(var(--rim) + 12px);
+  top: calc(var(--rim) + 12px);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(30, 14, 6, 0.72);
+  color: #fff3df;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.stage[data-paused] .paused-note {
+  opacity: 1;
+}
+
+.toast {
+  left: 50%;
+  top: 38%;
+  padding: 0.2em 0.8em;
+  border-radius: 999px;
+  background: rgba(255, 248, 235, 0.92);
+  color: var(--clay-deep);
+  font-size: clamp(1.8rem, 6vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  box-shadow: 0 10px 30px -8px rgba(40, 15, 0, 0.55);
+  transform: translate(-50%, -50%);
+}
+
+.toast.is-showing {
+  animation: toast 3.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes toast {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.8); }
+  12%, 78% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -70%) scale(0.96); }
+}
+
+/* ------------------------------------------------------------------ controls */
 
 .controls {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 8px;
-  margin: 12px 0 4px;
+  gap: 10px;
+  margin: 20px 0 0;
 }
 
 .tools,
-.run { display: flex; gap: 6px; }
+.run {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--card-edge);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 2px 0 var(--card-edge);
+}
 
 button {
   font: inherit;
-  padding: 6px 14px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: transparent;
   color: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button[aria-pressed="true"] {
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  font-weight: 500;
+  font-size: 1.05rem;
+  transition: background 0.15s, color 0.15s, transform 0.08s, box-shadow 0.15s;
+}
+
+.tool:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.tool:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.tool[aria-pressed="true"] {
   background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
+  color: var(--page);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 60%, #000);
 }
 
-button.quiet { color: var(--muted); }
+.tool-food[aria-pressed="true"] {
+  background: var(--leaf);
+  color: var(--leaf-ink);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--leaf) 65%, #000);
+}
 
-.stats { margin: 4px 0; color: var(--muted); font-variant-numeric: tabular-nums; }
-.storage-warning { color: var(--accent); }
+.tool-wall[aria-pressed="true"] {
+  background: var(--stone);
+  color: var(--page);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--stone) 65%, #000);
+}
 
-.about { margin-top: 28px; max-width: 42em; }
-.about h2 { font-size: 1.1rem; }
+[data-action="speed"][aria-pressed="true"],
+[data-action="pause"][aria-pressed="true"] {
+  background: var(--clay);
+  color: #fff6e8;
+  box-shadow: 0 2px 0 var(--clay-deep);
+}
+
+.icon-play,
+[data-action="pause"][aria-pressed="true"] .icon-pause {
+  display: none;
+}
+
+[data-action="pause"][aria-pressed="true"] .icon-play {
+  display: block;
+}
+
+kbd {
+  min-width: 1.5em;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font: 500 0.72rem/1.4 inherit;
+  font-family: inherit;
+  text-align: center;
+  opacity: 0.8;
+}
+
+@media (hover: none), (max-width: 700px) {
+  kbd {
+    display: none;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid var(--clay);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ the counts */
+
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 28px;
+  margin: 18px 2px 0;
+}
+
+.stat {
+  margin: 0;
+  color: var(--muted);
+}
+
+.stat-number {
+  color: var(--ink);
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 26px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.swatch-trail {
+  background: var(--sim-trail);
+}
+
+.swatch-home {
+  background: var(--sim-home);
+  opacity: 0.7;
+}
+
+.storage-warning {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--clay) 14%, transparent);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ how it works */
+
+.about {
+  margin-top: 44px;
+}
+
+.about h2 {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--card-edge);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 2px 0 var(--card-edge);
+}
+
+.card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.card h3 .icon {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--clay) 16%, transparent);
+  color: var(--clay);
+}
+
+.card:nth-child(2) h3 .icon {
+  background: color-mix(in srgb, var(--leaf) 18%, transparent);
+  color: var(--leaf);
+}
+
+.card:nth-child(3) h3 .icon {
+  background: color-mix(in srgb, var(--sim-home) 20%, transparent);
+  color: var(--sim-home);
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+  font: 0.86em ui-monospace, "SF Mono", Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.again {
+  margin: 18px 0 0;
+}
+
+button.quiet {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+button.quiet:hover {
+  border-color: var(--clay);
+  color: var(--clay);
+}
 
 .colophon {
-  margin-top: 32px;
-  padding-top: 16px;
-  padding-bottom: 32px;
+  margin-top: 40px;
+  padding-top: 18px;
+  padding-bottom: 36px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+}
+
+.colophon p {
+  margin: 0 0 6px;
+}
+
+/* ------------------------------------------------------------------ small screens */
+
+@media (max-width: 700px) {
+  .masthead,
+  main,
+  .colophon {
+    padding: 0 16px;
+  }
+
+  .masthead {
+    padding-top: 12px;
+    padding-bottom: 4px;
+  }
+
+  .stage {
+    --rim: 7px;
+    border-radius: 20px;
+  }
+
+  #colony,
+  .stage::after {
+    border-radius: 14px;
+  }
+
+  /* The day stays on the tray; the rest of the line moves under it. */
+  .corner {
+    left: calc(var(--rim) + 8px);
+    top: calc(var(--rim) + 8px);
+    padding: 4px 11px 4px 5px;
+    font-size: 0.85rem;
+  }
+
+  .sky {
+    width: 22px;
+    height: 22px;
+  }
+
+  .sky .icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .paused-note {
+    right: calc(var(--rim) + 8px);
+    top: calc(var(--rim) + 8px);
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  .controls {
+    margin-top: 14px;
+  }
+
+  .tools,
+  .run {
+    flex: 1 1 100%;
+  }
+
+  .tool {
+    flex: 1;
+    padding: 0 8px;
+  }
+
+  .legend {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  .stat-number {
+    font-size: 1.35rem;
+  }
 }
 
 @media (max-width: 520px) {
-  .corner { position: static; margin-top: 6px; padding: 0; background: none; }
+  .corner-more {
+    display: none;
+  }
+
+  /* The full line moves under the tray, where there is room for it. */
+  .corner-under {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast.is-showing {
+    animation-duration: 3.4s;
+    animation-timing-function: step-end;
+  }
+
+  .tool,
+  .sky,
+  .sky .icon {
+    transition: none;
+  }
 }

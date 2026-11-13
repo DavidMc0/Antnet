@@ -15,7 +15,7 @@ sites/
   start/             Antnet Start: site.mjs builds index.html; static/ is copied as-is
   library/           The Library: site.mjs, static/, books.mjs, content/ (the book texts)
   cinema/            Cinema: site.mjs, static/, src/player.js (bundled with the Autonomi client at build time)
-  colonysim/         ColonySim: site.mjs, src/ (sim.ts, save.ts, render.ts, main.ts; TypeScript, bundled), static/
+  colonysim/         ColonySim: site.mjs, src/ (sim.ts, save.ts, render.ts, main.ts; TypeScript, bundled), static/ (style.css, Fredoka)
   download/          The Download Button: site.mjs, views/ (each view's markup), src/ (TypeScript), static/
   removals.mjs       builds and records the Download Button's removal list (published by hand)
 ```
@@ -52,6 +52,18 @@ exactly as for mainnet; the fixtures build writes a test directory that maps the
   - Big Shoulders Display, in capitals, for the sign, the film's title and the claim, over DM Sans for text;
   - a centred layout, with the screen sized so the play button and the counter are in view when the page opens;
   - the poster is a frame from the film itself (1 min 36 s in), grabbed from the stream.
+
+- **ColonySim** is a toy on a sunny table:
+  - a terracotta tray of sand, seen from above, on a warm page; terracotta is the accent, with leaf green for
+    food and warm umber ink;
+  - Fredoka throughout, round and friendly, with heavy numbers;
+  - the colony is drawn, not plotted: pebble walls, torn leaf for food, a mound round the nest, and ants with
+    bodies, legs and feelers that carry their leaf home;
+  - the colony keeps its own clock. The last third of each colony day is night: the sand turns moonlit blue, the
+    scent trails glow, the nest gives off a warm light and fireflies drift over. The page follows the visitor's
+    light or dark setting; the tray doesn't;
+  - the tools are chunky buttons that take the colour of what they place, with a ring on the tray the size of
+    the brush, keys for each (F, W, C, space, full stop), and a banner when a new day begins.
 
 - **The Download Button** keeps Autonomirror's own look, which is its character among these sites:
   - navy, with Autonomi red and mint;

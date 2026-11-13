@@ -516,7 +516,7 @@ The user asked for the demo buttons before publishing, and for EPUB buttons on a
 - **Checked live** (scratch script, Chromium and Firefox): Start v3 shows the library, cinema and download cards. Cinema's button links to the film. In Firefox, The Time Machine's button opens the Download page in a new tab (the generator's snippets use `target="_blank"`), and the saved EPUB's SHA-256 matches the original. There were no console errors.
 - **Fixed:** the `m3.spec.ts:114` ECONNREFUSED failure. The test made an unused `page.request.get` from Node, which went to IPv4 `127.0.0.1` while the preview server listens on `::1`. The request is removed, and e2e passes at 78 tests, with 2 skipped.
 
-## ColonySim: built, plain look; waiting for the design pass (2026-11-13)
+## ColonySim: built and designed; ready to upload (2026-11-13)
 
 DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, with no Autonomi client and no WebAssembly.
 
@@ -534,9 +534,15 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - The warm-up test now counts only the Library's own fetches: ColonySim's card is still warming when it clicks.
   - Totals: 204 unit and 79 e2e tests pass.
 - **Checked by screenshot:** light, dark and 360 px, with no sideways scroll and no console errors.
-- **Next:**
-  1. The design pass, for Fable.
-  2. Upload ColonySim, then Start v4 and its pointer, then deploy, so `names.json` carries `colonysim`.
+- **Design pass (Fable, 2026-11-13).** The look is described in `sites/README.md`. The simulation and the saving are unchanged.
+  - **`src/render.ts` was rewritten.** It draws textured sand, pebble walls, the nest's mound, torn leaf for food and ants with legs. Sand and pebbles are drawn once and kept; pebbles are redrawn only when the walls change. Trails are blurred at twice the grid's size, so they have soft edges.
+  - **Day and night:** the last third of each colony day is night (`nightness()`): a blue wash, trails added back as light, a glow from the nest and fireflies. Fireflies are left out under `prefers-reduced-motion`.
+  - **`src/main.ts`:** a ring the size of the brush follows the pointer; keys F, W, C, space and full stop; a "Day N" banner when a day begins; a "Paused" note; the time of day beside the counts.
+  - **`site.mjs` and `static/style.css`:** new markup and styles. Fredoka (Latin subset, 30 KB, Open Font License) is in `static/fonts/` with its licence. The archive is 84 KiB.
+  - **The colony's colours** are the `--sim-*` properties, the same in light and dark: the tray keeps its own clock.
+  - **Checked by screenshot:** light and dark at 1280 px, and a 360 px phone, by day and by night; the day banner, the paused state and the keys. No sideways scroll and no console errors.
+  - **Tests:** 204 unit and 79 e2e pass.
+- **Next:** upload ColonySim, then Start v4 and its pointer, then deploy, so `names.json` carries `colonysim`.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
