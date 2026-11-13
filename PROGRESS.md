@@ -565,6 +565,17 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **Checked in the browser:** 30 steps a second at normal speed; the larder card in its fed and starving states; the phone layout. Not checked: Firefox, Safari, a real phone, or a 120 Hz screen.
 - **Next:** upload ColonySim, then Start v4 and its pointer, then deploy, so `names.json` carries `colonysim`.
 
+## Publishing ColonySim, Cinema's wording and the loader claim (2026-11-13)
+
+- **Uploaded:** ColonySim `d21268dc…0857` (0.3040 ANT); Start v4 `98e8befb…f46d` (0.2650 ANT), superseded before its pointer was updated; Cinema v3 `d237ccea…aed2` (0.3628 ANT); Start v5 `123e1879…9e80` (0.2598 ANT).
+- **Cinema v3:** the film is a 10 min 35 s short, so its card no longer says "full-length film": "A ten-minute video, streamed straight from the network, with no video host." The page and the player's messages say "video" instead of "film".
+- **The loader claim (DEMO.md 4.4, 4.5, 5.4):** the host sends each site's loader page the first time that site is opened, so no page is "the last one a web server will send".
+  - **The front door** now says: "A web server sent you this page, and it will only ever send this small loader. It never sends the sites." Its fine print says the host sends the same small loader page the first time each site is opened, and never a site's content.
+  - **The loading screen** has a footer line: "This loading page came from <root>. The site is coming from the Autonomi network."
+  - **Start's fine print** says the same, so Start is now v6 (`publish/sites/start.tar`, SHA-256 `83d6414b…ef7f`), to be uploaded in place of v5.
+  - Section 5.10 (a 1 kB stub with shared, cached loader code, and a published loader build) is planned, not built.
+- **Next:** upload Start v6, record it, point Start at it, then deploy the loader (front door, loading screen and `names.json` with `colonysim`).
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

@@ -57,7 +57,7 @@ const FINE_PRINT = [
   "Some networks block the kind of connection this needs. If a site won't load, try another network.",
   "These are static sites and apps. There is no server-side code.",
   "A small share of content on the network can't yet be reached from browsers.",
-  "The first page (the loader) still comes from an ordinary web host. It is small and open source, and anyone can run their own.",
+  "The loader still comes from an ordinary web host. The first time you open each site, the host sends the same small loader page, which then fetches the site from the network; the host never sends a site's content. The loader is small and open source, and anyone can run their own.",
   "Short names like “library” come from a directory kept by Antnet, in public. The address behind each one is shown on its info page.",
   "Antnet is an independent proof of concept, not an Autonomi Foundation product.",
 ];

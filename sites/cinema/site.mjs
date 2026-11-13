@@ -1,4 +1,4 @@
-// Cinema (DEMO.md 3.4): one full-length film, streamed from its own address on Autonomi. The
+// Cinema (DEMO.md 3.4): one short film, streamed from its own address on Autonomi. The
 // site's archive holds only the page, the poster and the Autonomi browser client; the film is
 // fetched piece by piece as it plays (DEMO.md 5.8). The look is in static/style.css, the
 // player in src/player.js; this file builds the page and bundles the player.
@@ -8,7 +8,7 @@ import { BUTTON_CSS, downloadButtons } from "../shared/button.mjs";
 
 export const meta = {
   title: "Cinema",
-  description: "A full-length film, streamed straight from the network. There is no video host.",
+  description: "A ten-minute video, streamed straight from the network, with no video host.",
 };
 
 export const settings = {};
@@ -49,7 +49,7 @@ const player = () =>
 
 const HOW = [
   [
-    "The film has its own address",
+    "The video has its own address",
     `It is one ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records. It was uploaded once, for ${FILM.cost}, and nothing more is paid however many people watch.`,
   ],
   [
@@ -58,14 +58,14 @@ const HOW = [
   ],
   [
     "Your browser is the player",
-    "This page carries its own Autonomi client, which holds the connections while the film plays. Keep the tab open: close it and the stream stops, as on any website.",
+    "This page carries its own Autonomi client, which holds the connections while the video plays. Keep the tab open: close it and the stream stops, as on any website.",
   ],
 ];
 
 const FINE_PRINT = [
-  "The first frame takes a few seconds, while your browser finds the film on the network.",
+  "The first frame takes a few seconds, while your browser finds the video on the network.",
   "Skipping far ahead can take ten seconds or more: that part has to be found and fetched first.",
-  "Some networks block the kind of connection this needs. If the film won't start, try another network.",
+  "Some networks block the kind of connection this needs. If the video won't start, try another network.",
 ];
 
 export async function build(ctx) {
@@ -139,12 +139,12 @@ ${ctx.headTags}
 
 <section class="claim" aria-labelledby="claim-h">
   <h2 id="claim-h">No video host.</h2>
-  <p>This film streams from Autonomi nodes, and its publisher pays nothing more however many people watch.</p>
+  <p>This video streams from Autonomi nodes, and its publisher pays nothing more however many people watch.</p>
 </section>
 
 <section class="take-home" aria-labelledby="take-home-h">
   <h2 id="take-home-h">Take a copy home</h2>
-  <p>This button was made with the <a href="${ctx.hrefFor("download")}">Download Button</a>, and pasted in as any website would. It leads to a download page that is on Autonomi too, and your browser checks every piece of the film as it saves it.</p>
+  <p>This button was made with the <a href="${ctx.hrefFor("download")}">Download Button</a>, and pasted in as any website would. It leads to a download page that is on Autonomi too, and your browser checks every piece of the video as it saves it.</p>
   <div class="take-home-button">${filmButton}</div>
   <p class="take-home-note">Chrome and Edge save it straight to disk; other browsers hold it in memory first.</p>
 </section>
@@ -154,7 +154,7 @@ ${ctx.headTags}
   <ol>
 ${how}
   </ol>
-  <p class="address">The film's address on the network: <code title="${FILM.address}">${short(FILM.address)}</code> <button class="address-toggle" type="button" data-address-toggle aria-expanded="false">Show all of it</button><code class="address-full" data-address-full hidden>${FILM.address}</code></p>
+  <p class="address">The video's address on the network: <code title="${FILM.address}">${short(FILM.address)}</code> <button class="address-toggle" type="button" data-address-toggle aria-expanded="false">Show all of it</button><code class="address-full" data-address-full hidden>${FILM.address}</code></p>
 </section>
 
 <section class="small-print" aria-labelledby="print-h">

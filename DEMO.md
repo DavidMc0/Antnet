@@ -1,6 +1,6 @@
 # Antnet demo plan
 
-*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. Antnet Local, the loader as a desktop app, and its page on the demo site were added on 13 November (sections 3.8 and 12), and the same day put on hold: only the preparatory work in section 12.0 is planned. A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
+*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. Antnet Local, the loader as a desktop app, and its page on the demo site were added on 13 November (sections 3.8 and 12). Also on 13 November: the front door's claim and the script's opening line were corrected, because the host sends each site's loader page the first time that site is opened (journey step 1, sections 4.5, 5.10 and 7). A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
 
 ## 1. What the demo has to do
 
@@ -28,7 +28,7 @@
 
 | Step | What they see | What it teaches |
 | --- | --- | --- |
-| 1. **Front door** (ordinary web page on the root domain) | "This is the last page a web server will send you." Three short lines on what happens next, a progress line as Antnet Start arrives from the network, then an **Enter** button. | The handover from the old web to the new one, and it hides the slowest wait behind reading time. |
+| 1. **Front door** (ordinary web page on the root domain) | "A web server sent you this page, and it will only ever send this small loader. It never sends the sites." Then: "Each one comes straight from Autonomi, a network of independent computers. Your browser fetches it itself, and checks every piece before showing it." Then a progress line as Antnet Start arrives from the network, then an **Enter** button. | The handover from the old web to the new one, and it hides the slowest wait behind reading time. |
 | 2. **Antnet Start** (the hub), at `start.antnet.autonomirror.com` | A calm directory of five sites. Under the title, a receipt: where this page came from, in real numbers. Each card shows its site arriving in the background, then "Ready". | Sites come from the network as a few verified records. |
 | 3. **Any site** | Opens at once, because it was fetched while they read. It is a different website with its own look and its own short address: `docs.antnet.autonomirror.com`, `cinema.antnet.autonomirror.com`. | This is a web of independent sites, not one app. |
 | 4. **Where it came from** | Start's "Where this page came from" panel: the records that made up the page and the nodes that served them. Technical visitors can open their browser's developer tools and see that no web request fetched the site's content. | There really is no server: the page came from many independent computers, and the browser can prove it. |
@@ -137,7 +137,6 @@ Every archive stays under 12 MiB so it is four network records. Each site has it
 - **What it shows:** the last web host in the story can go too. The page offers Antnet Local (section 12), a small desktop app that serves the loader from the visitor's own computer, for Windows, macOS and Linux.
 - **The installers are files on Autonomi**, downloaded through buttons made with the Download Button generator (section 3.6), with a GitHub Releases link beside each. So the page that offers the app, and the app itself, both come from the network.
 - **Details are in section 12.8.**
-- **On hold** with the rest of section 12. Until the app is built, there is no `local` site.
 
 ### Not included: a copy of autonomi.com
 
@@ -172,7 +171,7 @@ Different type and colour for each site, the same quiet footer on all. Light and
 - Some networks block the kind of connection this needs. If a site won't load, try another network.
 - These are static sites and apps. There is no server-side code.
 - A small share of content on the network can't yet be reached from browsers.
-- The first page (the loader) still comes from an ordinary web host. It is small, open source, and anyone can run their own. *If Antnet Local is built (section 12), add:* "or run it on your own computer with [Antnet Local](https://local.antnet.autonomirror.com/)". In Antnet Local this line reads: "The loader runs on your own computer (Antnet Local, version x.y.z)."
+- The loader still comes from an ordinary web host. The first time you open each site, the host sends the same small loader page, which then fetches the site from the network; the host never sends a site's content. The loader is small, open source, and its published build can be checked (section 5.10). Anyone can run their own, or run it on their own computer with [Antnet Local](https://local.antnet.autonomirror.com/) (section 12). In Antnet Local this line reads: "The loader runs on your own computer (Antnet Local, version x.y.z)."
 - Short names like `cinema.antnet.autonomirror.com` come from a directory kept by Antnet, in public. The address behind each one is shown on its info page.
 - Antnet is an independent proof of concept, not an Autonomi Foundation product.
 
@@ -192,7 +191,7 @@ The tour-wide moment: the visitor sees that the page came from many independent 
 2. "No web server sent you this page. It came straight from computers on the Autonomi network, and your browser verified it."
 3. "Served by the network, not a server: your browser fetched this site from Autonomi nodes and checked it."
 
-Avoid saying the *loader* page didn't come from a server: it did, and the fine print says so.
+Avoid saying the *loader* page didn't come from a server: it did, and the fine print says so. Also avoid saying any page is the *last* one a server will send. Each site has its own origin, and a service worker controls only its own origin, so the first visit to every site (including the hidden warm-up visits in section 5.2) fetches that site's loader page from the host. The accurate claim is that the host sends only the loader, never a site.
 
 ---
 
@@ -225,7 +224,8 @@ It will still be seen: by anyone who clicks early, follows a deep link, or uses 
 
 - the site's address, then live steps: "Connected", "Found", "2 of 3 records", "Checked", "Opening";
 - one line of context: "Fetching this site from the Autonomi network. First visits take a few seconds.";
-- after 20 s, a second line: "Still looking. Some records take longer to find."
+- after 20 s, a second line: "Still looking. Some records take longer to find.";
+- in the footer, one quiet line that says where each part came from: "This loading page came from `antnet.autonomirror.com`. The site is coming from the Autonomi network." Visitors who notice the loading page between sites then hear it from the demo, not discover it.
 
 ### 5.5 When it can't connect
 
@@ -293,7 +293,7 @@ Addresses on the network are 64 characters long, which is right for checking con
 | `library` | Library | its archive address |
 | `download` | Download Button | its archive address |
 | `hello` | The guest site | claimed live (journey step 5) |
-| `local` | Antnet Local's page (section 3.8), only if it is built | its archive address |
+| `local` | Antnet Local's page (section 3.8) | its archive address |
 
 **Rules for every name**
 
@@ -360,6 +360,27 @@ For the demo, claims go through a GitHub issue form in the antnet repository. It
 
 **Tests:** each hand-picked name opens its site; the info page shows the chain; an unknown name shows the claim page; a name that fails the rules (uppercase, too long, `xn--`, a 53-character label) is never looked up; the go-link and root-path forms redirect correctly; a changed `names.json` entry is picked up by the next due check; a claim whose site doesn't name itself is rejected with a clear reason.
 
+
+### 5.10 What the host sends: keep it small and checkable
+
+The host has to answer the first request to every site's subdomain, because nothing else can run code on a new origin (section 4.5). It can't be removed from the hosted loader; Antnet Local removes it (section 12). What can be done is to make the host's part as small and as checkable as possible.
+
+**A. A small stub per site, one shared loader.**
+
+- Every subdomain gets the same stub page of about 1 kB. It registers the service worker and loads the loader's code (scripts, the SDK and its WASM) from fixed, versioned URLs on the root domain, such as `https://antnet.autonomirror.com/_autonomi/loader/<build hash>/…`, served with `Cache-Control: public, max-age=31536000, immutable` and the CORS headers the subdomains need.
+- **Why it should help:** all the subdomains belong to one registrable domain, and browsers key their HTTP cache by the top-level site, so code fetched for Start should be reused, not downloaded again, when Cinema's stub asks for the same URL. **Untested;** check it in Chrome, Firefox and Safari. Like warm-up (section 5.2), it stops working if the domain is added to the Public Suffix List.
+- **The stub loads each file with Subresource Integrity** (`integrity="sha384-…"`), so it runs only the exact build it names.
+- **Result:** after the first site, the host sends a 1 kB stub per new site, never the loader's code again and never any site content. The service worker file itself must still come from each subdomain (a worker's script has to be same-origin), so keep it small.
+- **What it doesn't change:** the stub still comes from the host, so a compromised host could still send a different stub. This reduces what the server sends; it doesn't remove trust in the server.
+
+**B. A published, checkable loader.**
+
+- Publish each loader build on Autonomi as a public file (the same tar format as a site), and keep its address and hash in the repository's release notes.
+- The info page (spec section 3.6) shows "Loader build `<hash>`" with a link to the published copy, and the fine print points to it (section 4.4).
+- Anyone who cares can then compare what their browser ran with the published build, so the host can't change the loader without that being visible. It also gives Antnet Local (section 12) a published build to match.
+
+**Tests:** opening a second site after Start makes one small request to the host for the stub, and the loader's files are served from the browser's cache (developer tools, Network tab); a stub whose integrity hash doesn't match refuses to run and shows a plain error; the build hash on the info page matches the published copy.
+
 ---
 
 ## 6. Links and publish order
@@ -406,7 +427,7 @@ A site's address is the hash of its contents, links included, so two sites can't
 
 | Time | On screen | Say |
 | --- | --- | --- |
-| 0:00 | Front door. Progress line running. | "This is an ordinary web page. It's the last one a server will send us." |
+| 0:00 | Front door. Progress line running. | "This is an ordinary web page. The server sends the loader, never the sites." |
 | 0:20 | Enter. Start opens instantly at `start.antnet.autonomirror.com`. Point at the receipt. | "This page came from the Autonomi network: four records, checked here in the browser. No server sent it." |
 | 0:40 | Cards turning to "Ready". Open the Docs, search for something. | "A normal docs site, built with normal tools." |
 | 1:00 | ColonySim. Drop food, watch trails form. | "And real apps. This one saves itself in the browser." |
@@ -447,6 +468,8 @@ The upload, the name check and the pointer update take real time. In a recording
 - [ ] If Antnet Local is shared at the same time: the checks in section 12.9, and every installer on the `local` page matches its published SHA-256.
 - [ ] Cinema: ten cold plays in Chromium; note time to first frame and to each seek. Ten minutes of continuous playback in Chrome, Firefox and Safari.
 - [ ] Every hand-picked name opens its site, and a test claim goes through the GitHub form and Action end to end, including a rejected one.
+- [ ] Nowhere does the demo claim that a page is the last one a server will send. The front door, Start, the fine print, the loading screen and the script all say the host sends only the loader (section 4.5).
+- [ ] Section 5.10's tests, if the stub is built: shared loader files come from the cache on a second site, and the info page's build hash matches the published loader.
 - [ ] `publish/start.key` backed up somewhere other than the laptop.
 
 ---
@@ -458,10 +481,10 @@ The upload, the name check and the pointer update take real time. In a recording
 3. **Warm-up and the front door.** This decides how slick the demo can be, so test it early.
 4. **Non-blocking updates** and the update notice.
 5. **Cinema streaming first** (section 5.8): it is the riskiest piece and the most impressive, so prove it early. **Then the Download Button** (it reuses the same SDK setup), **ColonySim and Docs.**
-6. **Loading screen, "can't connect" page and the address bar** (section 5.7): the OpenSearch keyword first, as it is small, then the in-page shortcut.
+6. **Loading screen, "can't connect" page and the address bar** (section 5.7): the OpenSearch keyword first, as it is small, then the in-page shortcut. Then **the stub and the published loader** (section 5.10).
 7. **The name claim form and Action**, tested with a throwaway site.
 8. **Checks, recording, share.**
-9. **Antnet Local: preparatory work only** (section 12.0), after the demo is shared. Nothing in section 12 is built unless the decision there says so.
+9. **Antnet Local** (section 12), after the demo is shared. Start with the Safari test in section 12.9: it decides the macOS story.
 
 ## 11. Open decisions
 
@@ -477,27 +500,12 @@ The upload, the name check and the pointer update take real time. In a recording
 - **Antnet Local's host layout and port:** `<label>.antnet.localhost` or `<label>.localhost`, and which fixed port (section 12.3).
 - **Code signing budget** for Antnet Local: an Apple Developer ID and a Windows signing certificate or Azure Trusted Signing (section 12.7).
 - **Open at login:** on or off by default for Antnet Local?
-- **Who else uses `ant://`?** Autonomi's own apps, or tools such as AntTP, may register the same scheme. If two apps claim it, links open unpredictably. Find out before Antnet Local registers it (section 12.0).
-- **Whether to build Antnet Local at all** (section 12.0). On hold: it would be an ongoing maintenance job (three platforms, signing, an updater), which isn't wanted for now.
 
 ---
 
 ## 12. Antnet Local — the loader on your own computer
 
-*Added 13 November 2026. Not needed for the demo's first share. Nothing here has been tested yet.*
-
-### 12.0 Status: on hold, preparatory work only
-
-Decided on 13 November: Antnet Local is worth having, but as an app it is an ongoing maintenance job (three platforms, code signing, an updater, release keys), and that isn't wanted for now. So the plan is to refine the concept with small, cheap pieces of work, and not to build or ship the app.
-
-**Preparatory work** (in this order, each useful on its own):
-
-1. **Publish `names.json` on Autonomi behind Antnet's own pointer** (section 12.4). The hosted loader benefits too: a name change no longer needs a deploy, and anyone can compare the host's copy with the published one. This is the largest piece and the one most worth doing.
-2. **Find out who else registers `ant://`** (section 11).
-3. **The one-day test** in section 12.9's first item: a plain program, with no tray and no installer, serving the loader on `*.antnet.localhost` and listening on both `127.0.0.1` and `::1`. Record what works in each browser, Safari above all.
-4. **Choose the app's framework** from what the test showed: Tauri for its installers and updater, or a plain Rust program with a tray library, which is lighter if Tauri's built-in browser view would go unused.
-
-**What would start the build:** the test passes in the main browsers, the demo shows real interest in running the loader locally, and there is someone to maintain it with a signing budget. Without signing, offer only the plain program, labelled "test build", never unsigned installers (section 12.7).
+*Added 13 November 2026. Not needed for the demo's first share; build it after the steps in section 10. Nothing here has been tested yet.*
 
 **In one sentence:** a small desktop app for Windows, macOS and Linux that serves the Antnet loader from the visitor's own computer, so opening an Autonomi site involves no web host at all. The loader comes from their machine, and every site still comes from Autonomi nodes over WebRTC and is checked in their browser.
 
@@ -547,7 +555,6 @@ When hosted, `names.json` comes from the host (section 5.9). Locally there is no
 
 - **The app ships with a copy** of `names.json` from its build, so names work from the first launch.
 - **Updating it:** whenever the front door or Start is open, a hidden frame on the root (`/_autonomi/local/sync`, the same mechanism as section 5.3) resolves the names pointer in the background, downloads the file (checked by the SDK) and sends it to the app with `PUT /_autonomi/local/names`. The app checks the format and the name rules, and keeps it only if its `updated` date is newer. Shells read `/_autonomi/names.json` from the app as before.
-- **Worth doing first, and on its own:** the hosted loader can read the same pointer, so this helps whether or not the app is built (section 12.0).
 - **Publishing:** by hand, like the removal list (section 3.6). After the Action merges a claim, the maintainer runs a script that prints the upload and pointer commands. Local users see a new name once that copy is published.
 - **Trust:** a stale copy can only point a name at an older target. The info page shows the full chain, as it does when hosted.
 
@@ -560,14 +567,14 @@ When hosted, `names.json` comes from the host (section 5.9). Locally there is no
 
 ### 12.6 Updates
 
-- **Loader updates ship inside signed app updates.** The loader's code runs in every site's origin, so it should be as trustworthy as the app itself. The app's updater checks a signed manifest on GitHub Releases. This is the one request the app makes to anything but loopback; it is on by default and can be turned off in the tray menu. The `local` page says both plainly, in its "What it does on your computer" part.
+- **Loader updates ship inside signed app updates.** The loader's code runs in every site's origin, so it should be as trustworthy as the app itself. The app's updater checks a signed manifest on GitHub Releases. This is the one request the app makes to anything but loopback; it can be turned off in the tray menu, and the `local` page says so.
 - **Later:** loader releases published on Autonomi behind Antnet's pointer, read by the app itself once it has a native client (section 12.10), so updates need no server either.
 
 ### 12.7 Building and packaging
 
-- **Rust and Tauri,** used for the tray icon and the installers, not as a browser. A plain Rust program with a tray library is the lighter alternative; choose after the test (section 12.0). One codebase produces an MSI or NSIS installer for Windows, a universal DMG for macOS (Intel and Apple silicon) and an AppImage and `.deb` for Linux, plus a signed updater. A plain command-line binary (`antnet-local --port …`) for headless or power users comes from the same code.
+- **Rust and Tauri,** used for the tray icon and the installers, not as a browser. One codebase produces an MSI or NSIS installer for Windows, a universal DMG for macOS (Intel and Apple silicon) and an AppImage and `.deb` for Linux, plus a signed updater. A plain command-line binary (`antnet-local --port …`) for headless or power users comes from the same code.
 - **`ant://` registration:** in the Windows installer (registry), the macOS app bundle (`CFBundleURLTypes`) and the Linux `.desktop` file (`x-scheme-handler/ant`). An AppImage doesn't register itself, so the `.deb` is the main Linux package.
-- **Signing decides how polished it feels.** Unsigned apps get SmartScreen warnings on Windows and Gatekeeper warnings on macOS. macOS needs an Apple Developer ID and notarisation; Windows needs a signing certificate or Azure Trusted Signing. Until those are in place, don't offer unsigned installers: recent macOS makes the visitor allow an unsigned app in System Settings before it opens, and most people stop there. Offer only the plain command-line program, labelled "test build".
+- **Signing decides how polished it feels.** Unsigned apps get SmartScreen warnings on Windows and Gatekeeper warnings on macOS. macOS needs an Apple Developer ID and notarisation; Windows needs a signing certificate or Azure Trusted Signing. Until those are in place, label downloads "unsigned test build".
 - **Where:** each installer is published as a public file on Autonomi and offered through the Download Button, with GitHub Releases beside it and the SHA-256 of every file on the `local` page.
 - **Desktop only.** iOS doesn't allow an app to run a local web server in the background, and Android makes it awkward. Phones keep using the hosted loader.
 

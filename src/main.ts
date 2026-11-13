@@ -163,6 +163,7 @@ function pageUI(link: SiteLink, root: string, named?: Named): InstallUI {
   const view = showLoading(
     link,
     named ? `Opening ${named.name}` : link.kind === "p" ? "Opening the latest version of a site" : "Opening a site",
+    root,
   );
   return {
     step: (text) => view.step(text),

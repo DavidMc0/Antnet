@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updated": "2026-11-13T15:52:06Z",
+  "updated": "2026-11-13T21:21:22Z",
   "names": {
     "start": {
       "kind": "p",
@@ -12,9 +12,14 @@
       "address": "f5c75fa50def6629f276005e677f0e764acb992f1ed84db27c0a3b7ca4bcd521",
       "since": "2026-11-11"
     },
+    "colonysim": {
+      "kind": "i",
+      "address": "d21268dca0f97a056cbb547eaddae3d9b7e7ac62bcdd0174eecf8a5871d80857",
+      "since": "2026-11-13"
+    },
     "cinema": {
       "kind": "i",
-      "address": "b3d7795e0c074eb8ec99cbec3c1ab26cfd343b1c2ca3659798d51c76c690c651",
+      "address": "d237cceafef5d7b43fa705323acf69b24b43b23de149df6ee3c770f65672aed2",
       "since": "2026-11-12"
     },
     "download": {

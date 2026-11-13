@@ -32,7 +32,7 @@ test("the root leads to Start's front door; Enter opens Start at once once it ha
   await page.goto(ROOT_URL);
   await expect(page.locator("[data-door]")).toBeVisible();
   expect(new URL(page.url()).hostname).toBe("start.localhost");
-  await expect(page.locator("h1")).toHaveText("This is the last page a web server will send you.");
+  await expect(page.locator("h1")).toHaveText("A web server sent you this page, and it will only ever send this small loader. It never sends the sites.");
   await expect(page.locator("[data-door]")).toHaveAttribute("data-door", "ready", { timeout: 15_000 });
   await expect(page.getByTestId("door-status")).toHaveText("Antnet Start is here, checked and ready.");
 

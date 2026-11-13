@@ -77,7 +77,7 @@ function start(root) {
   function showVisit() {
     const parts = [];
     if (timings.connect !== undefined) parts.push(`Connected in ${seconds(timings.connect)}`);
-    if (timings.open !== undefined) parts.push(`film found in ${seconds(timings.open)}`);
+    if (timings.open !== undefined) parts.push(`video found in ${seconds(timings.open)}`);
     if (timings.first !== undefined) {
       parts.push(timings.first < 100 ? "first frame at once after play" : `first frame ${seconds(timings.first)} after play`);
     }
@@ -100,10 +100,10 @@ function start(root) {
     trouble.hidden = true;
     setState(wantPlay ? "waiting" : "preparing");
     if (typeof RTCPeerConnection === "undefined") {
-      return fail("This browser can't play the film", "It can't make the direct connections that reach the Autonomi network. Try another browser.");
+      return fail("This browser can't play the video", "It can't make the direct connections that reach the Autonomi network. Try another browser.");
     }
     if (!("serviceWorker" in navigator)) {
-      return fail("This browser can't play the film here", "It needs service workers, which are switched off or unavailable in this window. A private window can cause this.");
+      return fail("This browser can't play the video here", "It needs service workers, which are switched off or unavailable in this window. A private window can cause this.");
     }
     try {
       let t = performance.now();
@@ -113,7 +113,7 @@ function start(root) {
         timings.connect = performance.now() - t;
         showVisit();
       }
-      say(wantPlay ? "Finding the film. It starts as soon as it's found…" : "Finding the film on the network…");
+      say(wantPlay ? "Finding the video. It starts as soon as it's found…" : "Finding the video on the network…");
       t = performance.now();
       source = await client.createMediaSource(film.address, {
         serviceWorkerUrl: "/autonomi-loader-sw.js",
@@ -135,9 +135,9 @@ function start(root) {
       source?.close();
       source = null;
       fail(
-        client ? "The film couldn't be found just now" : "Couldn't reach the Autonomi network",
+        client ? "The video couldn't be found just now" : "Couldn't reach the Autonomi network",
         client
-          ? `The network didn't return the film's first pieces. (${reason(e)})`
+          ? `The network didn't return the video's first pieces. (${reason(e)})`
           : `Some networks block the direct connections this needs. Try again, or try another network. (${reason(e)})`,
       );
     }
@@ -169,7 +169,7 @@ function start(root) {
     pressedAt = performance.now();
     if (source) return void play();
     setState("waiting");
-    if (statusEl.textContent.startsWith("Finding")) say("Finding the film. It starts as soon as it's found…");
+    if (statusEl.textContent.startsWith("Finding")) say("Finding the video. It starts as soon as it's found…");
   });
   root.querySelector("[data-retry]").addEventListener("click", () => {
     // A failure mid-film is simplest to recover from with a fresh page; before that, just try again.
@@ -193,7 +193,7 @@ function start(root) {
     if (!started) return;
     clearTimeout(slow);
     slow = setTimeout(() => {
-      say("Fetching this part of the film…");
+      say("Fetching this part of the video…");
       root.setAttribute("data-fetching", "");
     }, 700);
   };
@@ -210,9 +210,9 @@ function start(root) {
     fetched();
     const code = video.error?.code;
     fail(
-      code === 4 ? "This browser can't play the film" : "The film stopped",
+      code === 4 ? "This browser can't play the video" : "The video stopped",
       code === 4
-        ? "It couldn't decode the video. The film is H.264 with MP3 sound, which most browsers play."
+        ? "It couldn't decode the video. It is H.264 with MP3 sound, which most browsers play."
         : "The next part couldn't be fetched from the network. Trying again reloads the page.",
     );
   });

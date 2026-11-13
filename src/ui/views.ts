@@ -25,13 +25,24 @@ export interface LoadingView {
   progress(done: number, total?: number, unit?: "bytes" | "records"): void;
 }
 
-export function showLoading(link: SiteLink, title: string): LoadingView {
+/**
+ * The loading screen. `host` is the web host that sent this page: it says so plainly, because
+ * the host sends this loader the first time each site is opened (DEMO.md 4.5, 5.4).
+ */
+export function showLoading(link: SiteLink, title: string, host?: string): LoadingView {
   const stepEl = h("p", { class: "step", "data-testid": "step" }, "Starting…");
   const bar = h("progress", { max: "1", value: "0" });
   const detail = h("p", { class: "detail" }, "");
+  const origin = host
+    ? h(
+        "p",
+        { class: "small loading-origin", "data-testid": "loading-origin" },
+        `This loading page came from ${host}. The site is coming from the Autonomi network.`,
+      )
+    : "";
   mount(
     brand(),
-    h("main", { class: "card", "data-view": "loading" }, h("h1", {}, title), addressBlock(link), stepEl, bar, detail),
+    h("main", { class: "card", "data-view": "loading" }, h("h1", {}, title), addressBlock(link), stepEl, bar, detail, origin),
   );
   bar.removeAttribute("value"); // indeterminate until there's progress
   return {
@@ -250,8 +261,9 @@ const BENEFITS: [title: string, text: string][] = [
 ];
 
 /**
- * A site's front door (DEMO.md 5.1), shown on the site's own origin while it installs: the one
- * page a web server sends. Enter opens the site, at once when it has arrived.
+ * A site's front door (DEMO.md 5.1), shown on the site's own origin while it installs. A web
+ * server sent it, as it sends the loader for each site; it never sends the sites. Enter opens the
+ * site, at once when it has arrived.
  */
 export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
   const label = opts.siteLabel;
@@ -289,12 +301,12 @@ export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
       "section",
       { class: "door-hero" },
       h("p", { class: "door-kicker" }, "The front door"),
-      h("h1", {}, "This is the last page a web server will send you."),
+      h("h1", {}, "A web server sent you this page, and it will only ever send this small loader. It never sends the sites."),
       h(
         "p",
         { class: "door-lede" },
-        "From here on, sites come straight from Autonomi, a network of independent computers. " +
-          "Your browser fetches each one itself, and checks every piece before showing it.",
+        "Each one comes straight from Autonomi, a network of independent computers. " +
+          "Your browser fetches it itself, and checks every piece before showing it.",
       ),
     ),
     h(
@@ -329,8 +341,10 @@ export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
     h(
       "p",
       { class: "door-fine" },
-      "This first page is the loader. It is small and open source, and it comes from an ordinary web host; " +
-        "anyone can run their own. Antnet is an independent proof of concept, not an Autonomi Foundation product.",
+      "This page is the loader. It comes from an ordinary web host, which sends the same small loader page " +
+        "the first time you open each site; the loader then fetches the site from the network, and the host never " +
+        "sends a site's content. The loader is small and open source, and anyone can run their own. " +
+        "Antnet is an independent proof of concept, not an Autonomi Foundation product.",
     ),
   );
 

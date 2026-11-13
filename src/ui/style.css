@@ -770,3 +770,5 @@ li[data-state="error"] .door-node {
     transform: none;
   }
 }
+
+.loading-origin { margin-top: 1.25rem; }
