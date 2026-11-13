@@ -1,3 +1,4 @@
+@charset "utf-8";
 /* ColonySim: a terracotta tray of sand on a sunny table.
    - Fredoka throughout: round and friendly, with heavy numbers.
    - Terracotta for the tray and the accent, leaf green for food, warm umber ink.
@@ -334,7 +335,10 @@ h1 {
   font-size: clamp(1.8rem, 6vw, 3.2rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  white-space: nowrap;
+  line-height: 1.15;
+  text-align: center;
+  width: max-content;
+  max-width: 88%;
   box-shadow: 0 10px 30px -8px rgba(40, 15, 0, 0.55);
   transform: translate(-50%, -50%);
 }
@@ -456,14 +460,119 @@ kbd {
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------------ the counts */
+/* ------------------------------------------------------------------ the larder and the counts */
 
 .readout {
   display: flex;
   flex-wrap: wrap;
+  align-items: stretch;
+  gap: 16px 28px;
+  margin: 18px 0 0;
+}
+
+.larder {
+  --mood: var(--leaf);
+  flex: 1 1 300px;
+  max-width: 420px;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--card-edge);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 2px 0 var(--card-edge);
+}
+
+.larder[data-mood="hungry"] {
+  --mood: #d99a1c;
+}
+
+.larder[data-mood="starving"] {
+  --mood: var(--clay);
+  border-color: var(--clay);
+  box-shadow: 0 2px 0 var(--clay-deep);
+}
+
+.larder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+}
+
+.larder-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.larder-head strong {
+  padding: 1px 12px;
+  border-radius: 999px;
+  background: var(--mood);
+  color: #fff;
+  font-weight: 600;
+  transition: background 0.4s;
+}
+
+.meter {
+  position: relative;
+  height: 14px;
+  margin: 10px 0 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: var(--mood);
+  transform: scaleX(var(--full, 0));
+  transform-origin: left;
+  transition: transform 0.3s linear, background 0.4s;
+}
+
+/* Above this line the colony raises new ants. */
+.meter-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 33.3%;
+  width: 2px;
+  background: var(--card);
+  opacity: 0.9;
+}
+
+.larder-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.larder[data-mood="starving"] .larder-note {
+  color: var(--ink);
+}
+
+/* When they are starving, the Food button asks to be pressed. */
+body[data-mood="starving"] .tool-food {
+  animation: feed-me 1.4s ease-in-out infinite;
+}
+
+@keyframes feed-me {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--leaf) 35%, transparent); }
+}
+
+.stats {
+  flex: 2 1 380px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px 28px;
-  margin: 18px 2px 0;
+  align-content: center;
+  gap: 2px 26px;
 }
 
 .stat {
@@ -479,11 +588,33 @@ kbd {
   letter-spacing: -0.01em;
 }
 
+.trend {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.trend[data-trend="up"] {
+  color: var(--leaf);
+}
+
+.trend[data-trend="up"]::before {
+  content: "▲ ";
+}
+
+.trend[data-trend="down"] {
+  color: var(--clay);
+}
+
+.trend[data-trend="down"]::before {
+  content: "▼ ";
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
+  flex-basis: 100%;
   gap: 4px 18px;
-  margin: 0 0 0 auto;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
   color: var(--muted);
@@ -682,9 +813,8 @@ button.quiet:hover {
     padding: 0 8px;
   }
 
-  .legend {
-    margin-left: 0;
-    flex-basis: 100%;
+  .larder {
+    max-width: none;
   }
 
   .stat-number {
@@ -713,5 +843,9 @@ button.quiet:hover {
   .sky,
   .sky .icon {
     transition: none;
+  }
+
+  body[data-mood="starving"] .tool-food {
+    animation: none;
   }
 }

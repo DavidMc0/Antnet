@@ -10,7 +10,7 @@ import { bundleScript } from "../shared/bundle.mjs";
 
 export const meta = {
   title: "ColonySim",
-  description: "An ant colony that lives in your browser. Drop food, draw walls, and come back tomorrow.",
+  description: "An ant colony that lives in your browser. Feed it and watch it grow, draw walls, and come back tomorrow.",
 };
 
 export const settings = {};
@@ -67,7 +67,7 @@ ${ctx.headTags}
 <main>
   <div class="intro">
     <h1>Your ant colony</h1>
-    <p class="lede">Scatter some leaf and the ants will find it. Wall it off with pebbles and watch the trail find a way round.</p>
+    <p class="lede">Scatter some leaf and the ants will find it. Keep them fed and the colony grows. Wall the food off with pebbles and watch the trail find a way round.</p>
   </div>
 
   <div class="stage" data-time="morning">
@@ -95,13 +95,20 @@ ${ctx.headTags}
   </div>
 
   <div class="readout">
-    <p class="stat"><span class="stat-number" data-ants>0</span> <span class="stat-label">ants</span></p>
-    <p class="stat"><span class="stat-number" data-delivered>0</span> <span class="stat-label">pieces of leaf brought home</span></p>
-    <p class="stat stat-time"><span class="stat-number" data-time-label>Morning</span> <span class="stat-label">in the colony</span></p>
-    <ul class="legend" aria-label="What the trails mean">
-      <li><span class="swatch swatch-trail"></span>the way to food</li>
-      <li><span class="swatch swatch-home"></span>the way home</li>
-    </ul>
+    <div class="larder" data-larder data-mood="fed">
+      <p class="larder-head"><span class="larder-title">${ICON.leaf}Larder</span> <strong data-mood-label>Well fed</strong></p>
+      <div class="meter" data-meter role="meter" aria-label="How full the larder is" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="meter-fill"></span><span class="meter-mark" title="Above this line, new ants hatch"></span></div>
+      <p class="larder-note" data-mood-note>Enough to eat, but not enough to raise new ants.</p>
+    </div>
+    <div class="stats">
+      <p class="stat"><span class="stat-number" data-ants>0</span> <span class="stat-label">ants</span> <span class="trend" data-trend="steady"></span></p>
+      <p class="stat"><span class="stat-number" data-delivered>0</span> <span class="stat-label">pieces of leaf brought home</span></p>
+      <p class="stat stat-time"><span class="stat-number" data-time-label>Morning</span> <span class="stat-label">in the colony</span></p>
+      <ul class="legend" aria-label="What the trails mean">
+        <li><span class="swatch swatch-trail"></span>the way to food</li>
+        <li><span class="swatch swatch-home"></span>the way home</li>
+      </ul>
+    </div>
   </div>
   <p class="storage-warning" data-storage hidden>This browser won't let the page save, so the colony will start again next time.</p>
 
@@ -113,8 +120,8 @@ ${ctx.headTags}
         <p>An ant looking for food leaves a faint scent that leads home. An ant carrying food leaves a stronger one that leads back to it. Each follows the other's.</p>
       </article>
       <article class="card">
-        <h3>${ICON.leaf}Trails that think</h3>
-        <p>The busiest paths smell strongest, so they turn into trails. Block one and it re-forms round the wall. When the food runs out, the trail fades.</p>
+        <h3>${ICON.leaf}A colony to feed</h3>
+        <p>The busiest paths smell strongest, so they turn into trails, and a blocked trail re-forms round the wall. The ants eat what they bring home. Keep the larder full and the colony grows; let it run dry and it shrinks.</p>
       </article>
       <article class="card">
         <h3>${ICON.lock}Yours alone</h3>

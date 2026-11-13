@@ -542,6 +542,27 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **The colony's colours** are the `--sim-*` properties, the same in light and dark: the tray keeps its own clock.
   - **Checked by screenshot:** light and dark at 1280 px, and a 360 px phone, by day and by night; the day banner, the paused state and the keys. No sideways scroll and no console errors.
   - **Tests:** 204 unit and 79 e2e pass.
+- **Behaviour pass (Fable, 2026-11-13, at the user's request).** The user found the ants a blur and saw them circle loops with no food on them. Measured headlessly first; the numbers above for `src/sim.ts` are superseded by these.
+  - **The circling was a bug.** Scent faded but never reached zero, and ants turned towards the strongest of three sensors however faint. After a few minutes they followed the remains of old trails: over six seeds they walked on 8–21% of the tray and left 400–1,250 pieces of food unfound, and in four of the six foraging stopped. The tests missed it because they ran for one minute.
+  - **Fixes in `src/sim.ts`:**
+    - scent below 0.02 can't be smelt, and scent below 0.0001 is set to zero;
+    - ants turn in proportion to scent strength, not winner-takes-all;
+    - a searcher that finds nothing for about 1,500 steps walks home and sets out again;
+    - ants heading home lean towards the nest in open ground, and treat weaker home scent ahead as the wrong way;
+    - searchers on a food trail lean away from the nest;
+    - food scent adds up (0.3 per ant), so a trail is as strong as it is busy.
+  - **Measured after:** about 50% more food brought home in the first six minutes, the slowest 1% of trips home down from about 900 steps to about 500, and almost no food trail west of the nest, where there is no food.
+  - **Pace:** the page runs the colony by the clock at 30 steps a second (`STEPS_PER_SECOND`), a quarter of the old pace on a 60 Hz screen. Before, it ran per frame, so it was 2–2.4 times too fast on 120–144 Hz screens. Ants are drawn part-way between steps (`settle()` in `src/main.ts`, `Pose` in `src/render.ts`). Faster is ×4. A colony day is 7,200 steps: four minutes.
+  - **The larder:** the colony eats what it brings home (one piece per ant every 1,500 steps).
+    - A new ant hatches when the larder holds 20 plus one piece per ant. The larder holds three times that.
+    - With the larder empty, one ant is lost for every four meals missed, down to 12 ants.
+    - A new colony starts with 120 in the larder.
+    - Windfalls are now a few crumbs every third of a day.
+    - Left alone, a colony peaks at about 155 ants at six minutes, then settles at about 50. Fed about once a minute, it reaches 420. When feeding stops, it shrinks back over about ten minutes.
+  - **On the page:** a Larder card with a meter, a mood (Starving, Hungry, Well fed, Growing, Thriving) and a line of advice; "growing" or "shrinking" beside the ant count; a banner when the larder runs out; the Food button pulses while the colony starves.
+  - **Saving:** the save format is now 2 (it adds `appetite` and `missed`). A format 1 save starts a new colony; none were published.
+  - **Tests:** 18 unit tests for ColonySim, including long runs that catch the circling, starving, feeding and a wall with one gap. The unit suite now takes about 30 s, up from 4 s. Totals: 212 unit and 79 e2e pass.
+  - **Checked in the browser:** 30 steps a second at normal speed; the larder card in its fed and starving states; the phone layout. Not checked: Firefox, Safari, a real phone, or a 120 Hz screen.
 - **Next:** upload ColonySim, then Start v4 and its pointer, then deploy, so `names.json` carries `colonysim`.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)

@@ -102,6 +102,18 @@ export interface Hover {
   brush: Brush;
 }
 
+/**
+ * Where to draw each ant: the page runs the colony at a few steps a second and draws many
+ * frames between them, so it passes positions part-way from the last step to this one.
+ */
+export interface Pose {
+  x: Float32Array;
+  y: Float32Array;
+  angle: Float32Array;
+  /** Steps so far, with the fraction of the one in progress: drives the legs. */
+  time: number;
+}
+
 const layer = (w: number, h: number) => {
   const c = document.createElement("canvas");
   c.width = w;
@@ -278,7 +290,7 @@ export class Renderer {
 
   // ---------------------------------------------------------------- each frame
 
-  draw(world: World, hover: Hover | null, now: number): void {
+  draw(world: World, pose: Pose, hover: Hover | null, now: number): void {
     const { pal: p, ctx, canvas } = this;
     if (!canvas.width) return;
     const scale = canvas.width / W;
@@ -292,7 +304,7 @@ export class Renderer {
     const [tr, tg, tb] = p.trail;
     const [hr, hg, hb] = p.home;
     for (let i = 0, o = 0; i < W * H; i++, o += 4) {
-      const t = Math.min(1, world.trail[i] * 1.7);
+      const t = Math.min(1, world.trail[i] * 1.2);
       const h = Math.min(1, world.home[i]) * 0.5;
       const sum = t + h;
       if (sum > 0.004) {
@@ -359,7 +371,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
 
-    this.drawAnts(world, scale, night);
+    this.drawAnts(world, pose, scale, night);
     if (hover) this.drawHover(hover, scale, night);
   }
 
@@ -390,21 +402,22 @@ export class Renderer {
   }
 
   /** Ants: three body parts, six legs that step as they walk, and a piece of leaf held high. */
-  private drawAnts(world: World, scale: number, night: number): void {
+  private drawAnts(world: World, pose: Pose, scale: number, night: number): void {
     const { ctx, pal: p } = this;
     const a = world.ants;
+    const { x: px, y: py, angle: pa } = pose;
     const u = Math.max(1.05, scale * 0.34);
     const body = rgba(mix(p.ant, p.antNight, night));
-    const gait = world.step * 0.55;
+    const gait = pose.time * 1.1;
 
     if (night < 0.6) {
       ctx.fillStyle = `rgba(40,20,8,${0.2 * (1 - night)})`;
       ctx.beginPath();
       for (let i = 0; i < a.count; i++) {
-        const c = Math.cos(a.angle[i]);
-        const s = Math.sin(a.angle[i]);
-        const x = a.x[i] * scale + u * 0.6;
-        const y = a.y[i] * scale + u * 0.9;
+        const c = Math.cos(pa[i]);
+        const s = Math.sin(pa[i]);
+        const x = px[i] * scale + u * 0.6;
+        const y = py[i] * scale + u * 0.9;
         ctx.moveTo(x - c * 1.9 * u + u * 1.3, y - s * 1.9 * u);
         ctx.arc(x - c * 1.9 * u, y - s * 1.9 * u, u * 1.3, 0, Math.PI * 2);
         ctx.moveTo(x + c * 1.6 * u + u, y + s * 1.6 * u);
@@ -419,11 +432,11 @@ export class Renderer {
       ctx.lineCap = "round";
       ctx.beginPath();
       for (let i = 0; i < a.count; i++) {
-        const angle = a.angle[i];
+        const angle = pa[i];
         const c = Math.cos(angle);
         const s = Math.sin(angle);
-        const x = a.x[i] * scale;
-        const y = a.y[i] * scale;
+        const x = px[i] * scale;
+        const y = py[i] * scale;
         for (let k = -1; k <= 1; k++) {
           const bx = x + c * k * 0.55 * u;
           const by = y + s * k * 0.55 * u;
@@ -449,10 +462,10 @@ export class Renderer {
     ctx.fillStyle = body;
     ctx.beginPath();
     for (let i = 0; i < a.count; i++) {
-      const c = Math.cos(a.angle[i]);
-      const s = Math.sin(a.angle[i]);
-      const x = a.x[i] * scale;
-      const y = a.y[i] * scale;
+      const c = Math.cos(pa[i]);
+      const s = Math.sin(pa[i]);
+      const x = px[i] * scale;
+      const y = py[i] * scale;
       ctx.moveTo(x - c * 1.95 * u + u * 1.3, y - s * 1.95 * u);
       ctx.arc(x - c * 1.95 * u, y - s * 1.95 * u, u * 1.3, 0, Math.PI * 2);
       ctx.moveTo(x + u * 0.85, y);
@@ -468,9 +481,9 @@ export class Renderer {
       ctx.beginPath();
       for (let i = shade; i < a.count; i += 2) {
         if (!a.carrying[i]) continue;
-        const angle = a.angle[i];
-        const x = a.x[i] * scale + Math.cos(angle) * 3 * u;
-        const y = a.y[i] * scale + Math.sin(angle) * 3 * u;
+        const angle = pa[i];
+        const x = px[i] * scale + Math.cos(angle) * 3 * u;
+        const y = py[i] * scale + Math.sin(angle) * 3 * u;
         ctx.moveTo(x + u * 2, y);
         ctx.ellipse(x, y, u * 2, u * 1.2, angle + 0.9 + hash(i) * 0.8, 0, Math.PI * 2);
       }

@@ -62,6 +62,8 @@ exactly as for mainnet; the fixtures build writes a test directory that maps the
   - the colony keeps its own clock. The last third of each colony day is night: the sand turns moonlit blue, the
     scent trails glow, the nest gives off a warm light and fireflies drift over. The page follows the visitor's
     light or dark setting; the tray doesn't;
+  - a Larder card under the tray shows how well fed the colony is, in green, amber or terracotta, and says
+    whether it is growing or shrinking;
   - the tools are chunky buttons that take the colour of what they place, with a ring on the tray the size of
     the brush, keys for each (F, W, C, space, full stop), and a banner when a new day begins.
 

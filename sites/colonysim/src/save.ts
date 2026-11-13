@@ -5,7 +5,8 @@
 import { emptyAnts, H, MAX_ANTS, W, type World } from "./sim";
 
 export const SAVE_KEY = "colonysim:v1";
-const FORMAT = 1;
+/** 2 added the colony's eating (appetite, missed). An older save starts a new colony. */
+const FORMAT = 2;
 
 interface Saved {
   format: number;
@@ -18,6 +19,8 @@ interface Saved {
   nestY: number;
   stored: number;
   delivered: number;
+  appetite: number;
+  missed: number;
   wall: string;
   food: string;
   home: string;
@@ -66,6 +69,8 @@ export function serialise(world: World): string {
     nestY: world.nestY,
     stored: world.stored,
     delivered: world.delivered,
+    appetite: world.appetite,
+    missed: world.missed,
     wall: toBase64(world.wall),
     food: toBase64(world.food),
     home: toBase64(quantise(world.home)),
@@ -120,6 +125,8 @@ export function deserialise(text: string | null): World | null {
       nestY: s.nestY,
       stored: s.stored,
       delivered: s.delivered,
+      appetite: Number(s.appetite) || 0,
+      missed: Number(s.missed) || 0,
       wall,
       food,
       home,

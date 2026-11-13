@@ -3,34 +3,66 @@
 // back to the food. Each kind of ant follows the other kind's scent, so trails form between the
 // nest and whatever food the visitor drops, and re-form around walls.
 //
+// The colony eats what it brings home. With a full larder it raises new ants; with an empty one
+// it shrinks, so it does better when the visitor feeds it.
+//
 // Pure and seeded: the same world and the same number of steps give the same result. No DOM.
 
 export const W = 192;
 export const H = 120;
 export const MAX_ANTS = 420;
 export const START_ANTS = 70;
+/** A starving colony never shrinks below this, so it can always recover. */
+export const MIN_ANTS = 12;
 /** Food the nest spends on each new ant. */
 export const ANT_COST = 20;
-/** Steps in a colony day. At normal speed (two steps a frame) a day is about two minutes. */
-export const STEPS_PER_DAY = 14_400;
+/** The page runs this many steps a second at normal speed. */
+export const STEPS_PER_SECOND = 30;
+/** Steps in a colony day: four minutes at normal speed. */
+export const STEPS_PER_DAY = 4 * 60 * STEPS_PER_SECOND;
 /** Ants this close to the nest's centre are home. */
 export const NEST_RADIUS = 3.2;
 export const MAX_FOOD = 255;
 /** Food a brush stroke adds to each cell it covers. */
 export const FOOD_PER_PAINT = 20;
-/** A small pile turns up every so often when food runs low, so an idle colony keeps foraging. */
-const WINDFALL_EVERY = STEPS_PER_DAY / 6;
-const WINDFALL_BELOW = 400;
+
+/** Each ant eats one piece of food in this many steps (50 seconds). */
+const STEPS_PER_MEAL = 1500;
+/** Food the nest keeps back per ant before it raises another: about one meal each. */
+const RESERVE_PER_ANT = 1;
+/** With the larder empty, one ant is lost for every so many meals missed. */
+const MEALS_MISSED_PER_LOSS = 4;
+/** A new colony starts with this much in the larder, to last until the first food comes home. */
+const START_LARDER = 120;
+/** New ants hatch no faster than one every so many steps. */
+const HATCH_EVERY = 20;
+/** A few crumbs turn up every so often when food runs low: enough for a colony of about fifty to scrape by. */
+const WINDFALL_EVERY = STEPS_PER_DAY / 3;
+const WINDFALL_BELOW = 300;
 
 const SPEED = 0.55;
 const SENSE_DIST = 3.2;
 const SENSE_ANGLE = 0.55;
-const TURN = 0.35;
+const TURN = 0.5;
 const WANDER = 0.22;
+/** Scent fainter than this can't be smelt. Without a floor, ants circle the remains of old trails for ever. */
+const SCENT_FLOOR = 0.02;
+/** Scent this strong pulls as hard as scent can. */
+const SCENT_FULL = 0.3;
+/** The share of full strength one carrying ant adds to a food trail: it takes several to make a strong one. */
+const LAY_FOOD = 0.3;
 /** How fast a trail's strength falls off with the steps an ant has walked since its last event. */
 const LAY_FALLOFF = 260;
 const FADE_FOOD = 0.9965;
 const FADE_HOME = 0.998;
+/** A searching ant that has found nothing for about this long gives up and walks home. */
+const GIVE_UP_AFTER = 1500;
+/** How firmly an ant heading home turns towards the nest in open ground, per step. */
+const COMPASS = 0.07;
+/** How firmly a searching ant on a food trail turns away from the nest: the food is at the far end. */
+const OUTWARD = 0.05;
+/** Home scent is stronger nearer the nest. If it is this much weaker ahead, the ant is following it the wrong way. */
+const WEAKER_AHEAD = 0.96;
 
 export interface World {
   /** Seeded random state (mulberry32). */
@@ -40,10 +72,14 @@ export interface World {
   founded: number;
   nestX: number;
   nestY: number;
-  /** In the nest, not yet spent on new ants. */
+  /** The larder: food in the nest, not yet eaten or spent on new ants. */
   stored: number;
   /** Food brought home, all time. */
   delivered: number;
+  /** Eating builds up here until it comes to a whole piece. */
+  appetite: number;
+  /** Meals missed since the last ant was lost. */
+  missed: number;
   wall: Uint8Array;
   food: Uint8Array;
   /** Scent leading to the nest, 0..1. */
@@ -93,8 +129,10 @@ export function newWorld(seed: number, founded = 0): World {
     founded,
     nestX: Math.round(W * 0.28),
     nestY: Math.round(H * 0.52),
-    stored: 0,
+    stored: START_LARDER,
     delivered: 0,
+    appetite: 0,
+    missed: 0,
     wall: new Uint8Array(W * H),
     food: new Uint8Array(W * H),
     home: new Float32Array(W * H),
@@ -182,15 +220,23 @@ function freeTrappedAnts(world: World): void {
   }
 }
 
-/** What an ant smells at a point: food (or the nest) itself counts as the strongest scent. */
-function smell(world: World, x: number, y: number, carrying: boolean): number {
+/** How long this ant searches before it gives up: not the same for every ant, so they don't all turn back at once. */
+const patience = (i: number) => GIVE_UP_AFTER + ((i * 131) % 700);
+
+/**
+ * What an ant smells at a point. Ants heading home smell the home scent and the nest itself;
+ * searching ants smell the food scent and food itself. -1 is a wall or the edge.
+ */
+function smell(world: World, x: number, y: number, homing: boolean, wantsFood: boolean): number {
   if (!inside(x, y)) return -1;
   const i = index(x, y);
   if (world.wall[i]) return -1;
-  if (carrying) {
-    return Math.hypot(x - world.nestX, y - world.nestY) < NEST_RADIUS + 1 ? 10 : world.home[i];
+  if (wantsFood && world.food[i]) return 10;
+  if (homing) {
+    if (Math.hypot(x - world.nestX, y - world.nestY) < NEST_RADIUS + 1) return 10;
+    return world.home[i] < SCENT_FLOOR ? 0 : world.home[i];
   }
-  return world.food[i] ? 10 : world.trail[i];
+  return world.trail[i] < SCENT_FLOOR ? 0 : world.trail[i];
 }
 
 /** One step of the whole colony. */
@@ -198,29 +244,68 @@ export function step(world: World): void {
   const a = world.ants;
   for (let i = 0; i < a.count; i++) moveAnt(world, i);
 
+  // Scents fade, and are gone altogether once they are far too faint to smell.
   const n = W * H;
   for (let i = 0; i < n; i++) {
-    world.trail[i] *= FADE_FOOD;
-    world.home[i] *= FADE_HOME;
+    const t = world.trail[i] * FADE_FOOD;
+    world.trail[i] = t < 1e-4 ? 0 : t;
+    const h = world.home[i] * FADE_HOME;
+    world.home[i] = h < 1e-4 ? 0 : h;
   }
 
   if (world.step % WINDFALL_EVERY === WINDFALL_EVERY - 1 && foodLeft(world) < WINDFALL_BELOW) windfall(world);
-
-  while (world.stored >= ANT_COST && a.count < MAX_ANTS) {
-    world.stored -= ANT_COST;
-    addAnt(world);
-  }
+  feed(world);
   world.step++;
 }
 
-/** A small pile somewhere open, not too close to the nest. */
+/** The colony eats from the larder, hatches a new ant when there is plenty, and loses one when there is nothing. */
+function feed(world: World): void {
+  const a = world.ants;
+  world.appetite += a.count / STEPS_PER_MEAL;
+  while (world.appetite >= 1) {
+    world.appetite--;
+    if (world.stored > 0) {
+      world.stored--;
+    } else if (++world.missed >= MEALS_MISSED_PER_LOSS) {
+      world.missed = 0;
+      if (a.count > MIN_ANTS) a.count--;
+    }
+  }
+  if (world.step % HATCH_EVERY === 0 && a.count < MAX_ANTS && world.stored >= growsAt(world)) {
+    world.stored -= ANT_COST;
+    addAnt(world);
+  }
+}
+
+/** The larder a colony of this size needs before it raises another ant. */
+const growsAt = (world: World) => ANT_COST + world.ants.count * RESERVE_PER_ANT;
+
+/** All the larder can hold: about three meals an ant. Food brought home to a full larder is eaten on the spot. */
+export const larderSize = (world: World) => 3 * growsAt(world);
+
+export type Mood = "starving" | "hungry" | "fed" | "growing";
+
+/** How full the larder is, 0..1. */
+export const larder = (world: World) => Math.min(1, world.stored / larderSize(world));
+
+/** How full the larder has to be, 0..1, before the colony raises new ants. */
+export const GROWS_AT = 1 / 3;
+
+/** How the colony is doing for food. */
+export function mood(world: World): Mood {
+  if (world.stored <= 0) return "starving";
+  const enough = world.stored / growsAt(world);
+  if (enough >= 1) return world.ants.count < MAX_ANTS ? "growing" : "fed";
+  return enough < 0.4 ? "hungry" : "fed";
+}
+
+/** A few crumbs somewhere open, not too close to the nest. */
 function windfall(world: World): void {
   for (let tries = 0; tries < 40; tries++) {
     const x = 8 + random(world) * (W - 16);
     const y = 8 + random(world) * (H - 16);
     if (Math.hypot(x - world.nestX, y - world.nestY) < 40 || world.wall[index(x, y)]) continue;
-    paintCircle(world, x, y, 3, "food");
-    paintCircle(world, x, y, 2, "food");
+    paintCircle(world, x, y, 1.2, "food");
     return;
   }
 }
@@ -228,22 +313,52 @@ function windfall(world: World): void {
 function moveAnt(world: World, i: number): void {
   const a = world.ants;
   const carrying = a.carrying[i] === 1;
+  // An ant that has searched too long walks home empty, still glad of any food on the way.
+  const givenUp = !carrying && a.since[i] > patience(i);
+  const homing = carrying || givenUp;
   let angle = a.angle[i];
   const x = a.x[i];
   const y = a.y[i];
 
-  // Close to home with food: walk straight in.
   const toNest = Math.hypot(world.nestX - x, world.nestY - y);
-  if (carrying && toNest < 10) {
+  if (homing && toNest < 10) {
+    // Close to home: walk straight in.
     angle = Math.atan2(world.nestY - y, world.nestX - x);
   } else {
-    const ahead = smell(world, x + Math.cos(angle) * SENSE_DIST, y + Math.sin(angle) * SENSE_DIST, carrying);
-    const left = smell(world, x + Math.cos(angle - SENSE_ANGLE) * SENSE_DIST, y + Math.sin(angle - SENSE_ANGLE) * SENSE_DIST, carrying);
-    const right = smell(world, x + Math.cos(angle + SENSE_ANGLE) * SENSE_DIST, y + Math.sin(angle + SENSE_ANGLE) * SENSE_DIST, carrying);
-    if (left > ahead && left > right) angle -= TURN;
-    else if (right > ahead && right > left) angle += TURN;
-    else if (ahead < 0) angle += (random(world) < 0.5 ? -1 : 1) * TURN * 2;
-    angle += (random(world) - 0.5) * 2 * WANDER;
+    const ahead = smell(world, x + Math.cos(angle) * SENSE_DIST, y + Math.sin(angle) * SENSE_DIST, homing, !carrying);
+    const left = smell(world, x + Math.cos(angle - SENSE_ANGLE) * SENSE_DIST, y + Math.sin(angle - SENSE_ANGLE) * SENSE_DIST, homing, !carrying);
+    const right = smell(world, x + Math.cos(angle + SENSE_ANGLE) * SENSE_DIST, y + Math.sin(angle + SENSE_ANGLE) * SENSE_DIST, homing, !carrying);
+    const nearWall = ahead < 0 || left < 0 || right < 0;
+
+    // Turn towards the scent, harder the stronger it is. Faint scent is only a nudge.
+    const l = Math.max(0, left);
+    const f = Math.max(0, ahead);
+    const r = Math.max(0, right);
+    const total = l + f + r;
+    const best = Math.max(l, f, r);
+    const homeward = Math.atan2(world.nestY - y, world.nestX - x);
+    // A scent trail doesn't say which way along it to go. An ant heading home can tell: the
+    // home scent weakens away from the nest, so weaker scent ahead means it has turned round.
+    const wrongWay = homing && best < 10 && world.home[index(x, y)] >= SCENT_FLOOR && best < world.home[index(x, y)] * WEAKER_AHEAD;
+    let pull = 0;
+    if (total > 0 && !wrongWay) {
+      pull = Math.min(1, best / SCENT_FULL);
+      angle += TURN * pull * ((r - l) / total) * 1.6;
+    }
+    if (nearWall) {
+      // Steer away from the wall, towards whichever side is open.
+      if (left < 0 && right >= 0) angle += TURN;
+      else if (right < 0 && left >= 0) angle -= TURN;
+      else if (ahead < 0) angle += (random(world) < 0.5 ? -1 : 1) * TURN * 2;
+    } else if (homing) {
+      // In open ground an ant knows roughly which way home is, as real ants do. It leans on
+      // that most when the scent has led it the wrong way.
+      angle += COMPASS * (wrongWay ? 3 : 1 - pull * 0.6) * Math.sin(homeward - angle);
+    } else if (pull > 0 && best < 10) {
+      // A searching ant on a food trail walks it away from the nest.
+      angle -= OUTWARD * pull * Math.sin(homeward - angle);
+    }
+    angle += (random(world) - 0.5) * 2 * WANDER * (1 - pull * 0.55);
   }
 
   const nx = x + Math.cos(angle) * SPEED;
@@ -257,29 +372,37 @@ function moveAnt(world: World, i: number): void {
   }
   a.angle[i] = angle;
 
-  // Lay scent where the ant is, strongest close to where it set out from.
+  // Lay scent where the ant is, strongest close to where it set out from. An ant that has
+  // given up lays none: it doesn't know the way to anything.
   const cell = index(a.x[i], a.y[i]);
   const since = a.since[i];
-  const strength = Math.exp(-since / LAY_FALLOFF);
-  if (carrying) {
-    if (world.trail[cell] < strength) world.trail[cell] = strength;
-  } else if (world.home[cell] < strength) {
-    world.home[cell] = strength;
+  if (!givenUp) {
+    const strength = Math.exp(-since / LAY_FALLOFF);
+    if (carrying) {
+      // Food scent adds up, so a trail is as strong as it is busy.
+      world.trail[cell] = Math.min(1, world.trail[cell] + strength * LAY_FOOD);
+    } else if (world.home[cell] < strength) {
+      world.home[cell] = strength;
+    }
   }
   if (since < 65535) a.since[i] = since + 1;
 
-  // Events: pick food up, or bring it home.
+  // Events: pick food up, bring it home, or come home empty and set out again.
+  const atNest = Math.hypot(a.x[i] - world.nestX, a.y[i] - world.nestY) < NEST_RADIUS;
   if (!carrying && world.food[cell]) {
     world.food[cell]--;
     a.carrying[i] = 1;
     a.since[i] = 0;
     a.angle[i] = angle + Math.PI;
-  } else if (carrying && Math.hypot(a.x[i] - world.nestX, a.y[i] - world.nestY) < NEST_RADIUS) {
+  } else if (carrying && atNest) {
     a.carrying[i] = 0;
     a.since[i] = 0;
     a.angle[i] = angle + Math.PI;
-    world.stored++;
+    if (world.stored < larderSize(world)) world.stored++;
     world.delivered++;
+  } else if (!carrying && atNest && since > 90) {
+    a.since[i] = 0;
+    a.angle[i] = givenUp ? random(world) * Math.PI * 2 : angle + Math.PI;
   }
 }
 
