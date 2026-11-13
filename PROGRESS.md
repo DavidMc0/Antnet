@@ -514,7 +514,7 @@ The user asked for the demo buttons before publishing, and for EPUB buttons on a
   - The four EPUBs, recorded under `files`. Each SHA-256 matched the file on disk.
   - Library v2 `f5c75fa5…cd521` (0.2849 ANT), Cinema v2 `b3d7795e…0c651` (0.2306 ANT), Download Button `161b69a0…e48b6` (0.2665 ANT), Start v3 `bcdc36d7…77ae3` (0.4964 ANT). Start's pointer was updated to v3, and the loader was deployed with `download` in `names.json`.
 - **Checked live** (scratch script, Chromium and Firefox): Start v3 shows the library, cinema and download cards. Cinema's button links to the film. In Firefox, The Time Machine's button opens the Download page in a new tab (the generator's snippets use `target="_blank"`), and the saved EPUB's SHA-256 matches the original. There were no console errors.
-- **Still open:** the `m3.spec.ts:114` ECONNREFUSED failure noted above.
+- **Fixed:** the `m3.spec.ts:114` ECONNREFUSED failure. The test made an unused `page.request.get` from Node, which went to IPv4 `127.0.0.1` while the preview server listens on `::1`. The request is removed, and e2e passes at 78 tests, with 2 skipped.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

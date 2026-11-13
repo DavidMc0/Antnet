@@ -115,10 +115,7 @@ test("pointer sites get the loader's check script, first in <head>", async ({ pa
   await install(page, POINTER, "#view");
   const first = await page.evaluate(() => document.head.firstElementChild?.getAttribute("src"));
   expect(first).toBe("/_autonomi/check.js");
-  const res = await page.request.get(siteUrl(POINTER, "/_autonomi/check.js"));
-  // Fetched outside the page, the request reaches the host, not the worker; in the page it
-  // is the worker's own script.
-  void res;
+  // In the page, the script is the worker's own.
   const type = await page.evaluate(async () => (await fetch("/_autonomi/check.js")).headers.get("Content-Type"));
   expect(type).toContain("javascript");
 });
