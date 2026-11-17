@@ -676,7 +676,27 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   3. **A window sized in seconds:** about 80 s of the playing copy, so 4K holds about 80 MiB, with 16 at a time for 4K. Memory permitting (`deviceMemory`).
   4. **A quality menu:** Auto / 4K 60 fps / 4K / 1080p / 720p. A chosen copy stays fixed, and 4K mostly happens by choice. The look is Fable's.
   5. **Page wording:** the billing line and "How it reaches your screen".
-- **Upload after the user's go-ahead:** both 4K files (or one), then `record file … --cost`, then Cinema, Start v7 and the pointer, then deploy. **Cinema isn't uploaded yet, so it can wait for this.**
+- **The user chose both 4K copies and a quality menu.** Built and committed (`934f1ef`):
+  - **Copies on the page:** `COPIES` in `site.mjs` lists each copy with its codec, size, frame rate and 10 s peak. The page offers the 1080p film and whichever others are recorded.
+  - **Wording:**
+    - "How it reaches your screen" lists each file's size and the total cost.
+    - The billing line says "Up to 4K" once a 4K copy is recorded.
+    - The credit notes the 4K copies.
+  - **Auto rules:**
+    - Phones get only the smallest copy. 4K needs a screen at least 2560 px wide in device pixels, `decodingInfo` smooth (and power-efficient, for 60 fps), and more than 2 GB of device memory.
+    - It starts on the best copy short of 4K and steps one copy at a time.
+    - Up to 1080p, it steps up on a rate not measured for two minutes. 4K needs a measured rate of at least 1.25 × its bitrate (`upFactor4k`): the rate is measured at 8 fetches at a time, against 4K's 16.
+  - **Read-ahead:** about 80 s of the copy playing, between 32 and 96 blocks (48 on devices reporting 4 GB or less, 20 on 2 GB or less), 16 at a time for 4K.
+  - **Opening copies:** the starting copy and the smallest at page load, then the neighbours of the copy playing, each kept ready with its first block and index.
+  - **A switch fetches 10 s of the new copy first** (it was 6 s; `peak` sets the bytes).
+  - **The menu:** a plain `<select>` under the meter: Auto, then each copy. It's remembered per viewer in localStorage (`cinemaQualityChoice`). A chosen copy stays fixed. A copy the browser says it can't decode is offered but disabled, marked "(not on this device)". It needs a design pass in Fable.
+- **Tests:**
+  - The offline menu test (its options, and the choice kept across a reload) passes.
+  - **Live:** choosing 720p mid-film switches to it and keeps it for the next 80 s. The starting copy is right in all three cases.
+  - **2 Mbit/s cap held:** down with a 0.2 s stall, up at 11.0 Mbit/s with 0.4 s.
+  - **Full suite:** unit 216, e2e 80.
+  - **Not yet tested with 4K:** stepping up to 4K, the window and 16 fetches at a time, and decoding. These need the 4K files uploaded, and a screen of 2560 px or wider, which Playwright can emulate.
+- **Upload order:** the two 4K files and `record file … --cost` for each; then `npm run sites`, Cinema and `record cinema`; then Start v7, `record start` and `ant pointer update`; then deploy.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
