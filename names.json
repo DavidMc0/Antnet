@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updated": "2026-11-13T21:21:22Z",
+  "updated": "2026-11-17T22:45:40Z",
   "names": {
     "start": {
       "kind": "p",
@@ -19,7 +19,7 @@
     },
     "cinema": {
       "kind": "i",
-      "address": "d237cceafef5d7b43fa705323acf69b24b43b23de149df6ee3c770f65672aed2",
+      "address": "382a517e4f7a75389baf14f920aac6c836d439b142ba67ec2399f7624a5dbd35",
       "since": "2026-11-12"
     },
     "download": {
