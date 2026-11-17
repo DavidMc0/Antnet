@@ -189,3 +189,24 @@ for (const [name, width, throttle, expected] of [
     await expect(player).toHaveAttribute("data-quality", expected);
   });
 }
+
+// The quality menu while playing: a chosen copy is switched to and kept; Auto takes over again.
+test("Cinema switches to the copy chosen in the menu and keeps it", async ({ page }) => {
+  test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
+  test.setTimeout(240_000);
+  await page.goto(nameUrl("cinema"));
+  const player = page.locator("[data-player]");
+  test.skip(JSON.parse((await player.getAttribute("data-films")) ?? "[]").length < 2, "Cinema lists one copy of the film");
+  await expect(player).toHaveAttribute("data-state", "ready", { timeout: 120_000 });
+  await page.locator("[data-play]").click();
+  await expect(player).toHaveAttribute("data-quality", "1080p", { timeout: 60_000 });
+  await page.waitForTimeout(10_000);
+  await page.locator("[data-quality-pick]").selectOption("720p");
+  await expect(player).toHaveAttribute("data-quality", "720p", { timeout: 60_000 });
+  const at = Number(await player.getAttribute("data-switched-at"));
+  await expect.poll(() => page.evaluate(() => document.querySelector("video")!.currentTime), { timeout: 30_000 }).toBeGreaterThan(at + 2);
+  // Chosen, it stays, however well the network does.
+  await page.waitForTimeout(80_000);
+  await expect(player).toHaveAttribute("data-quality", "720p");
+  expect(Number(await player.getAttribute("data-switches"))).toBe(1);
+});

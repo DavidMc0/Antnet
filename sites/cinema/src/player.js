@@ -4,10 +4,10 @@
 // worker turns the player's byte-range requests into messages this page answers. ReadAhead
 // (readahead.js) answers them, keeping a window ahead of the player fetched several at once.
 //
-// The film comes in two copies, each its own file on Autonomi: 1080p, and 720p at under half
-// the bitrate. The player starts on 720p on phones and slow connections, drops to it when the
-// network can't keep up, and goes back to 1080p when it can (see "Quality" below). With one
-// copy listed, it simply plays that.
+// The film comes in several copies, each its own file on Autonomi, best first: 4K at 60 and
+// 30 frames a second, 1080p and 720p, as many as the page lists. In Auto, the player picks and
+// changes copy itself (see "Quality" below); the page's quality menu can fix one instead. With
+// one copy listed, it simply plays that.
 //
 // States, on [data-player]'s data-state:
 //   preparing  connecting and opening the film; the poster and play button show
@@ -29,40 +29,54 @@ const stored = (key) => {
   }
 };
 
-// Read-ahead, in 1 MiB blocks. Before play, only the opening seconds (about 20 s of the 1080p
-// copy), so a visit that never plays costs little; once playing, 32 blocks (about 80 s of
-// 1080p, three minutes of 720p), 8 blocks (about two of the film's 4 MB records) at a time.
-// 16 at a time filled the window no faster on mainnet and slowed seeks, whose fetches queue
-// behind those already running. Smaller on devices that say they have little memory.
-// sessionStorage "cinemaReadAhead" = "ahead,parallel" overrides it for measuring; "0,1" is
-// the old one-block-at-a-time behaviour.
+// Read-ahead, in 1 MiB blocks. Before play, only the opening seconds (8 blocks, about 20 s of
+// 1080p), so a visit that never plays costs little. Once playing, about 80 s of the copy
+// playing, and at least 32 blocks (80 s of 1080p, three minutes of 720p): 4K needs about 80.
+// At most 96 blocks, 48 on devices that say they have 4 GB or less, 20 on 2 GB or less.
+// 8 blocks (about two of the film's 4 MB records) at a time, 16 for 4K: for 1080p, 16 at a
+// time filled the window no faster on mainnet and slowed seeks, whose fetches queue behind
+// those already running, but 4K needs over twice the rate.
+// sessionStorage "cinemaReadAhead" = "ahead,parallel" fixes both for measuring; "0,1" is the
+// old one-block-at-a-time behaviour.
+const MEMORY_GB = navigator.deviceMemory ?? 8;
 const READ_AHEAD = (() => {
-  const small = (navigator.deviceMemory ?? 8) <= 2;
-  const plan = { before: 8, playing: small ? 20 : 32, parallel: 8 };
+  const plan = { before: 8, seconds: 80, min: 32, max: MEMORY_GB <= 2 ? 20 : MEMORY_GB <= 4 ? 48 : 96, parallel: 8, parallel4k: 16 };
   const [ahead, parallel] = (stored("cinemaReadAhead") ?? "").split(",").map(Number);
   if (Number.isInteger(ahead) && ahead >= 0 && Number.isInteger(parallel) && parallel >= 1) {
-    Object.assign(plan, { before: Math.min(ahead, plan.before), playing: ahead, parallel });
+    Object.assign(plan, { before: Math.min(ahead, plan.before), fixed: ahead, parallel, parallel4k: parallel });
   }
   return plan;
 })();
+const MIB = 1024 * 1024;
 
 // ---- Quality --------------------------------------------------------------------------------
-// Phones (narrow screens) start on 720p and stay there: on a phone screen 1080p looks much the
-// same and costs over twice the data. Elsewhere 1080p, unless the browser says the connection
-// is slow or data-saving is on, or the opening seconds arrive slower than 1.5 times 1080p's
-// bitrate by the time play is pressed.
+// Auto plays only the copies this device suits:
+//   - phones (narrow screens) only the smallest, 720p: on a phone screen more looks much the
+//     same and costs over twice the data;
+//   - 4K only on a screen at least 2560 pixels wide (in device pixels), where the browser says
+//     it decodes it smoothly; 4K at 60 frames a second only where it also decodes it
+//     efficiently (in hardware); and not on devices that say they have 2 GB or less.
+// It starts on the best of them short of 4K (1080p), or the smallest on a phone, when the
+// browser says the connection is slow, or data-saving is on. If the opening seconds arrive
+// slower than 1.5 times that copy's bitrate by the time play is pressed, it starts on the best
+// copy the rate does allow, or the smallest.
 //
-// While playing, it drops to 720p when what's ready ahead stays under 25 s for 3 s, or the
-// video waits on the network for 3 s; not in the 15 s after starting, a seek or a switch,
-// while the window fills. It goes back up when 30 s or more is ready, the network has lately
-// delivered at least twice 1080p's bitrate (or hasn't been measured for two minutes), and the
-// wait since the last drop has passed: 1 min, doubling with each drop, up to 10 min.
+// While playing, it steps down one copy when what's ready ahead stays under 25 s for 3 s, or
+// the video waits on the network for 3 s; not in the 15 s after starting, a seek or a switch,
+// while the window fills. It steps up one when 30 s or more is ready, the network has lately
+// delivered at least twice that copy's bitrate (1.25 times for 4K: see upFactor4k), and the
+// wait since the last step down has passed: 1 min, doubling with each, up to 10 min. Up to
+// 1080p, a rate not measured for two minutes will do; 4K needs one measured. So 4K comes, if
+// at all, after a while at 1080p.
+//
+// A copy chosen in the quality menu stays: no steps either way.
 //
 // A switch throws away what the browser has buffered, so it first fetches the other copy's
 // opening seconds from a point a little ahead (found in that copy's MP4 index), while this
 // copy plays on from what it holds, and switches when playback reaches that point.
 //
-// sessionStorage "cinemaQuality" = "1080p" or "720p" plays only that copy, for measuring.
+// sessionStorage "cinemaQuality" = a copy's label ("1080p", "720p", "4K", ...) plays only that
+// copy, for measuring.
 // "cinemaThrottle" = megabits per second caps how fast blocks arrive, to try all this on a
 // fast connection; Playwright can't slow WebRTC itself. It's read on every block, so a test can
 // change it mid-film.
@@ -76,15 +90,24 @@ const QUALITY = {
   settleMs: 15_000,
   upAheadS: 30,
   upFactor: 2,
+  /**
+   * For 4K, 1.25 times its bitrate, measured at the 8 fetches at a time the copy below uses: 4K
+   * fetches 16 at a time, and on mainnet 8 at a time measured 8 to 12 Mbit/s on a connection
+   * that delivered about 26 with 16.
+   */
+  upFactor4k: 1.25,
   firstBackoffMs: 60_000,
   maxBackoffMs: 600_000,
   /** Seconds of the other copy fetched before a switch to it. */
-  switchStartS: 6,
+  switchStartS: 10,
   /** Longest wait for those seconds before switching anyway. */
   switchWaitMs: 30_000,
-  /** Longest wait, when play is pressed on a slow connection, for the 720p copy to open. */
+  /** Longest wait, when play is pressed on a slow connection, for a smaller copy to open. */
   openWaitMs: 5_000,
+  /** 4K only on screens at least this wide, in device pixels. */
+  screen4kPx: 2560,
 };
+const SCREEN_PX = Math.max(screen.width, screen.height) * (devicePixelRatio || 1);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -111,14 +134,41 @@ const root = document.querySelector("[data-player]");
 if (root) start(root);
 
 function start(root) {
-  /** The copies, best first: { label, address, bytes, type, file, seconds }. */
+  /** The copies, best first: { label, address, bytes, type, file, seconds, width, height, fps, codec, peak }. */
   let copies = JSON.parse(root.dataset.films);
   const forced = copies.find((c) => c.label === stored("cinemaQuality"));
   if (forced) copies = [forced];
-  for (const c of copies) Object.assign(c, { reader: null, opening: null, stream: null, index: null, spans: [], streamed: 0 });
-  const high = copies[0];
-  const low = copies.length > 1 ? copies.at(-1) : null;
+  for (const c of copies) Object.assign(c, { reader: null, opening: null, stream: null, index: null, decode: null, spans: [], streamed: 0 });
+  const smallest = copies.at(-1);
   const bitrate = (c) => (c.bytes * 8) / c.seconds;
+  const is4k = (c) => c.height >= 2160;
+
+  // Can this browser decode each 4K copy, smoothly, efficiently? Until it says, Auto leaves 4K
+  // out. (Every browser that plays the page plays 1080p H.264.)
+  for (const c of copies.filter(is4k)) {
+    navigator.mediaCapabilities
+      ?.decodingInfo({
+        type: "file",
+        video: { contentType: `video/mp4; codecs="${c.codec}"`, width: c.width, height: c.height, framerate: c.fps, bitrate: Math.round(bitrate(c)) },
+      })
+      .then((info) => {
+        c.decode = info;
+        markMenu();
+      })
+      .catch(() => {});
+  }
+  /** Whether Auto may play a copy here. */
+  const suits = (c) => {
+    if (QUALITY.phone) return c === smallest;
+    if (!is4k(c)) return true;
+    return SCREEN_PX >= QUALITY.screen4kPx && MEMORY_GB > 2 && c.decode?.smooth === true && (c.fps <= 30 || c.decode.powerEfficient === true);
+  };
+  /** The copies Auto may play, best first. */
+  const ladder = () => copies.filter(suits);
+  const below = (c) => ladder().find((x) => bitrate(x) < bitrate(c)) ?? null;
+  const above = (c) => ladder().findLast((x) => bitrate(x) > bitrate(c)) ?? null;
+  /** "auto", or the label of a copy chosen in the menu. */
+  let choice = "auto";
 
   const video = root.querySelector("video");
   const playButton = root.querySelector("[data-play]");
@@ -126,6 +176,8 @@ function start(root) {
   const streamedEl = root.querySelector("[data-streamed]");
   const aheadEl = root.querySelector("[data-ahead]");
   const qualityEl = root.querySelector("[data-quality]");
+  const menu = document.querySelector("[data-quality-menu]");
+  const pick = document.querySelector("[data-quality-pick]");
   const visitEl = root.querySelector("[data-visit]");
   const trouble = root.querySelector("[data-trouble]");
   const troubleTitle = root.querySelector("[data-trouble-title]");
@@ -181,12 +233,18 @@ function start(root) {
     });
     return copy.opening;
   }
+  /** Blocks to read ahead of a copy while it plays: about 80 s of it, within bounds. */
+  function aheadFor(copy) {
+    if (READ_AHEAD.fixed !== undefined) return READ_AHEAD.fixed;
+    const blocks = Math.ceil((READ_AHEAD.seconds * bitrate(copy)) / 8 / MIB);
+    return Math.min(READ_AHEAD.max, Math.max(READ_AHEAD.min, blocks));
+  }
   function streamOf(copy, ahead) {
     copy.stream ??= new ReadAhead(copy.reader, {
       type: copy.type,
       name: copy.file,
       ahead,
-      parallel: READ_AHEAD.parallel,
+      parallel: is4k(copy) ? READ_AHEAD.parallel4k : READ_AHEAD.parallel,
       onFetched: (s, l) => addSpan(copy, s, l),
       // Until this copy has measured the network, go by what the other one found.
       rateHint: () => copies.find((c) => c !== copy && c.stream)?.stream.rate ?? null,
@@ -213,6 +271,52 @@ function start(root) {
     root.setAttribute("data-quality", current.label);
   }
 
+  // ---- The quality menu -----------------------------------------------------------------------
+  // Auto, or one copy fixed. A copy this browser says it can't decode is offered but marked.
+  function markMenu() {
+    if (!pick) return;
+    for (const option of [...pick.options]) {
+      const c = copies.find((x) => x.label === option.value);
+      if (!c) {
+        if (option.value !== "auto") option.remove();
+        continue;
+      }
+      option.textContent = c.decode?.supported === false ? `${c.label} (not on this device)` : c.label;
+      option.disabled = c.decode?.supported === false;
+    }
+  }
+  if (menu && pick && copies.length > 1) {
+    try {
+      const saved = localStorage.getItem("cinemaQualityChoice");
+      if (saved && copies.some((c) => c.label === saved)) choice = saved;
+    } catch {
+      // No storage: Auto.
+    }
+    pick.value = choice;
+    root.setAttribute("data-quality-choice", choice);
+    markMenu();
+    menu.hidden = false;
+    pick.addEventListener("change", async () => {
+      choice = pick.value;
+      root.setAttribute("data-quality-choice", choice);
+      try {
+        localStorage.setItem("cinemaQualityChoice", choice);
+      } catch {
+        // Remembered for this visit only.
+      }
+      lastChange = performance.now();
+      const copy = copies.find((c) => c.label === choice);
+      if (!current) return;
+      if (!copy) {
+        // Back to Auto: its rules take over from the copy playing.
+        if (started) readyNeighbours();
+        return;
+      }
+      await open(copy).catch(() => {});
+      if (copy.reader) void changeTo(copy, "chosen");
+    });
+  }
+
   // ---- Switching ----------------------------------------------------------------------------
   let lastChange = 0; // the last start, seek or switch
   let lowTicks = 0;
@@ -226,6 +330,15 @@ function start(root) {
   function standby(copy) {
     streamOf(copy, 0);
     indexOf(copy).catch(() => {});
+  }
+  /** Open, and ready for a switch, the copies one step either side of the one playing. */
+  function readyNeighbours() {
+    if (choice !== "auto") return;
+    for (const c of [above(current), below(current)]) {
+      if (!c) continue;
+      if (c.reader) standby(c);
+      else open(c).catch((e) => console.warn(`[cinema] couldn't open the ${c.label} copy`, e));
+    }
   }
 
   /** A copy's MP4 index, read once from the start of the file, where both copies keep it. */
@@ -250,8 +363,8 @@ function start(root) {
     const from = current;
     from.stream.hold();
     const stream = streamOf(copy, 0);
-    // 1080p varies more around its average than 720p does: allow it twice as much.
-    const startBytes = (QUALITY.switchStartS * bitrate(copy) * (copy === high ? 2 : 1.2)) / 8;
+    // At the copy's peak rate: some vary far more around their average than others.
+    const startBytes = (QUALITY.switchStartS * Math.max(bitrate(copy), (copy.peak ?? 0) * 1e6)) / 8;
     let index = null;
     try {
       index = await indexOf(copy);
@@ -271,7 +384,7 @@ function start(root) {
       let ready = null;
       // And the window after it: the copy playing fetches nothing more meanwhile, so the
       // connection is this copy's.
-      stream.prefetch(offset - 128 * 1024, offset + startBytes, READ_AHEAD.playing).then(
+      stream.prefetch(offset - 128 * 1024, offset + startBytes, aheadFor(copy)).then(
         () => (ready = true),
         () => (ready = false),
       );
@@ -294,7 +407,7 @@ function start(root) {
     const resume = started && !video.paused;
     current.stream?.setAhead(0);
     console.info(`[cinema] ${current.label} -> ${copy.label}: ${why}`);
-    if (copy === low) {
+    if (started && bitrate(copy) < bitrate(current) && choice === "auto") {
       upAfter = performance.now() + backoff;
       backoff = Math.min(backoff * 2, QUALITY.maxBackoffMs);
     }
@@ -304,10 +417,11 @@ function start(root) {
     root.setAttribute("data-switched-at", time.toFixed(1));
     lastChange = performance.now();
     lowTicks = 0;
-    video.src = streamOf(copy, started ? READ_AHEAD.playing : READ_AHEAD.before).url;
+    video.src = streamOf(copy, started ? aheadFor(copy) : READ_AHEAD.before).url;
     if (time > 0) video.addEventListener("loadedmetadata", () => (video.currentTime = time), { once: true });
     if (resume) video.play().catch(() => {});
     showQuality();
+    if (started) readyNeighbours();
   }
 
   // Once a second while playing: show what's ready ahead, and change copy if it's called for.
@@ -318,17 +432,24 @@ function start(root) {
     aheadEl.textContent = `${Math.round(ahead)} s`;
     aheadEl.closest(".meter-ahead").hidden = false;
 
-    if (!low || pending || video.paused || performance.now() - lastChange < QUALITY.settleMs) return;
+    if (choice !== "auto" || pending || video.paused || performance.now() - lastChange < QUALITY.settleMs) return;
     const nearEnd = video.currentTime + ahead >= video.duration - 1;
-    if (current === high && low.reader) {
-      lowTicks = ahead < QUALITY.lowAheadS && !nearEnd ? lowTicks + 1 : 0;
-      if (lowTicks >= QUALITY.lowAheadTicks) void changeTo(low, `${Math.round(ahead)} s ready ahead`);
-    } else if (current === low && high.reader && !QUALITY.phone && performance.now() >= upAfter) {
-      const rate = low.stream.rate;
-      if (ahead >= QUALITY.upAheadS && (rate === null || rate * 8 >= QUALITY.upFactor * bitrate(high))) {
-        void changeTo(high, rate === null ? "plenty ready ahead" : `network at ${((rate * 8) / 1e6).toFixed(1)} Mbit/s`);
-      }
+    const down = below(current);
+    lowTicks = down && ahead < QUALITY.lowAheadS && !nearEnd ? lowTicks + 1 : 0;
+    if (lowTicks >= QUALITY.lowAheadTicks && down.reader) {
+      void changeTo(down, `${Math.round(ahead)} s ready ahead`);
+      return;
     }
+    // A copy no longer suited (4K, once the browser has said it can't decode it smoothly).
+    if (!suits(current) && down?.reader) {
+      void changeTo(down, "not suited to this device");
+      return;
+    }
+    const up = above(current);
+    if (!up?.reader || performance.now() < upAfter || ahead < QUALITY.upAheadS) return;
+    const rate = current.stream.rate;
+    const enough = rate === null ? !is4k(up) : rate * 8 >= (is4k(up) ? QUALITY.upFactor4k : QUALITY.upFactor) * bitrate(up);
+    if (enough) void changeTo(up, rate === null ? "plenty ready ahead" : `network at ${((rate * 8) / 1e6).toFixed(1)} Mbit/s`);
   }, 1000);
 
   // For tests: a "cinema-switch" event on the player, with a copy's label as its detail,
@@ -338,14 +459,15 @@ function start(root) {
     if (copy) void changeTo(copy, "asked to");
   });
 
-  // A long wait on the network while playing 1080p drops to 720p straight away.
+  // A long wait on the network steps down a copy straight away.
   let stallTimer;
   video.addEventListener("waiting", () => {
     clearTimeout(stallTimer);
-    if (!started || !low || current !== high) return;
+    if (!started || choice !== "auto" || !below(current)) return;
     stallTimer = setTimeout(() => {
-      if (current === high && low.reader && performance.now() - lastChange >= QUALITY.settleMs) {
-        void changeTo(low, "waited on the network");
+      const down = below(current);
+      if (choice === "auto" && down?.reader && performance.now() - lastChange >= QUALITY.settleMs) {
+        void changeTo(down, "waited on the network");
       }
     }, QUALITY.stallMs);
   });
@@ -399,9 +521,12 @@ function start(root) {
       t = performance.now();
       // The loader's worker carries the media bridge; without it in control, nothing can answer.
       if (!navigator.serviceWorker.controller) throw new Error("the site's service worker isn't running; reload the page");
-      const first = low && (QUALITY.phone || QUALITY.slowNetwork) ? low : high;
-      const other = copies.find((c) => c !== first);
-      // Open both at once. Play needs only one; if the first can't be opened, the other will do.
+      // The copy chosen, or Auto's start: the best short of 4K, or the smallest.
+      const chosen = copies.find((c) => c.label === choice);
+      const first = chosen ?? (QUALITY.phone || QUALITY.slowNetwork ? smallest : (ladder().find((c) => !is4k(c)) ?? smallest));
+      // Open the smallest too, for a slow start. Play needs only one; if the first can't be
+      // opened, the smallest will do.
+      const other = first !== smallest ? smallest : null;
       const [a, b] = [open(first), other && open(other)];
       b?.catch((e) => console.warn(`[cinema] couldn't open the ${other.label} copy`, e));
       current = await a.catch((e) => (b ? b : Promise.reject(e)));
@@ -429,12 +554,14 @@ function start(root) {
   // ---- Play -------------------------------------------------------------------------------
   async function play() {
     pressedAt ||= performance.now();
-    // The opening seconds came in slowly: start on 720p rather than stall in the first minute.
+    // The opening seconds came in slowly: start on a copy the rate allows, or the smallest,
+    // rather than stall in the first minute.
     const rate = current.stream.rate;
-    if (!started && current === high && low && rate !== null && rate * 8 < QUALITY.startFactor * bitrate(high)) {
-      // The 720p copy may still be opening: it is worth a short wait.
-      if (!low.reader) await Promise.race([low.opening?.catch(() => {}), sleep(QUALITY.openWaitMs)]);
-      if (low.reader) switchTo(low, `opening seconds at ${((rate * 8) / 1e6).toFixed(1)} Mbit/s`);
+    if (!started && choice === "auto" && current !== smallest && rate !== null && rate * 8 < QUALITY.startFactor * bitrate(current)) {
+      const fits = ladder().find((c) => bitrate(c) < bitrate(current) && rate * 8 >= QUALITY.startFactor * bitrate(c)) ?? smallest;
+      // It may still be opening: it is worth a short wait.
+      if (!fits.reader) await Promise.race([open(fits).catch(() => {}), sleep(QUALITY.openWaitMs)]);
+      if (fits.reader) switchTo(fits, `opening seconds at ${((rate * 8) / 1e6).toFixed(1)} Mbit/s`);
     }
     say("Fetching the first pieces…");
     setState("waiting");
@@ -472,9 +599,9 @@ function start(root) {
       started = true;
       lastChange = performance.now();
       timings.first = performance.now() - pressedAt;
-      current.stream.setAhead(READ_AHEAD.playing);
-      // Now the other copy may fetch its first block, ready for a switch.
-      for (const c of copies) if (c !== current && c.reader) standby(c);
+      current.stream.setAhead(aheadFor(current));
+      // Now the copies either side may fetch their first block, ready for a switch.
+      readyNeighbours();
       showVisit();
       video.controls = true;
     }

@@ -436,6 +436,23 @@ h1 {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+/* The quality menu: plain for now, in the readout's own colours. */
+.quality-pick {
+  color: var(--muted);
+}
+.quality-pick select {
+  margin-left: 0.3rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--house-lift);
+  color: var(--ink);
+  font: inherit;
+}
+.quality-pick select:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
 
 /* ---- The claim ------------------------------------------------------------------------------ */
 

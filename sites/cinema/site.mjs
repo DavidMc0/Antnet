@@ -37,12 +37,21 @@ const FILM = {
 };
 
 /**
- * The 720p copy the player falls back to (src/player.js, "Quality"): made from the 1080p file
- * with ffmpeg as PROGRESS.md records, uploaded as a public file and recorded with
- * `node sites/build.mjs record file publish/media/big-buck-bunny-720p.mp4 <address> --cost "<n> ANT"`.
- * Until it's recorded, the page offers the 1080p copy alone.
+ * The copies of the film, best first (src/player.js, "Quality"). Each is its own public file,
+ * made as PROGRESS.md records and recorded with
+ * `node sites/build.mjs record file publish/media/<file> <address> --cost "<n> ANT"`; the page
+ * offers the 1080p film and those recorded. `codec` and the size and frame rate let the player
+ * ask the browser whether it can decode a copy smoothly; `peak` is its busiest 10 s, in Mbit/s.
  */
-const LOW_FILE = "big-buck-bunny-720p.mp4";
+const COPIES = [
+  { label: "4K 60 fps", prose: "4K at 60 frames a second", file: "big-buck-bunny-2160p60.mp4", width: 3840, height: 2160, fps: 60, codec: "avc1.640034", peak: 18.2 },
+  { label: "4K", prose: "4K", file: "big-buck-bunny-2160p30.mp4", width: 3840, height: 2160, fps: 30, codec: "avc1.640033", peak: 16.5 },
+  { label: "1080p", prose: "1080p", file: FILM.file, width: 1920, height: 1080, fps: 30, codec: "avc1.640029", peak: 6.7 },
+  { label: "720p", prose: "720p", file: "big-buck-bunny-720p.mp4", width: 1280, height: 720, fps: 30, codec: "avc1.640028", peak: 1.7 },
+];
+
+const NUMBERS = ["", "one", "two", "three", "four", "five"];
+const andList = (items) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 
 const megabytes = (n) => `${Math.round(n / 1e6)} MB`;
 const short = (address) => `${address.slice(0, 4)}…${address.slice(-4)}`;
@@ -56,16 +65,21 @@ let playerFiles;
 const player = () =>
   (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player", licences: true }));
 
-const howStored = (low) =>
-  low
-    ? [
-        "The video has its own address",
-        `It is a ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records, with a ${megabytes(low.bytes)} copy in 720p for slower connections. Each was uploaded once${low.cost ? `, for ${FILM.cost} and ${low.cost}` : ""}, and nothing more is paid however many people watch.`,
-      ]
-    : [
-        "The video has its own address",
-        `It is one ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records. It was uploaded once, for ${FILM.cost}, and nothing more is paid however many people watch.`,
-      ];
+/** "How it reaches your screen", first point: what is stored, and what it cost. */
+function howStored(films) {
+  if (films.length === 1) {
+    return [
+      "The video has its own address",
+      `It is one ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records. It was uploaded once, for ${FILM.cost}, and nothing more is paid however many people watch.`,
+    ];
+  }
+  const costs = films.map((f) => Number.parseFloat(f.cost));
+  const total = costs.every(Number.isFinite) ? `, for ${costs.reduce((a, b) => a + b, 0).toFixed(2)} ANT in all` : "";
+  return [
+    "Each quality has its own address",
+    `The video is ${NUMBERS[films.length] ?? films.length} files on the Autonomi network, one for each quality: ${andList(films.map((f) => `${megabytes(f.bytes)} in ${f.prose}`))}. Each was uploaded once${total}, and nothing more is paid however many people watch.`,
+  ];
+}
 
 const HOW = [
   [
@@ -99,15 +113,25 @@ export async function build(ctx) {
   });
   files.set(BUTTON_CSS, buttons.css());
 
-  // The copies the player may play, best first.
-  const recorded = ctx.files?.[LOW_FILE];
-  const low = recorded && { label: "720p", address: recorded.address, bytes: recorded.bytes, cost: recorded.cost };
-  const films = [
-    { label: "1080p", address: FILM.address, bytes: FILM.bytes, type: FILM.type, file: FILM.file, seconds: FILM.seconds },
-    ...(low ? [{ label: low.label, address: low.address, bytes: low.bytes, type: FILM.type, file: LOW_FILE, seconds: FILM.seconds }] : []),
-  ];
+  // The copies the player may play, best first: the 1080p film and those recorded.
+  const films = COPIES.flatMap((c) => {
+    const at = c.file === FILM.file ? { address: FILM.address, bytes: FILM.bytes, cost: FILM.cost } : ctx.files?.[c.file];
+    return at ? [{ ...c, ...at, type: FILM.type, seconds: FILM.seconds }] : [];
+  });
+  const has = (label) => films.some((f) => f.label === label);
+  const has4k = films.some((f) => f.height === 2160);
+  // What the player needs, and no more (no costs or prose).
+  const playerFilms = films.map(({ label, address, bytes, type, file, seconds, width, height, fps, codec, peak }) => ({
+    label, address, bytes, type, file, seconds, width, height, fps, codec, peak,
+  }));
+  const menu =
+    films.length > 1
+      ? `<p class="quality-pick" data-quality-menu hidden><label for="quality">Quality</label> <select id="quality" data-quality-pick><option value="auto">Auto</option>${films
+          .map((f) => `<option value="${ctx.esc(f.label)}">${ctx.esc(f.label)}</option>`)
+          .join("")}</select></p>`
+      : "";
 
-  const how = [howStored(low), ...HOW].map(
+  const how = [howStored(films), ...HOW].map(
     ([title, text], i) => `    <li>
       <span class="how-n">${i + 1}</span>
       <h3>${ctx.esc(title)}</h3>
@@ -138,12 +162,12 @@ ${ctx.headTags}
 <section class="feature" aria-labelledby="film-h">
   <p class="now">Now showing</p>
   <h1 id="film-h">${ctx.esc(FILM.title)}</h1>
-  <p class="billing">2008 <span aria-hidden="true">·</span> ${ctx.esc(FILM.runtime)} <span aria-hidden="true">·</span> 1080p <span aria-hidden="true">·</span> Blender Foundation</p>
+  <p class="billing">2008 <span aria-hidden="true">·</span> ${ctx.esc(FILM.runtime)} <span aria-hidden="true">·</span> ${has4k ? "Up to 4K" : "1080p"} <span aria-hidden="true">·</span> Blender Foundation</p>
 
   <!-- The screen. player.js connects and opens the film as soon as the page loads, behind the
        poster, so pressing play starts it quickly. The film's details are here, not in the script. -->
   <div class="screen" data-player data-state="preparing"
-       data-films="${ctx.esc(JSON.stringify(films))}">
+       data-films="${ctx.esc(JSON.stringify(playerFilms))}">
     <div class="frame">
       <video class="film" playsinline preload="metadata" poster="/poster.webp" aria-label="${ctx.esc(FILM.title)}"></video>
       <button class="play" type="button" data-play aria-label="Play ${ctx.esc(FILM.title)}">${PLAY}</button>
@@ -156,6 +180,7 @@ ${ctx.headTags}
     </div>
     <div class="readout">
       <p class="meter">Streamed so far: <strong data-streamed>nothing yet</strong> <span class="meter-of">from the Autonomi network</span><span class="meter-ahead" hidden><span class="meter-sep"> · </span><strong data-ahead></strong> ready ahead, in <strong data-quality></strong></span></p>
+      ${menu}
       <p class="visit" data-visit hidden></p>
     </div>
   </div>
@@ -190,7 +215,7 @@ ${FINE_PRINT.map((line) => `    <li>${ctx.esc(line)}</li>`).join("\n")}
 </main>
 
 <footer class="credits">
-  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The 5.1 soundtrack was left out; nothing else was changed${low ? ". The 720p copy was re-encoded from it" : ""}.</p>
+  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The 5.1 soundtrack was left out; nothing else was changed.${has("720p") ? " The 720p copy was re-encoded from it." : ""}${has4k ? " The 4K copies are Blender's own 2160p releases, likewise without the 5.1 soundtrack." : ""}</p>
   <p class="credit-site">${ctx.published ? `This page was published ${ctx.longDate(ctx.published)}.` : "This page was published once."} Paid for once. No renewal.</p>
   ${ctx.receipt}
 </footer>

@@ -68,3 +68,18 @@ test("the film streams from mainnet: plays, counts what it streamed, and seeks",
   await page.goto(nameUrl("cinema", "/_autonomi/"));
   await expect(page.getByTestId("streams")).toContainText("big-buck-bunny-1080p.mp4");
 });
+
+test("the quality menu offers Auto and each copy of the film", async ({ page }) => {
+  await openName(page, "cinema", "[data-player]");
+  const films = JSON.parse((await page.locator("[data-player]").getAttribute("data-films")) ?? "[]") as { label: string }[];
+  test.skip(films.length < 2, "Cinema lists one copy of the film, so it has no menu");
+  const pick = page.locator("[data-quality-pick]");
+  await expect(pick).toBeVisible();
+  await expect(pick.locator("option")).toHaveText(["Auto", ...films.map((f) => f.label)]);
+  await expect(pick).toHaveValue("auto");
+  // A choice is kept for this visitor.
+  await pick.selectOption(films.at(-1)!.label);
+  await expect(page.locator("[data-player]")).toHaveAttribute("data-quality-choice", films.at(-1)!.label);
+  await page.reload();
+  await expect(page.locator("[data-quality-pick]")).toHaveValue(films.at(-1)!.label);
+});
