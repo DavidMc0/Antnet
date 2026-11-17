@@ -90,6 +90,16 @@
       "address": "76bb918cfaba09728124939d6ff303cedc8bcc999b6ba229341a052c3d1cde51",
       "bytes": 123705804,
       "cost": "2.89 ANT"
+    },
+    "big-buck-bunny-2160p30.mp4": {
+      "address": "7cc0b9162b6e0ca003239ed302aa4c73a9097614a07cc3d041d2d61e31c81359",
+      "bytes": 633016449,
+      "cost": "21.67 ANT"
+    },
+    "big-buck-bunny-2160p60.mp4": {
+      "address": "32e07381fff6705fbd4f5e99901b3e96ded52c7d52180809bc546984872cd28a",
+      "bytes": 673223862,
+      "cost": "0.5789 ANT"
     }
   }
 }

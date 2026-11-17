@@ -697,6 +697,23 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **Full suite:** unit 216, e2e 80.
   - **Not yet tested with 4K:** stepping up to 4K, the window and 16 fetches at a time, and decoding. These need the 4K files uploaded, and a screen of 2560 px or wider, which Playwright can emulate.
 - **Upload order:** the two 4K files and `record file … --cost` for each; then `npm run sites`, Cinema and `record cinema`; then Start v7, `record start` and `ant pointer update`; then deploy.
+- **The 4K uploads (2026-11-17):** the user uploaded Blender's **original** files, not the prepared ones. They still have the AC-3 track, and both audio tracks are flagged default; the 60 fps file still says level 5.1.
+  - 4K 30 fps: `7cc0b916…1359`, 156 records, 21.67 ANT, SHA-256 `37f0ff25…5520`.
+  - 4K 60 fps: `32e07381…d28a`, 165 records, **0.5789 ANT** in 110 s. Most likely most of its chunks were already on the network: self-encryption is convergent, so the same file gives the same chunks, and this Blender file is a common test upload. Not confirmed.
+  - **Recorded as uploaded.** `publish/media/big-buck-bunny-2160p30.mp4` and `-2160p60.mp4` are now copies of the originals, so the sizes recorded are exact. The prepared files are kept as `big-buck-bunny-2160p30-without-ac3.mp4` and `big-buck-bunny-2160p60-prepared.mp4`.
+- **Found with the originals:** they end with a 58-byte `free` box after `mdat`. Chrome (its FFmpeg demuxer) reads the file's last bytes on opening it, before playing. Three effects, the first two now fixed:
+  1. **The tail read moved the read-ahead window to the end of the file,** dropping what had been fetched ahead of a switch. Fixed: a read of the last block doesn't move the window, and the last block is kept.
+  2. **A switch waited on the tail** while playback stalled. Fixed:
+     - standby copies and the starting copy fetch the tail ahead (`primeTail`, using `mediaEnd` in `mp4index.js`, unit-tested);
+     - a switch waits for it while the current copy plays on.
+     - Also, Chrome reads the first 3 MiB of media data before seeking, so standby copies now fetch and keep the first 3 blocks (`HEAD_BLOCKS`). That also removes the wasted block 1 read on every switch, 720p included.
+  3. **The 4K 30 fps file's last record takes 29–30 s to arrive,** in all four runs (the 60 fps file's took about 4 s). So 4K 30 fps chosen from the start shows its first frame after about 30 s. That's the network, and nothing on the page can shorten it. The prepared files end with `mdat`, so a player never reads their tail.
+- **Live 4K results (fixture loader, Chromium, this PC):**
+  - **4K 30 fps alone:** 3840×2160 with no stalls and 0 dropped frames in 60 s, holding 37–78 s ahead. First frame 30 s after play (the tail).
+  - **4K 60 fps alone:** one run failed to get going (5 s ahead, 100 dropped frames; probably the network). A traced run played normally: 41–57 s ahead, 1 dropped frame in 2,400, software decoding fine on this PC.
+  - **Auto on an emulated 2560 px screen:** it stepped up from 1080p to 4K after measuring 19.5 Mbit/s and played on.
+  - **Forced switch 1080p → 4K, traced:** seamless; every block the player asked for was already held.
+- **Decision for the user:** re-upload the prepared 4K 30 fps file (`big-buck-bunny-2160p30-without-ac3.mp4`, about 21 ANT) to remove the 30 s start? Or wait to see whether that record gets faster? The 60 fps original's tail is quick, so it can stay unless its level label causes trouble on real hardware.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

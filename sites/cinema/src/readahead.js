@@ -22,6 +22,12 @@ const RETRY_AFTER_MS = 5_000;
 /** Blocks kept behind the player's position, for a small seek back. */
 const KEEP_BEHIND = 2;
 /**
+ * Blocks kept from the start of the file, once fetched. A player opening the file reads its
+ * index there, then the first megabytes of media data to check the streams, before it seeks
+ * where it's going: Chrome read 3 MiB of the 4K copy before seeking.
+ */
+export const HEAD_BLOCKS = 3;
+/**
  * Seconds of data to keep in flight. More only queues on a slow link, and fetches already
  * started can't be called back: after a switch to the other copy, they would hold up its first
  * blocks. With fewer blocks in flight the rate measured falls too, since each record takes 1.5
@@ -187,9 +193,12 @@ export class ReadAhead {
     }
     // A player opening the file reads its header from the start, and the worker reads on into
     // the next block before the player seeks away. Those reads don't move the window when it
-    // is already further on: they come after a switch to this copy, or a seek.
-    const header = start < 2 * BLOCK && this.#position >= 2 * BLOCK;
-    if (!header) this.#position = end;
+    // is already further on: they come after a switch to this copy, or a seek. Nor does a read
+    // of the last block, which a player opening some files makes (see mp4index.js, mediaEnd).
+    const lastStart = this.#lastBlock * BLOCK;
+    const header = start < (HEAD_BLOCKS + 1) * BLOCK && this.#position >= (HEAD_BLOCKS + 1) * BLOCK;
+    const tail = start >= lastStart && this.#position < lastStart;
+    if (!header && !tail) this.#position = end;
     return this.#assemble(start, end);
   }
 
@@ -271,9 +280,10 @@ export class ReadAhead {
       if (failedAt !== undefined && now - failedAt < RETRY_AFTER_MS) continue;
       this.#block(i);
     }
-    // Keep the first block: players go back to the file's header after a seek.
+    // Keep the first blocks and the last: players read them on opening the file (see
+    // HEAD_BLOCKS), and the tail of some files too.
     for (const [i, entry] of this.#blocks) {
-      if (entry.bytes && i !== 0 && (i < from - KEEP_BEHIND || i > to)) this.#blocks.delete(i);
+      if (entry.bytes && i >= HEAD_BLOCKS && i !== this.#lastBlock && (i < from - KEEP_BEHIND || i > to)) this.#blocks.delete(i);
     }
   }
 }

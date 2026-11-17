@@ -41,6 +41,16 @@ export function findMoov(head) {
   return null;
 }
 
+/**
+ * Where the media data ends, from the first bytes of the file: the end of its mdat box, or null
+ * when the mdat header isn't within them. A file with more after it (Blender's own releases
+ * end with a small free box) has a tail a player reads on opening the file.
+ */
+export function mediaEnd(head) {
+  const box = boxes(head, 0, head.byteLength).find((b) => b.type === "mdat");
+  return box ? box.end : null;
+}
+
 /** The video track's sample tables, from the whole moov box (its header included). */
 export function parseMoov(moov) {
   const view = new DataView(moov.buffer, moov.byteOffset, moov.byteLength);

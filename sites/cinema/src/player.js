@@ -17,8 +17,8 @@
 //   trouble    something failed; says what, with "Try again"
 
 import { AutonomiClient } from "@withautonomi/ant-browser-sdk";
-import { findMoov, keyframeOffset, parseMoov } from "./mp4index.js";
-import { ReadAhead } from "./readahead.js";
+import { findMoov, keyframeOffset, mediaEnd, parseMoov } from "./mp4index.js";
+import { HEAD_BLOCKS, ReadAhead } from "./readahead.js";
 
 /** sessionStorage, read safely: a private window or blocked storage just means no override. */
 const stored = (key) => {
@@ -138,7 +138,7 @@ function start(root) {
   let copies = JSON.parse(root.dataset.films);
   const forced = copies.find((c) => c.label === stored("cinemaQuality"));
   if (forced) copies = [forced];
-  for (const c of copies) Object.assign(c, { reader: null, opening: null, stream: null, index: null, decode: null, spans: [], streamed: 0 });
+  for (const c of copies) Object.assign(c, { reader: null, opening: null, stream: null, index: null, tail: null, decode: null, spans: [], streamed: 0 });
   const smallest = copies.at(-1);
   const bitrate = (c) => (c.bytes * 8) / c.seconds;
   const is4k = (c) => c.height >= 2160;
@@ -326,10 +326,34 @@ function start(root) {
   /** The copy being fetched ahead of a switch to it. */
   let pending = null;
 
-  /** Ready a copy not playing for a switch: its first block, which holds its index. */
+  /**
+   * Ready a copy not playing for a switch: the start of the file, which holds its index and
+   * which a player reads on opening it, and its tail if it has one.
+   */
   function standby(copy) {
     streamOf(copy, 0);
+    copy.stream.read(0, Math.min(HEAD_BLOCKS * MIB, copy.bytes)).catch(() => {});
     indexOf(copy).catch(() => {});
+    primeTail(copy);
+  }
+  /**
+   * Fetch a copy's tail, if it has anything after its media data: a player reads it on opening
+   * the file, and would wait for it (one record, found from scratch: up to 20 s on mainnet).
+   */
+  function primeTail(copy) {
+    // The first block, which the copy holds anyway: the media data starts after the index,
+    // which in the 4K copies is up to 431 kB. A switch waits for this (copy.tail).
+    copy.tail ??= copy.stream
+      .read(0, MIB)
+      .then((head) => {
+        const end = mediaEnd(head);
+        if (end !== null && end < copy.bytes) return copy.stream.read(end, copy.bytes - end);
+      })
+      .then(
+        () => true,
+        () => false,
+      );
+    return copy.tail;
   }
   /** Open, and ready for a switch, the copies one step either side of the one playing. */
   function readyNeighbours() {
@@ -383,8 +407,8 @@ function start(root) {
       // Audio sits beside the video in the file: start a little before the keyframe.
       let ready = null;
       // And the window after it: the copy playing fetches nothing more meanwhile, so the
-      // connection is this copy's.
-      stream.prefetch(offset - 128 * 1024, offset + startBytes, aheadFor(copy)).then(
+      // connection is this copy's. And the tail, which a player opening some files reads.
+      Promise.all([stream.prefetch(offset - 128 * 1024, offset + startBytes, aheadFor(copy)), primeTail(copy)]).then(
         () => (ready = true),
         () => (ready = false),
       );
@@ -454,9 +478,11 @@ function start(root) {
 
   // For tests: a "cinema-switch" event on the player, with a copy's label as its detail,
   // switches to that copy as the rules would.
-  root.addEventListener("cinema-switch", (event) => {
+  root.addEventListener("cinema-switch", async (event) => {
     const copy = copies.find((c) => c.label === event.detail);
-    if (copy) void changeTo(copy, "asked to");
+    if (!copy) return;
+    await open(copy).catch(() => {});
+    if (copy.reader) void changeTo(copy, "asked to");
   });
 
   // A long wait on the network steps down a copy straight away.
@@ -534,6 +560,7 @@ function start(root) {
       showVisit();
       // Widened once the video plays: until then the player's first blocks come first.
       video.src = streamOf(current, READ_AHEAD.before).url;
+      primeTail(current);
       showQuality();
       if (wantPlay) return play();
       setState("ready");
@@ -541,7 +568,7 @@ function start(root) {
     } catch (e) {
       console.error("[cinema] couldn't open the film", e);
       current = null;
-      for (const c of copies) Object.assign(c, { opening: null, reader: null, stream: (c.stream?.close(), null) });
+      for (const c of copies) Object.assign(c, { opening: null, reader: null, index: null, tail: null, stream: (c.stream?.close(), null) });
       fail(
         client ? "The video couldn't be found just now" : "Couldn't reach the Autonomi network",
         client

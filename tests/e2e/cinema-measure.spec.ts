@@ -210,3 +210,65 @@ test("Cinema switches to the copy chosen in the menu and keeps it", async ({ pag
   await expect(player).toHaveAttribute("data-quality", "720p");
   expect(Number(await player.getAttribute("data-switches"))).toBe(1);
 });
+
+// 4K (needs a 4K copy recorded). CINEMA_4K picks the copy's label, "4K" by default.
+const LABEL_4K = process.env.CINEMA_4K ?? "4K";
+
+test(`Cinema plays the ${LABEL_4K} copy from mainnet`, async ({ page }) => {
+  test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
+  test.setTimeout(300_000);
+  await page.addInitScript((label) => sessionStorage.setItem("cinemaQuality", label), LABEL_4K);
+  await page.addInitScript(() => {
+    const w = window as unknown as { stalls: number[]; since: number };
+    w.stalls = [];
+    w.since = 0;
+    document.addEventListener("waiting", () => (w.since ||= performance.now()), true);
+    document.addEventListener("playing", () => {
+      if (w.since) w.stalls.push(Math.round((performance.now() - w.since) / 100) / 10);
+      w.since = 0;
+    }, true);
+  });
+  await page.goto(nameUrl("cinema"));
+  const player = page.locator("[data-player]");
+  test.skip(!(await player.getAttribute("data-films"))?.includes(`"label":"${LABEL_4K}"`), `no ${LABEL_4K} copy recorded`);
+  await expect(player).toHaveAttribute("data-state", "ready", { timeout: 120_000 });
+  await page.waitForTimeout(5_000);
+  await page.locator("[data-play]").click();
+  await expect(player).toHaveAttribute("data-state", "playing", { timeout: 90_000 });
+  await expect(player).toHaveAttribute("data-quality", LABEL_4K);
+  const ahead: number[] = [];
+  for (let s = 0; s < 60; s += 5) {
+    await page.waitForTimeout(5000);
+    ahead.push(Number(await player.getAttribute("data-ahead-seconds")));
+  }
+  const v = await page.evaluate(() => {
+    const el = document.querySelector("video")!;
+    const q = el.getVideoPlaybackQuality();
+    return { t: el.currentTime, w: el.videoWidth, h: el.videoHeight, frames: q.totalVideoFrames, dropped: q.droppedVideoFrames, error: el.error?.code ?? null };
+  });
+  const stalls = await page.evaluate(() => (window as unknown as { stalls: number[] }).stalls.slice(1));
+  console.log(JSON.stringify({ copy: LABEL_4K, visit: await page.locator("[data-visit]").textContent(), video: v, stalls, aheadS: ahead, streamedMB: Math.round(Number(await player.getAttribute("data-streamed-bytes")) / 1e6) }));
+  expect(v.w).toBe(3840);
+  expect(v.error).toBeNull();
+});
+
+test("Auto steps up to 4K on a big screen with a fast connection", async ({ browser }) => {
+  test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
+  test.setTimeout(420_000);
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, screen: { width: 2560, height: 1440 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  page.on("console", (m) => {
+    if (m.text().startsWith("[cinema]") && !/ (asks|block) /.test(m.text())) console.log(m.text());
+  });
+  await page.goto(nameUrl("cinema"));
+  const player = page.locator("[data-player]");
+  test.skip(!(await player.getAttribute("data-films"))?.includes('"height":2160'), "no 4K copy recorded");
+  await expect(player).toHaveAttribute("data-state", "ready", { timeout: 120_000 });
+  await page.locator("[data-play]").click();
+  await expect(player).toHaveAttribute("data-quality", "1080p", { timeout: 90_000 });
+  await expect(player).toHaveAttribute("data-quality", /^4K/, { timeout: 360_000 });
+  const at = Number(await player.getAttribute("data-switched-at"));
+  await expect.poll(() => page.evaluate(() => document.querySelector("video")!.currentTime), { timeout: 60_000 }).toBeGreaterThan(at + 2);
+  console.log(JSON.stringify({ steppedUpAtFilmS: at, quality: await player.getAttribute("data-quality") }));
+  await context.close();
+});

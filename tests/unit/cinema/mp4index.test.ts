@@ -41,3 +41,18 @@ describe("mp4index", () => {
     expect(() => parseMoov(file.subarray(0, 64))).toThrow();
   });
 });
+
+describe("mediaEnd", () => {
+  // Not imported above with the rest, to keep that list as it was.
+  it("finds where the media data ends", async () => {
+    // @ts-expect-error: plain JavaScript, bundled into the Cinema site
+    const { mediaEnd } = await import("../../../sites/cinema/src/mp4index.js");
+    // tiny.mp4 was written with +faststart: nothing follows its mdat.
+    expect(mediaEnd(file.subarray(0, 4096))).toBe(file.byteLength);
+    // A file that ends with a free box after its mdat, as Blender's releases do.
+    const withTail = new Uint8Array(file.byteLength + 8);
+    withTail.set(file);
+    withTail.set([0, 0, 0, 8, 0x66, 0x72, 0x65, 0x65], file.byteLength);
+    expect(mediaEnd(withTail.subarray(0, 4096))).toBe(file.byteLength);
+  });
+});
