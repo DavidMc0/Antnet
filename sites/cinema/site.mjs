@@ -32,8 +32,17 @@ const FILM = {
   type: "video/mp4",
   file: "big-buck-bunny-1080p.mp4",
   runtime: "10 min 35 s",
+  seconds: 634.6,
   cost: "3.43 ANT",
 };
+
+/**
+ * The 720p copy the player falls back to (src/player.js, "Quality"): made from the 1080p file
+ * with ffmpeg as PROGRESS.md records, uploaded as a public file and recorded with
+ * `node sites/build.mjs record file publish/media/big-buck-bunny-720p.mp4 <address> --cost "<n> ANT"`.
+ * Until it's recorded, the page offers the 1080p copy alone.
+ */
+const LOW_FILE = "big-buck-bunny-720p.mp4";
 
 const megabytes = (n) => `${Math.round(n / 1e6)} MB`;
 const short = (address) => `${address.slice(0, 4)}…${address.slice(-4)}`;
@@ -47,11 +56,18 @@ let playerFiles;
 const player = () =>
   (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player", licences: true }));
 
+const howStored = (low) =>
+  low
+    ? [
+        "The video has its own address",
+        `It is a ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records, with a ${megabytes(low.bytes)} copy in 720p for slower connections. Each was uploaded once${low.cost ? `, for ${FILM.cost} and ${low.cost}` : ""}, and nothing more is paid however many people watch.`,
+      ]
+    : [
+        "The video has its own address",
+        `It is one ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records. It was uploaded once, for ${FILM.cost}, and nothing more is paid however many people watch.`,
+      ];
+
 const HOW = [
-  [
-    "The video has its own address",
-    `It is one ${megabytes(FILM.bytes)} file on the Autonomi network, stored as ${FILM.records} records. It was uploaded once, for ${FILM.cost}, and nothing more is paid however many people watch.`,
-  ],
   [
     "Fetched as you watch",
     "Your browser asks the network only for the part you are watching, a piece at a time, and checks each piece before it plays. Skip ahead and it fetches from there.",
@@ -83,7 +99,15 @@ export async function build(ctx) {
   });
   files.set(BUTTON_CSS, buttons.css());
 
-  const how = HOW.map(
+  // The copies the player may play, best first.
+  const recorded = ctx.files?.[LOW_FILE];
+  const low = recorded && { label: "720p", address: recorded.address, bytes: recorded.bytes, cost: recorded.cost };
+  const films = [
+    { label: "1080p", address: FILM.address, bytes: FILM.bytes, type: FILM.type, file: FILM.file, seconds: FILM.seconds },
+    ...(low ? [{ label: low.label, address: low.address, bytes: low.bytes, type: FILM.type, file: LOW_FILE, seconds: FILM.seconds }] : []),
+  ];
+
+  const how = [howStored(low), ...HOW].map(
     ([title, text], i) => `    <li>
       <span class="how-n">${i + 1}</span>
       <h3>${ctx.esc(title)}</h3>
@@ -119,7 +143,7 @@ ${ctx.headTags}
   <!-- The screen. player.js connects and opens the film as soon as the page loads, behind the
        poster, so pressing play starts it quickly. The film's details are here, not in the script. -->
   <div class="screen" data-player data-state="preparing"
-       data-address="${FILM.address}" data-bytes="${FILM.bytes}" data-type="${FILM.type}" data-file="${FILM.file}">
+       data-films="${ctx.esc(JSON.stringify(films))}">
     <div class="frame">
       <video class="film" playsinline preload="metadata" poster="/poster.webp" aria-label="${ctx.esc(FILM.title)}"></video>
       <button class="play" type="button" data-play aria-label="Play ${ctx.esc(FILM.title)}">${PLAY}</button>
@@ -131,7 +155,7 @@ ${ctx.headTags}
       </div>
     </div>
     <div class="readout">
-      <p class="meter">Streamed so far: <strong data-streamed>nothing yet</strong> <span class="meter-of">of ${megabytes(FILM.bytes)}, from the Autonomi network</span><span class="meter-ahead" hidden><span class="meter-sep"> · </span><strong data-ahead></strong> ready ahead</span></p>
+      <p class="meter">Streamed so far: <strong data-streamed>nothing yet</strong> <span class="meter-of">from the Autonomi network</span><span class="meter-ahead" hidden><span class="meter-sep"> · </span><strong data-ahead></strong> ready ahead, in <strong data-quality></strong></span></p>
       <p class="visit" data-visit hidden></p>
     </div>
   </div>
@@ -166,7 +190,7 @@ ${FINE_PRINT.map((line) => `    <li>${ctx.esc(line)}</li>`).join("\n")}
 </main>
 
 <footer class="credits">
-  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The 5.1 soundtrack was left out; nothing else was changed.</p>
+  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The 5.1 soundtrack was left out; nothing else was changed${low ? ". The 720p copy was re-encoded from it" : ""}.</p>
   <p class="credit-site">${ctx.published ? `This page was published ${ctx.longDate(ctx.published)}.` : "This page was published once."} Paid for once. No renewal.</p>
   ${ctx.receipt}
 </footer>

@@ -32,6 +32,11 @@ export class ReadAhead {
   #keepAwake;
   #onMessage;
   #lastBlock;
+  // Throughput, measured only while every slot is busy: then the network, not the player, sets
+  // the pace. Recent busy spells as [ms, bytes, ended], newest last.
+  #busySince = 0;
+  #busyBytes = 0;
+  #spells = [];
 
   /**
    * @param reader   a PublicFileReader from client.openFile()
@@ -77,6 +82,23 @@ export class ReadAhead {
   setAhead(blocks) {
     this.ahead = blocks;
     this.#pump();
+  }
+
+  /**
+   * Bytes per second the network delivered over the last 30 s or so of busy time in the last
+   * two minutes, or null with under 3 s of it. A full window fetches only as fast as the video
+   * plays, so this is the rate while fetching flat out: before play, after a seek, or while the
+   * window refills.
+   */
+  get rate() {
+    const now = performance.now();
+    let ms = this.#busySince ? now - this.#busySince : 0;
+    let bytes = this.#busyBytes;
+    for (let i = this.#spells.length - 1; i >= 0 && ms < 30_000 && now - this.#spells[i][2] < 120_000; i--) {
+      ms += this.#spells[i][0];
+      bytes += this.#spells[i][1];
+    }
+    return ms >= 3_000 ? (bytes * 1000) / ms : null;
   }
 
   /** Bytes held, in an unbroken run, from the player's position onwards. */
@@ -131,11 +153,13 @@ export class ReadAhead {
     const start = i * BLOCK;
     const length = Math.min(BLOCK, this.size - start);
     this.#inFlight++;
+    if (this.#inFlight >= this.parallel && !this.#busySince) this.#busySince = performance.now();
     entry.promise = this.#reader
       .read(start, length)
       .then(
         (bytes) => {
           entry.bytes = bytes;
+          if (this.#busySince) this.#busyBytes += bytes.byteLength;
           this.#failed.delete(i);
           this.onFetched?.(start, bytes.byteLength);
           return bytes;
@@ -148,6 +172,12 @@ export class ReadAhead {
       )
       .finally(() => {
         this.#inFlight--;
+        if (this.#busySince && this.#inFlight < this.parallel) {
+          this.#spells.push([performance.now() - this.#busySince, this.#busyBytes, performance.now()]);
+          if (this.#spells.length > 50) this.#spells.shift();
+          this.#busySince = 0;
+          this.#busyBytes = 0;
+        }
         this.#pump();
       });
     // A prefetch that fails is only retried later; nobody is waiting on it.

@@ -598,7 +598,37 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
 - **Tests:** unit 212/212, e2e 79 (4 skipped), `CINEMA_LIVE=1` passes.
 - **Checked by screenshot:** 1280 and 375 px. At 375 px the page is 3 px wider than the window, before this change too (no element's box overflows; probably a shadow or glow). Worth a look in the next Cinema design pass.
 - **To publish:** `npm run sites`; upload `publish/sites/cinema.tar`; `node sites/build.mjs record cinema <address>`; Start v7 (it lists Cinema's size) and its pointer; deploy the loader.
-- **Next:** a 720p copy (about 1.4 Mbit/s, ~115 MB, ~1.6 ANT) that the player starts on for phones or slow first reads, and switches to when "ready ahead" keeps falling.
+- **Committed** as `5d2281c`. Uploaded together with the 720p copy (next section).
+
+## Cinema's 720p copy and automatic quality (built 2026-11-17; not uploaded)
+
+- **The copy:** `publish/media/big-buck-bunny-720p.mp4` (gitignored), 123,705,804 bytes, 1.56 Mbit/s. It was made from the network's 1080p file (`ant file download b1d79785… -o publish/media/bbb-1080p.mp4` took 12.3 s for 251 MB, so the network itself is fast when records are fetched in parallel):
+  `ffmpeg -i bbb-1080p.mp4 -map 0:v:0 -map 0:a:0 -vf scale=1280:720:flags=lanczos -c:v libx264 -preset slow -profile:v high -level 4.0 -pix_fmt yuv420p -crf 22 -maxrate 1600k -bufsize 3200k -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a 128k -ac 2 -movflags +faststart big-buck-bunny-720p.mp4`
+  - The result is H.264 High at 1280×720 with AAC stereo, a keyframe every 2 s and its index at the start. Its busiest 10 s needs 1.7 Mbit/s. The 1080p file's busiest 10 s needs 6.7 Mbit/s (median 2.75), with keyframes about 8 s apart.
+- **Recording it:** `node sites/build.mjs record file publish/media/big-buck-bunny-720p.mp4 <address> --cost "<n> ANT"`. `record file` now keeps `--cost`. Cinema reads the copy from `files` in `addresses.json`; without it, the page offers the 1080p copy alone, as before.
+- **The page:**
+  - `data-films` lists the copies, best first.
+  - The meter reads "Streamed so far: N MB from the Autonomi network · N s ready ahead, in 720p" (the "of 251 MB" is gone, since two files count).
+  - "The video has its own address" mentions the 720p copy and both costs, and the film credit says the 720p copy was re-encoded.
+  - The billing line still says "1080p".
+- **Quality rules** (`src/player.js`, "Quality"):
+  - **Start on 720p** on narrow screens (≤ 900 px), with save-data, or on a 2G/3G `effectiveType`. Phones never go up to 1080p.
+  - **Start on 1080p** otherwise. If the opening seconds came in under 1.5 × 1080p's bitrate by the time play is pressed, it switches to 720p before starting.
+  - **Drop to 720p** while playing when less than 15 s is ready ahead for 5 s, or the video waits on the network for 3 s. This doesn't apply in the 15 s after a start, seek or switch.
+  - **Back up to 1080p** when 30 s is ready ahead, the network has delivered at least 2 × 1080p's bitrate in the last two minutes (or nothing has been measured in that time), and the wait since the last drop has passed: 1 min, doubling with each drop, up to 10 min.
+  - **Throughput** (`ReadAhead.rate`) counts only time when all 8 slots are busy, so it measures the network, not the playback.
+  - **Both copies open at page load.** The one not playing keeps only its first block, which holds the MP4 index, so a switch starts quickly. A switch keeps the playing position.
+  - **Test overrides:** sessionStorage `cinemaQuality` (`1080p`/`720p`) plays one copy only. `cinemaThrottle` (Mbit/s) caps block delivery, since Playwright can't slow WebRTC; it's read on every block.
+- **Tested on mainnet** with a stand-in "720p" (the 1080p address recorded under the 720p name, since removed):
+  - **Switching down and up:** capped at 0.5 Mbit/s 20 s in, it dropped to 720p 33 s later and carried on from 53 s into the film. With the cap lifted, it went back to 1080p exactly when the one-minute wait ran out.
+  - **Starting copy:** 720p on a 375 px screen and on a desktop capped at 2 Mbit/s; 1080p on a fast desktop.
+  - **Tests:** unit 212/212 and e2e 79 pass. The new tests are in `cinema-measure.spec.ts` under `CINEMA_MEASURE=1`. `CINEMA_THROTTLE` sets the cap (default 2). `CINEMA_LIFT=1` lifts it at the drop, which a stand-in needs.
+- **After the 720p upload,** run `CINEMA_MEASURE=1 npx playwright test tests/e2e/cinema-measure.spec.ts --workers=1` with the cap held at 2 Mbit/s: 720p should play on without stalls where 1080p couldn't.
+- **Upload order** (each step needs the address from the one before):
+  1. the 720p file, then `record file`;
+  2. `npm run sites` and upload Cinema, then `record cinema`;
+  3. `npm run sites` and upload Start v7, then `record start` and `ant pointer update`;
+  4. deploy the loader.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

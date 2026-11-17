@@ -97,3 +97,65 @@ for (const mode of MODES) {
     );
   });
 }
+
+// Switching between the 1080p and 720p copies (src/player.js, "Quality"). Plays at full speed,
+// then caps the bandwidth (sessionStorage cinemaThrottle, CINEMA_THROTTLE Mbit/s, default 2)
+// until the player drops to 720p, and lifts the cap until it goes back to 1080p. Checks the
+// film carries on from where it was. CINEMA_LIFT=1 lifts the cap as soon as it drops, for a
+// stand-in "720p" copy that is really the 1080p file, which the cap can't feed.
+test("Cinema drops to 720p when the network can't keep up, and goes back", async ({ page }) => {
+  test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
+  test.setTimeout(600_000);
+  await page.goto(nameUrl("cinema"));
+  const player = page.locator("[data-player]");
+  const films = JSON.parse((await player.getAttribute("data-films")) ?? "[]");
+  test.skip(films.length < 2, "Cinema lists one copy of the film; record the 720p copy first");
+  await expect(player).toHaveAttribute("data-state", "ready", { timeout: 120_000 });
+  await page.locator("[data-play]").click();
+  await expect(player).toHaveAttribute("data-state", "playing", { timeout: 60_000 });
+  await expect(player).toHaveAttribute("data-quality", "1080p");
+  const time = () => page.evaluate(() => document.querySelector("video")!.currentTime);
+  const t0 = Date.now();
+  await page.waitForTimeout(20_000);
+
+  await page.evaluate((v) => sessionStorage.setItem("cinemaThrottle", v), process.env.CINEMA_THROTTLE ?? "2");
+  await expect(player).toHaveAttribute("data-quality", "720p", { timeout: 300_000 });
+  const downAt = Number(await player.getAttribute("data-switched-at"));
+  const downWall = (Date.now() - t0) / 1000;
+  if (process.env.CINEMA_LIFT) await page.evaluate(() => sessionStorage.removeItem("cinemaThrottle"));
+  await expect.poll(time, { timeout: 60_000 }).toBeGreaterThan(downAt + 2);
+  // It carried on from where it was, not from the start.
+  expect(downAt).toBeGreaterThan(15);
+
+  const held = (Date.now() - t0) / 1000;
+  await page.evaluate(() => sessionStorage.removeItem("cinemaThrottle"));
+  await expect(player).toHaveAttribute("data-quality", "1080p", { timeout: 300_000 });
+  const upAt = Number(await player.getAttribute("data-switched-at"));
+  const upWall = (Date.now() - t0) / 1000;
+  await expect.poll(time, { timeout: 60_000 }).toBeGreaterThan(upAt + 2);
+  console.log(JSON.stringify({ heldUntilWall: held, downAtFilmS: Math.round(downAt), downWall, upAtFilmS: Math.round(upAt), upWall, switches: await player.getAttribute("data-switches") }));
+});
+
+// Where Cinema starts: 720p on a phone-width screen, and on a desktop whose opening seconds
+// arrive slowly (capped at 2 Mbit/s, under 1.5 times 1080p's bitrate); otherwise 1080p.
+for (const [name, width, throttle, expected] of [
+  ["a phone", 375, "", "720p"],
+  ["a slow desktop", 1280, "2", "720p"],
+  ["a fast desktop", 1280, "", "1080p"],
+] as const) {
+  test(`Cinema starts on ${expected} on ${name}`, async ({ page }) => {
+    test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width, height: 800 });
+    if (throttle) await page.addInitScript((v) => sessionStorage.setItem("cinemaThrottle", v), throttle);
+    await page.goto(nameUrl("cinema"));
+    const player = page.locator("[data-player]");
+    test.skip(JSON.parse((await player.getAttribute("data-films")) ?? "[]").length < 2, "Cinema lists one copy of the film");
+    await expect(player).toHaveAttribute("data-state", "ready", { timeout: 120_000 });
+    // Let the opening seconds arrive, as they would while a visitor reads the page.
+    await page.waitForTimeout(8_000);
+    await page.locator("[data-play]").click();
+    await expect(player).toHaveAttribute("data-state", "playing", { timeout: 90_000 });
+    await expect(player).toHaveAttribute("data-quality", expected);
+  });
+}

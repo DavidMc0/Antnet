@@ -6,7 +6,7 @@
 //        [--cost "<what it cost>"]                 optionally, what the upload cost
 //   node sites/build.mjs record start-pointer <address>
 //   node sites/build.mjs record removals-pointer <address>   the Download Button's removal list
-//   node sites/build.mjs record file <path> <address>          a file a site offers to download (an EPUB)
+//   node sites/build.mjs record file <path> <address> [--cost "<n> ANT"]   a file a site offers or plays (an EPUB, a video copy)
 //
 // Sites link to each other by short name (/_autonomi/go/name/<name>/), so no archive contains
 // another site's address and they can be built and uploaded in any order. The addresses live
@@ -217,7 +217,7 @@ async function record(addresses, args) {
     if (!path || !isHex(fileAddress)) throw new Error("Usage: node sites/build.mjs record file <path> <64-hex address>");
     const bytes = (await readFile(path)).length;
     const key = path.split(/[\\/]/).at(-1);
-    addresses.files = { ...addresses.files, [key]: { address: fileAddress, bytes } };
+    addresses.files = { ...addresses.files, [key]: { address: fileAddress, bytes, ...(cost ? { cost } : {}) } };
     await saveAddresses(addresses);
     console.log(`Recorded ${key}: ${fileAddress} (${bytes} bytes)`);
     return;
