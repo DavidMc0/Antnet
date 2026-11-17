@@ -1,6 +1,6 @@
 # Build progress: where we stopped
 
-*Last updated 17 November 2026. The plan is in [Autonomi_Site_Loader_SPEC.md](Autonomi_Site_Loader_SPEC.md).*
+*Last updated 17 November 2026 (evening). The plan is in [Autonomi_Site_Loader_SPEC.md](Autonomi_Site_Loader_SPEC.md).*
 
 ## M1 (offline pipeline): done
 
@@ -736,6 +736,37 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **A switch made while the video is stalled happens at once,** without first fetching ahead.
   - **Tested live:** 4K 60 fps chosen and then capped at 2 Mbit/s stalled at 53 s. Auto took over 20 s later and switched to 1080p at once. But the 4K blocks already in flight (up to 16) held the link for over a minute, so playback hadn't resumed 18 s later. That's an extreme case: 4K chosen on a link a sixth of its rate.
 - **Page wording:** the billing says "Up to 4K". The first "How it reaches your screen" point says "three files … 673 MB in 4K at 60 frames a second, 251 MB in 1080p and 124 MB in 720p … 6.90 ANT in all". The film credit has a sentence per copy (`credit` in `COPIES`).
+
+## Cinema v4: live (2026-11-17, evening)
+
+- **Published:** Cinema v4 `382a517e…dbd35` (4 records, 0.3188 ANT; committed `fc536c9`). Start didn't change (it rebuilds to v6: the card links by name and the size is rounded), so there was no Start upload and no pointer update. The user deployed the loader for `names.json`.
+- **Checked live** (`https://cinema.antnet.autonomirror.com/`, Playwright, scratch script):
+
+| | Chromium | Firefox |
+| --- | --- | --- |
+| Archive served | `382a517e…` | the same |
+| Copies | 4K 60 fps, 1080p, 720p; menu with Auto | the same |
+| First frame after play | 3.7 s | 6.3 s |
+| Ready ahead after 30 s, 1080p | 108 s | 114 s |
+| Choosing 720p mid-film | switched, played on | switched, played on |
+| Console errors | none | 3 (see below) |
+
+  - **Firefox logs** "A ServiceWorker intercepted the request and encountered an unexpected error" on each seek or switch: Firefox cancels the old range request, and the bridge's answer to it fails. Playback carries on.
+  - **A far seek in Firefox** (to 300 s) took about 40 s to resume. It stalled, Auto dropped to 720p, and it played on at 301 s with 116–224 s ready. Chromium's seeks have been 1–15 s on mainnet. Worth a look: is Firefox slower, or was the network slow then?
+- **Open: sound before Play (the user, Brave and Edge, after the deploy).** The sound started before Play was pressed, as if a hidden copy were playing; Play then Pause stopped it. Later, choosing 4K brought the sound back while the visible picture stayed still. By the end of the evening it no longer happened in either browser.
+  - **Not reproduced in headless Chromium,** even with autoplay allowed and `play()` wrapped to log its callers. Opening without pressing Play, with no saved choice and with saved 4K 60 fps or 720p: paused and silent. Choosing 4K before Play, then Play, Pause, and choosing 1080p while paused: `play()` was called once, from the Play button. The video stayed paused at the same moment, and the page has one media element.
+  - **Neither hidden frame renders Cinema:** the loader's background check (`/_autonomi/check`) and Start's warm-up (`/_autonomi/warm`) both run the loader shell.
+  - **Possible causes to check with the user:**
+    - another tab or window of Cinema (an old v3 page from before the deploy, say) playing at the same time;
+    - the first visits after the deploy, while the loader's worker and the site updated under an open page;
+    - something specific to a real (non-headless) browser.
+  - **Asked the user:** whether another Cinema tab was open, where in the film the sound started, and to send the console's `[cinema]` lines if it happens again.
+- **Next:**
+  1. The sound report, if it recurs.
+  2. Firefox seek times.
+  3. A design pass on the quality menu (Fable).
+  4. Watch for an answer to the issue #10 update (posted to Autonomi support by the user).
+  5. Re-record a 4K 30 fps copy if the browser can fetch its chunks: run `node tools/record-scan.mjs 289d33813926d03993357676ea3a34ddca35540be40090498120985f585d5a51 149`, with the dev server running.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
