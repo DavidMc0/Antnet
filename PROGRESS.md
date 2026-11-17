@@ -652,6 +652,32 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   3. `npm run sites` and upload Start v7, then `record start` and `ant pointer update`;
   4. deploy the loader.
 
+## Cinema in 4K: files checked, plan pending the user's choices (2026-11-17)
+
+- **Sources** (the user's, in `publish/media/`): Blender's `bbb_2160p_30fps.mp4` and `bbb_2160p_60fps.mp4`. Both are H.264 High at 3840×2160, with MP3 stereo plus 5.1 AC-3, and the index at the start.
+- **Prepared for upload** (`-map 0:v:0 -map 0:a:0 -c copy -movflags +faststart`, no re-encode):
+
+| File | Bytes | Video | Peak (10 s) | Keyframes | SHA-256 |
+| --- | --- | --- | --- | --- | --- |
+| `big-buck-bunny-2160p30.mp4` | 607,951,519 | 7.5 Mbit/s, level 5.1 | 16.5 Mbit/s | about every 4 s, up to 8.3 s | `99da55c0…0564` |
+| `big-buck-bunny-2160p60.mp4` | 648,325,708 | 8.0 Mbit/s, level 5.2 | 18.2 Mbit/s | about every 4 s | `50b63915…719f` |
+
+  - The 60 fps source said level 5.1, which can't carry 4K at 60 fps (5.1 allows about 30). It was relabelled 5.2 with `-bsf:v h264_metadata=level=5.2`, so a decoder that can't manage it says so rather than stutters. The 30 fps file is a true 5.1.
+  - Both decode cleanly in 20 s samples from 300 s.
+  - Their indexes (236 kB and 431 kB) fit in the first 1 MiB block, as the switching needs.
+- **Can the browser fetch 4K fast enough?** Cinema was filling a 96 MiB window on mainnet, measured in 5 s steps:
+  - 8 blocks at a time: 0–47 Mbit/s, about 21 on average;
+  - 16 at a time: 13–39 Mbit/s, about 26.
+  - That's enough for 4K's average on a good connection, but its peaks need a bigger buffer than 32 blocks: about 80 s of 4K is 80 MiB.
+- **Can the machine decode it?** `navigator.mediaCapabilities.decodingInfo` reports `supported`/`smooth`/`powerEfficient` for each size and frame rate. Playwright's Chromium reports 4K30 and 4K60 as supported and smooth here (`powerEfficient: false`, being headless). `canPlayType` says "probably" for both `avc1.640033` and `avc1.640034`.
+- **Plan:**
+  1. **N copies:** generalise the player from two copies to a ladder.
+  2. **Auto mode never starts in 4K.** It steps up to 4K only when all of these hold: the screen is at least 2560 px wide in device pixels, `decodingInfo` says smooth (and power-efficient, for 60 fps), the network has measured at least 2 × the 4K bitrate, and the wait since the last drop has passed. It steps down one rung at a time.
+  3. **A window sized in seconds:** about 80 s of the playing copy, so 4K holds about 80 MiB, with 16 at a time for 4K. Memory permitting (`deviceMemory`).
+  4. **A quality menu:** Auto / 4K 60 fps / 4K / 1080p / 720p. A chosen copy stays fixed, and 4K mostly happens by choice. The look is Fable's.
+  5. **Page wording:** the billing line and "How it reaches your screen".
+- **Upload after the user's go-ahead:** both 4K files (or one), then `record file … --cost`, then Cinema, Start v7 and the pointer, then deploy. **Cinema isn't uploaded yet, so it can wait for this.**
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
