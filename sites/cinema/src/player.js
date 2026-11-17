@@ -64,8 +64,8 @@ const MIB = 1024 * 1024;
 // While playing, it steps down one copy when what's ready ahead stays under 25 s for 3 s, or
 // the video waits on the network for 3 s; not in the 15 s after starting, a seek or a switch,
 // while the window fills. It steps up one when 30 s or more is ready, the network has lately
-// delivered at least twice that copy's bitrate (1.25 times for 4K: see upFactor4k), and the
-// wait since the last step down has passed: 1 min, doubling with each, up to 10 min. Up to
+// delivered at least twice that copy's bitrate, and the wait since the last step down has
+// passed: 1 min, doubling with each, up to 10 min. Up to
 // 1080p, a rate not measured for two minutes will do; 4K needs one measured. So 4K comes, if
 // at all, after a while at 1080p.
 //
@@ -87,15 +87,16 @@ const QUALITY = {
   lowAheadS: 25,
   lowAheadTicks: 3,
   stallMs: 3_000,
+  /** How long a copy chosen in the menu may keep the video waiting before Auto takes over. */
+  chosenStallMs: 20_000,
   settleMs: 15_000,
   upAheadS: 30,
-  upFactor: 2,
   /**
-   * For 4K, 1.25 times its bitrate, measured at the 8 fetches at a time the copy below uses: 4K
-   * fetches 16 at a time, and on mainnet 8 at a time measured 8 to 12 Mbit/s on a connection
-   * that delivered about 26 with 16.
+   * Twice the bitrate of the copy above, 4K included. 1.25 times for 4K (on the grounds that
+   * the rate is measured at 8 fetches at a time and 4K fetches 16) stepped up on a measured
+   * 9.9 Mbit/s on mainnet, and 4K then stalled.
    */
-  upFactor4k: 1.25,
+  upFactor: 2,
   firstBackoffMs: 60_000,
   maxBackoffMs: 600_000,
   /** Seconds of the other copy fetched before a switch to it. */
@@ -382,7 +383,9 @@ function start(root) {
    */
   async function changeTo(copy, why) {
     if (pending || copy === current || !copy.reader) return;
-    if (!started) return switchTo(copy, why);
+    // Before play, or with the video already stalled, there is nothing to keep playing while
+    // the other copy's start is fetched: switch at once.
+    if (!started || video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return switchTo(copy, why);
     pending = copy;
     const from = current;
     from.stream.hold();
@@ -401,7 +404,9 @@ function start(root) {
       // the other copy's start the most time to arrive. This copy plays on meanwhile, so a
       // later switch costs nothing. (The measured rate can be minutes old when the network has
       // just slowed down, so it doesn't set this.)
-      const at = video.currentTime + Math.max(1, Math.min(readyAhead() - 2, 20));
+      // Stalled already: from where it stands.
+      const stuck = video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA;
+      const at = video.currentTime + (stuck ? 0 : Math.max(1, Math.min(readyAhead() - 2, 20)));
       const offset = index ? keyframeOffset(index, at) : Math.floor((at / video.duration) * copy.bytes);
       console.info(`[cinema] fetching the ${copy.label} copy from ${at.toFixed(1)} s (${(offset / 1048576).toFixed(1)} MiB) to switch there; plan ${plan}`);
       // Audio sits beside the video in the file: start a little before the keyframe.
@@ -472,7 +477,7 @@ function start(root) {
     const up = above(current);
     if (!up?.reader || performance.now() < upAfter || ahead < QUALITY.upAheadS) return;
     const rate = current.stream.rate;
-    const enough = rate === null ? !is4k(up) : rate * 8 >= (is4k(up) ? QUALITY.upFactor4k : QUALITY.upFactor) * bitrate(up);
+    const enough = rate === null ? !is4k(up) : rate * 8 >= QUALITY.upFactor * bitrate(up);
     if (enough) void changeTo(up, rate === null ? "plenty ready ahead" : `network at ${((rate * 8) / 1e6).toFixed(1)} Mbit/s`);
   }, 1000);
 
@@ -485,10 +490,25 @@ function start(root) {
     if (copy.reader) void changeTo(copy, "asked to");
   });
 
-  // A long wait on the network steps down a copy straight away.
+  // A long wait on the network steps down a copy straight away. A copy chosen in the menu waits
+  // longer, then hands over to Auto: a record the browser can't fetch would otherwise stop the
+  // film there for good (one of the 4K uploads had one; PROGRESS.md, "Cinema in 4K").
   let stallTimer;
   video.addEventListener("waiting", () => {
     clearTimeout(stallTimer);
+    if (started && choice !== "auto" && pick) {
+      stallTimer = setTimeout(() => {
+        const down = below(current) ?? copies.find((c) => c !== current && bitrate(c) < bitrate(current));
+        if (choice === "auto" || !down) return;
+        console.info(`[cinema] the ${current.label} copy has kept the video waiting; Auto takes over`);
+        choice = "auto";
+        pick.value = "auto";
+        root.setAttribute("data-quality-choice", "auto");
+        say(`This part of the ${current.label} copy isn't arriving. Switched to Auto.`);
+        void open(down).then(() => changeTo(down, "the chosen copy kept the video waiting"), () => {});
+      }, QUALITY.chosenStallMs);
+      return;
+    }
     if (!started || choice !== "auto" || !below(current)) return;
     stallTimer = setTimeout(() => {
       const down = below(current);

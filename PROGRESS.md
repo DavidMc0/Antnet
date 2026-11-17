@@ -714,6 +714,28 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **Auto on an emulated 2560 px screen:** it stepped up from 1080p to 4K after measuring 19.5 Mbit/s and played on.
   - **Forced switch 1080p → 4K, traced:** seamless; every block the player asked for was already held.
 - **Decision for the user:** re-upload the prepared 4K 30 fps file (`big-buck-bunny-2160p30-without-ac3.mp4`, about 21 ANT) to remove the 30 s start? Or wait to see whether that record gets faster? The 60 fps original's tail is quick, so it can stay unless its level label causes trouble on real hardware.
+- **The prepared 4K 30 fps file, uploaded (2026-11-17):** `289d3381…5a51`, 150 records, 27.21 ANT, SHA-256 `99da55c0…0564`. Its first frame came at once. **But playback stopped for good at 38.1 s,** in every run: blocks 43–47 never arrived.
+  - **`tools/record-scan.mjs` (new):** reads one byte from the middle of each record of a file through the browser SDK, 8 at a time, waiting up to 90 s each. The scan found:
+
+| File | Records | Never arrived | Slow (over 10 s) |
+| --- | --- | --- | --- |
+| `289d3381` (4K 30 fps, prepared) | 149 | 5 | 32 |
+| `7cc0b916` (4K 30 fps, original) | 155 | 0 | 27 |
+| `32e07381` (4K 60 fps) | 164 | 1 | 40 |
+| `b1d79785` (1080p) | 63 | 2 | 4 |
+| `76bb918c` (720p) | 33 | 0 | 3 |
+
+  - **Retried with up to 180 s each:** the 1080p and 4K 60 fps records arrived (20–23 s and 1.5 s): mainnet was congested during the scan. In `289d3381`, records 81 and 99 arrived, and record 100 never answered. Records 11 and 70 failed after 128 s with "Missing chunk `2184f7b0…9621`" and "Missing chunk `219bce56…3a24`". Yet `ant file download` fetched the whole file in 23 s with a matching SHA-256.
+  - **Drafted for the SDK:** `docs/sdk-issue-10-update.md`. The user is posting it to Autonomi's support channel, since GitHub is closed to outsiders for now.
+- **Decision (user, 2026-11-17): 4K 60 fps is the only 4K for now.** The 4K 30 fps entry is out of `addresses.json` `files`. Either upload can be recorded again later:
+  - prepared: `289d33813926d03993357676ea3a34ddca35540be40090498120985f585d5a51`, 607,951,519 bytes, 27.21 ANT;
+  - original: `7cc0b9162b6e0ca003239ed302aa4c73a9097614a07cc3d041d2d61e31c81359`, 633,016,449 bytes, 21.67 ANT, with a 59 s last record.
+  - The local copies are `publish/media/big-buck-bunny-2160p30.mp4` (prepared) and `bbb_2160p_30fps.mp4` (original).
+- **Player changes from this:**
+  - **A copy chosen in the menu that keeps the video waiting for 20 s hands over to Auto,** which steps down. The status line says so, and the stored choice isn't changed.
+  - **A switch made while the video is stalled happens at once,** without first fetching ahead.
+  - **Tested live:** 4K 60 fps chosen and then capped at 2 Mbit/s stalled at 53 s. Auto took over 20 s later and switched to 1080p at once. But the 4K blocks already in flight (up to 16) held the link for over a minute, so playback hadn't resumed 18 s later. That's an extreme case: 4K chosen on a link a sixth of its rate.
+- **Page wording:** the billing says "Up to 4K". The first "How it reaches your screen" point says "three files … 673 MB in 4K at 60 frames a second, 251 MB in 1080p and 124 MB in 720p … 6.90 ANT in all". The film credit has a sentence per copy (`credit` in `COPIES`).
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

@@ -42,12 +42,15 @@ const FILM = {
  * `node sites/build.mjs record file publish/media/<file> <address> --cost "<n> ANT"`; the page
  * offers the 1080p film and those recorded. `codec` and the size and frame rate let the player
  * ask the browser whether it can decode a copy smoothly; `peak` is its busiest 10 s, in Mbit/s.
+ * `credit` is the film credit's sentence on how a copy other than the 1080p film was made.
+ * The 4K 60 fps copy is Blender's original file; the 4K 30 fps entry (not recorded for now:
+ * the browser couldn't fetch parts of its upload) is the remux without the 5.1 soundtrack.
  */
 const COPIES = [
-  { label: "4K 60 fps", prose: "4K at 60 frames a second", file: "big-buck-bunny-2160p60.mp4", width: 3840, height: 2160, fps: 60, codec: "avc1.640034", peak: 18.2 },
-  { label: "4K", prose: "4K", file: "big-buck-bunny-2160p30.mp4", width: 3840, height: 2160, fps: 30, codec: "avc1.640033", peak: 16.5 },
+  { label: "4K 60 fps", prose: "4K at 60 frames a second", file: "big-buck-bunny-2160p60.mp4", width: 3840, height: 2160, fps: 60, codec: "avc1.640034", peak: 18.2, credit: "The 4K copy, at 60 frames a second, is Blender's own 2160p release, unchanged." },
+  { label: "4K", prose: "4K", file: "big-buck-bunny-2160p30.mp4", width: 3840, height: 2160, fps: 30, codec: "avc1.640033", peak: 16.5, credit: "The 4K copy at 30 frames a second is Blender's 2160p release without its 5.1 soundtrack." },
   { label: "1080p", prose: "1080p", file: FILM.file, width: 1920, height: 1080, fps: 30, codec: "avc1.640029", peak: 6.7 },
-  { label: "720p", prose: "720p", file: "big-buck-bunny-720p.mp4", width: 1280, height: 720, fps: 30, codec: "avc1.640028", peak: 1.7 },
+  { label: "720p", prose: "720p", file: "big-buck-bunny-720p.mp4", width: 1280, height: 720, fps: 30, codec: "avc1.640028", peak: 1.7, credit: "The 720p copy was re-encoded from it." },
 ];
 
 const NUMBERS = ["", "one", "two", "three", "four", "five"];
@@ -64,6 +67,15 @@ const PLAY = svg('<path d="M8.2 5.3v13.4a.6.6 0 0 0 .92.5l10.4-6.7a.6.6 0 0 0 0-
 let playerFiles;
 const player = () =>
   (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player", licences: true }));
+
+/** The film credit's last sentences: how each copy was made, the 1080p film first. */
+function credit(films, esc) {
+  if (films.length === 1) return " The 5.1 soundtrack was left out; nothing else was changed.";
+  const others = films.filter((f) => f.credit);
+  // The smaller copies follow the 1080p one, which they were made from; then the 4K ones.
+  const order = [...others.filter((f) => f.height < 1080), ...others.filter((f) => f.height > 1080)];
+  return [" The 1080p copy leaves out the 5.1 soundtrack; nothing else was changed.", ...order.map((f) => ` ${esc(f.credit)}`)].join("");
+}
 
 /** "How it reaches your screen", first point: what is stored, and what it cost. */
 function howStored(films) {
@@ -118,7 +130,6 @@ export async function build(ctx) {
     const at = c.file === FILM.file ? { address: FILM.address, bytes: FILM.bytes, cost: FILM.cost } : ctx.files?.[c.file];
     return at ? [{ ...c, ...at, type: FILM.type, seconds: FILM.seconds }] : [];
   });
-  const has = (label) => films.some((f) => f.label === label);
   const has4k = films.some((f) => f.height === 2160);
   // What the player needs, and no more (no costs or prose).
   const playerFilms = films.map(({ label, address, bytes, type, file, seconds, width, height, fps, codec, peak }) => ({
@@ -215,7 +226,7 @@ ${FINE_PRINT.map((line) => `    <li>${ctx.esc(line)}</li>`).join("\n")}
 </main>
 
 <footer class="credits">
-  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The 5.1 soundtrack was left out; nothing else was changed.${has("720p") ? " The 720p copy was re-encoded from it." : ""}${has4k ? " The 4K copies are Blender's own 2160p releases, likewise without the 5.1 soundtrack." : ""}</p>
+  <p class="credit-film"><cite>${ctx.esc(FILM.title)}</cite> © 2008 Blender Foundation, <a href="https://www.bigbuckbunny.org/">bigbuckbunny.org</a>, shown under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.${credit(films, ctx.esc)}</p>
   <p class="credit-site">${ctx.published ? `This page was published ${ctx.longDate(ctx.published)}.` : "This page was published once."} Paid for once. No renewal.</p>
   ${ctx.receipt}
 </footer>
