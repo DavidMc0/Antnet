@@ -1,7 +1,8 @@
 // Cinema's player (DEMO.md 3.4, 5.8). Connects to Autonomi and opens the film as soon as the
 // page loads, behind the poster, so pressing play starts it quickly. The film's bytes reach
 // the <video> through the loader's service worker, which carries the SDK's media bridge: the
-// worker turns the player's byte-range requests into reads by this page's own client.
+// worker turns the player's byte-range requests into messages this page answers. ReadAhead
+// (readahead.js) answers them, keeping a window ahead of the player fetched several at once.
 //
 // States, on [data-player]'s data-state:
 //   preparing  connecting and opening the film; the poster and play button show
@@ -11,6 +12,28 @@
 //   trouble    something failed; says what, with "Try again"
 
 import { AutonomiClient } from "@withautonomi/ant-browser-sdk";
+import { ReadAhead } from "./readahead.js";
+
+// Read-ahead, in 1 MiB blocks. Before play, only the opening seconds (about 20 s of this film),
+// so a visit that never plays costs little; once playing, about 80 s, 8 blocks (about two of
+// the film's 4 MB records) at a time. 16 at a time filled the window no faster on mainnet and
+// slowed seeks, whose fetches queue behind those already running. Smaller on devices that
+// say they have little memory.
+// sessionStorage "cinemaReadAhead" = "ahead,parallel" overrides it for measuring; "0,1" is
+// the old one-block-at-a-time behaviour.
+const READ_AHEAD = (() => {
+  const small = (navigator.deviceMemory ?? 8) <= 2;
+  const plan = { before: 8, playing: small ? 20 : 32, parallel: 8 };
+  try {
+    const [ahead, parallel] = (sessionStorage.getItem("cinemaReadAhead") ?? "").split(",").map(Number);
+    if (Number.isInteger(ahead) && ahead >= 0 && Number.isInteger(parallel) && parallel >= 1) {
+      Object.assign(plan, { before: Math.min(ahead, plan.before), playing: ahead, parallel });
+    }
+  } catch {
+    // No storage: keep the defaults.
+  }
+  return plan;
+})();
 
 const root = document.querySelector("[data-player]");
 if (root) start(root);
@@ -26,6 +49,7 @@ function start(root) {
   const playButton = root.querySelector("[data-play]");
   const statusEl = root.querySelector("[data-status]");
   const streamedEl = root.querySelector("[data-streamed]");
+  const aheadEl = root.querySelector("[data-ahead]");
   const visitEl = root.querySelector("[data-visit]");
   const trouble = root.querySelector("[data-trouble]");
   const troubleTitle = root.querySelector("[data-trouble-title]");
@@ -46,9 +70,8 @@ function start(root) {
   };
 
   // ---- Streamed so far ------------------------------------------------------------------
-  // The worker asks this page for each block the player needs (the SDK answers it). Listening
-  // to the same requests gives the bytes handed to the player. Blocks asked for twice, after
-  // a seek back, count once.
+  // The bytes fetched from the network, for the player or ahead of it. Blocks fetched twice,
+  // after a seek back, count once.
   const spans = [];
   function addSpan(start, length) {
     let a = start;
@@ -66,12 +89,24 @@ function start(root) {
     streamedEl.textContent = megabytes(total);
     root.setAttribute("data-streamed-bytes", String(total));
   }
-  navigator.serviceWorker?.addEventListener("message", (event) => {
-    const d = event.data;
-    if (d?.type !== "autonomi-file-range" || !source) return;
-    if (!source.url.includes(`/${d.sessionId}/`)) return;
-    if (Number.isSafeInteger(d.start) && Number.isSafeInteger(d.length)) addSpan(d.start, d.length);
-  });
+
+  // ---- Ready ahead ----------------------------------------------------------------------
+  // Seconds of video the player has buffered plus what the read-ahead holds beyond it, at the
+  // film's average bitrate. Shown while playing, so a slow network is visible before it stalls.
+  function showAhead() {
+    if (!source || !started || !Number.isFinite(video.duration) || video.duration <= 0) return;
+    let buffered = 0;
+    for (let i = 0; i < video.buffered.length; i++) {
+      if (video.buffered.start(i) <= video.currentTime && video.currentTime <= video.buffered.end(i)) {
+        buffered = video.buffered.end(i) - video.currentTime;
+      }
+    }
+    const seconds = Math.round(buffered + source.bytesAhead / (film.bytes / video.duration));
+    root.setAttribute("data-ahead-seconds", String(seconds));
+    aheadEl.textContent = `${seconds} s`;
+    aheadEl.parentElement.hidden = false;
+  }
+  setInterval(showAhead, 1000);
 
   // ---- This visit's numbers ---------------------------------------------------------------
   function showVisit() {
@@ -115,18 +150,21 @@ function start(root) {
       }
       say(wantPlay ? "Finding the video. It starts as soon as it's found…" : "Finding the video on the network…");
       t = performance.now();
-      source = await client.createMediaSource(film.address, {
-        serviceWorkerUrl: "/autonomi-loader-sw.js",
-        // From a bare address the client can't tell this is a video; read its start and end now.
-        primePlayback: true,
-      });
+      // The loader's worker carries the media bridge; without it in control, nothing can answer.
+      if (!navigator.serviceWorker.controller) throw new Error("the site's service worker isn't running; reload the page");
+      const reader = await client.openFile(film.address);
       timings.open = performance.now() - t;
       showVisit();
       // The network stores the bytes, not what they are: tell the player it's an MP4.
-      const url = new URL(source.url);
-      url.searchParams.set("type", film.type);
-      url.searchParams.set("name", film.file);
-      video.src = url.href;
+      source = new ReadAhead(reader, {
+        type: film.type,
+        name: film.file,
+        // Widened once the video plays: until then the player's first blocks come first.
+        ahead: READ_AHEAD.before,
+        parallel: READ_AHEAD.parallel,
+        onFetched: addSpan,
+      });
+      video.src = source.url;
       if (wantPlay) return play();
       setState("ready");
       say("Ready when you are");
@@ -181,6 +219,7 @@ function start(root) {
     if (!started) {
       started = true;
       timings.first = performance.now() - pressedAt;
+      source?.setAhead(READ_AHEAD.playing);
       showVisit();
       video.controls = true;
     }

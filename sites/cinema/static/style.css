@@ -610,8 +610,12 @@ main > section + section {
   .readout {
     flex-direction: column;
   }
-  .meter-of {
+  .meter-of,
+  .meter-ahead:not([hidden]) {
     display: block;
+  }
+  .meter-sep {
+    display: none;
   }
   .status {
     font-size: 0.75rem;

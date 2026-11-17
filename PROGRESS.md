@@ -1,6 +1,6 @@
 # Build progress: where we stopped
 
-*Last updated 11 November 2026. The plan is in [Autonomi_Site_Loader_SPEC.md](Autonomi_Site_Loader_SPEC.md).*
+*Last updated 17 November 2026. The plan is in [Autonomi_Site_Loader_SPEC.md](Autonomi_Site_Loader_SPEC.md).*
 
 ## M1 (offline pipeline): done
 
@@ -576,6 +576,29 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - Section 5.10 (a 1 kB stub with shared, cached loader code, and a published loader build) is planned, not built.
 - **Done and live:** Start v6 `ae5078da…9edd` (0.2571 ANT); Start's pointer updated to it; the loader deployed. Checked on the live site in Chromium: the new front door heading, Start's four cards (Cinema's new wording, ColonySim's card) and its fine print, and ColonySim and Cinema opening by name.
 - **Next:** the Autonomi Developer Docs site, once Autonomi's GitHub is reachable (source repository, licence, commit). Section 5.10 (stub and published loader) is in DEMO.md's build order, step 6. **With the next change to the loader, Cinema or the Download Button:** include the Autonomi browser SDK's licence notice (its `LICENSE-MIT` / `LICENSE-APACHE`, © 2026 Autonomi) in the built output, for example as a licence file beside the bundled SDK, since both licences ask for the notice wherever the SDK is redistributed. The repository has carried MIT OR Apache-2.0 licence files since `5509d3a`.
+
+## Cinema read-ahead (built 2026-11-17; not uploaded)
+
+- **Why:** a tester couldn't stream Cinema well on a good connection, and the user couldn't on 4G. The bridge's worker asks the page for one 1 MiB block at a time, each waiting for the last, and the SDK's reader reads only about one record ahead (the core's four-record streaming mode is off for media; see the SDK README, "Seekable media"). So playback leaned on one 4 MB record (about 10 s of film) at a time arriving promptly, and one slow record, or one retried after 15 s, stalled it. AntTP, the Autonomi HTTP gateway, fetches many records at once for the same reason.
+- **The change (Cinema only; no loader or SDK change):**
+  - `sites/cinema/src/readahead.js` answers the worker's `autonomi-file-range` messages itself, as `fixtures/stream/stream.js` does, from `client.openFile()` instead of `createMediaSource()`. It keeps a window of 1 MiB blocks ahead of the player's position, fetched 8 at a time (about two records). That's 8 blocks before play (the opening 20 s), and 32 once the first frame shows (about 80 s; 20 on devices reporting 2 GB or less). It drops blocks behind the player but keeps block 0, and a failed prefetch waits 5 s before it's tried again.
+  - **Override:** sessionStorage `cinemaReadAhead` = `"ahead,parallel"`; `"0,1"` is one block at a time, as before.
+  - **"Streamed so far"** now counts bytes fetched from the network, read-ahead included. A new "· N s ready ahead" adds the player's buffer to the read-ahead held, at the film's average bitrate. It has its own line on phones.
+  - **Licence:** `bundleScript({ licences: true })` adds the SDK's `LICENSE-SDK-MIT.txt` and `LICENSE-SDK-APACHE.txt` under `player/`. The Download Button doesn't use it yet, so its upload stays current; turn it on with its next change. The SDK's wasm `THIRD-PARTY-NOTICES.txt` (0.7 MB) and `RUST-STD-COPYRIGHT.html` (1.5 MB) aren't included: decision for the user.
+- **Measured on mainnet** (`CINEMA_MEASURE=1`, new `tests/e2e/cinema-measure.spec.ts`, fixture loader, Chromium, desktop broadband; `CINEMA_MODES`, `CINEMA_PLAY_S`):
+
+| | One block at a time (2 runs) | Read-ahead, 8 at a time (3 runs) | Read-ahead, 16 at a time (4 runs) |
+| --- | --- | --- | --- |
+| Ready ahead while playing | 7–29 s, falling to 7 s once | 104–114 s once full | 104–114 s once full |
+| Stalls | one of 1.9 s in 45 s | none | none |
+| First frame after play | 1.3, 1.8 s | 2.5, 0.7, 3.9 s | 2.9*, 0.5, 2.0, 1.7 s |
+| Seek to the middle | 2.5, 4.3 s | 6.2, 3.2, 1.0 s | 1.0, 11.1, 5.4, 5.8 s |
+
+  \* With the window widened when play was pressed. It now widens at the first frame instead. 16 at a time filled the window no faster and slowed seeks (old fetches can't be cancelled), so 8 is the default. The first frame and seeks vary a lot run to run. With a few runs each, read-ahead looks no worse at the start, and much better once playing. 4G hasn't been measured: Playwright can't throttle WebRTC.
+- **Tests:** unit 212/212, e2e 79 (4 skipped), `CINEMA_LIVE=1` passes.
+- **Checked by screenshot:** 1280 and 375 px. At 375 px the page is 3 px wider than the window, before this change too (no element's box overflows; probably a shadow or glow). Worth a look in the next Cinema design pass.
+- **To publish:** `npm run sites`; upload `publish/sites/cinema.tar`; `node sites/build.mjs record cinema <address>`; Start v7 (it lists Cinema's size) and its pointer; deploy the loader.
+- **Next:** a 720p copy (about 1.4 Mbit/s, ~115 MB, ~1.6 ANT) that the player starts on for phones or slow first reads, and switches to when "ready ahead" keeps falling.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 

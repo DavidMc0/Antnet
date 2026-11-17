@@ -45,7 +45,7 @@ const PLAY = svg('<path d="M8.2 5.3v13.4a.6.6 0 0 0 .92.5l10.4-6.7a.6.6 0 0 0 0-
 /** The player script with the Autonomi client (player/player.js and its WebAssembly), bundled once per run. */
 let playerFiles;
 const player = () =>
-  (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player" }));
+  (playerFiles ??= bundleScript({ entry: new URL("src/player.js", import.meta.url), root: new URL(".", import.meta.url), dir: "player", licences: true }));
 
 const HOW = [
   [
@@ -131,7 +131,7 @@ ${ctx.headTags}
       </div>
     </div>
     <div class="readout">
-      <p class="meter">Streamed so far: <strong data-streamed>nothing yet</strong> <span class="meter-of">of ${megabytes(FILM.bytes)}, from the Autonomi network</span></p>
+      <p class="meter">Streamed so far: <strong data-streamed>nothing yet</strong> <span class="meter-of">of ${megabytes(FILM.bytes)}, from the Autonomi network</span><span class="meter-ahead" hidden><span class="meter-sep"> · </span><strong data-ahead></strong> ready ahead</span></p>
       <p class="visit" data-visit hidden></p>
     </div>
   </div>
