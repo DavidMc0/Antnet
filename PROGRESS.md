@@ -600,7 +600,7 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
 - **To publish:** `npm run sites`; upload `publish/sites/cinema.tar`; `node sites/build.mjs record cinema <address>`; Start v7 (it lists Cinema's size) and its pointer; deploy the loader.
 - **Committed** as `5d2281c`. Uploaded together with the 720p copy (next section).
 
-## Cinema's 720p copy and automatic quality (built 2026-11-17; not uploaded)
+## Cinema's 720p copy and automatic quality (built 2026-11-17; 720p uploaded, Cinema not yet)
 
 - **The copy:** `publish/media/big-buck-bunny-720p.mp4` (gitignored), 123,705,804 bytes, 1.56 Mbit/s. It was made from the network's 1080p file (`ant file download b1d79785… -o publish/media/bbb-1080p.mp4` took 12.3 s for 251 MB, so the network itself is fast when records are fetched in parallel):
   `ffmpeg -i bbb-1080p.mp4 -map 0:v:0 -map 0:a:0 -vf scale=1280:720:flags=lanczos -c:v libx264 -preset slow -profile:v high -level 4.0 -pix_fmt yuv420p -crf 22 -maxrate 1600k -bufsize 3200k -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a 128k -ac 2 -movflags +faststart big-buck-bunny-720p.mp4`
@@ -623,7 +623,29 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   - **Switching down and up:** capped at 0.5 Mbit/s 20 s in, it dropped to 720p 33 s later and carried on from 53 s into the film. With the cap lifted, it went back to 1080p exactly when the one-minute wait ran out.
   - **Starting copy:** 720p on a 375 px screen and on a desktop capped at 2 Mbit/s; 1080p on a fast desktop.
   - **Tests:** unit 212/212 and e2e 79 pass. The new tests are in `cinema-measure.spec.ts` under `CINEMA_MEASURE=1`. `CINEMA_THROTTLE` sets the cap (default 2). `CINEMA_LIFT=1` lifts it at the drop, which a stand-in needs.
-- **After the 720p upload,** run `CINEMA_MEASURE=1 npx playwright test tests/e2e/cinema-measure.spec.ts --workers=1` with the cap held at 2 Mbit/s: 720p should play on without stalls where 1080p couldn't.
+- **The 720p copy is uploaded:** `76bb918c…de51`, 34 records, 2.89 ANT. Its SHA-256 matches the local file, and it's recorded in `files`.
+- **Tests with the real copy found three problems, now fixed:**
+  - **No copy to switch to at play.** The 720p copy can take 10 s or more to open alongside 1080p, so it often wasn't open when play was pressed. On a slow start, play now waits up to 5 s for it. A copy that opens after playback starts gets set up as standby straight away (its first block and index).
+  - **Switches stalled for 25–60 s under a 2 Mbit/s cap.** A switch throws away the browser's buffer. Five causes, each fixed:
+    1. The old copy's read-ahead was thrown away when the switch began. It now holds its blocks (`hold()`) until the switch.
+    2. The blocks fetched ahead of the switch were let go as they arrived.
+    3. The browser's re-read of the file's header moved the window to the start of the film. Reads in the first two blocks no longer move a window that is further on.
+    4. The first fetches of the new copy queued behind 8 blocks of the old copy that were still in flight.
+    5. The switch point came from a speed measured minutes earlier.
+  - **How a switch works now** (`changeTo`):
+    - It picks a point the old copy's buffer will reach, up to 20 s ahead.
+    - It finds that point's keyframe in the new copy's MP4 index (`src/mp4index.js`, checked against ffprobe on both films and unit-tested on `tests/unit/cinema/tiny.mp4`).
+    - It fetches the new copy from there, plus its window, while the old copy plays on.
+    - It switches when playback reaches that point. If playback has already gone past by then, it plans again, up to 3 times. After 30 s it switches regardless.
+  - **Fewer fetches at once on a slow link:** `ReadAhead.limit` keeps about 8 s of data in flight (`rate × 8 s`), between 2 and 8 blocks. A copy that hasn't measured the network yet goes by the other copy's rate. 4 s was too few: each record takes 1.5–4 s to find whatever the link's speed, so the measured rate fell and held the window down on a fast connection.
+  - **Drop threshold:** under 25 s ready ahead for 3 s (it was 15 s for 5 s), to leave time to fetch ahead of the switch.
+- **Results with the real copy:**
+  - **2 Mbit/s cap held** (natural drop): 1080p → 720p with 24 s ready, no stall (0.1 s). 720p played on under the cap. With the cap lifted, 720p → 1080p at 11.9 Mbit/s measured, with a 0.3 s stall.
+  - **Starting copy:** 720p on a phone; 720p on a desktop capped at 2 Mbit/s (this failed before the fix); 1080p on a fast desktop.
+  - **Fast desktop:** about 110 s ready ahead, no stalls. Some runs on mainnet saw single records take 11–29 s at the start, which stalled before any buffer existed, and the stall rule then rightly dropped to 720p.
+- **Not covered:** a link that slows suddenly soon after playback starts. Blocks fetched at the fast rate are still in flight and can't be cancelled, so the new copy's start waits behind them. One such run stalled 17 s after the switch, before the new copy began filling its window during the wait. Not rerun since.
+- **One wasted block per switch:** after the switch, the browser reads the new copy from byte 0 for its header, and the worker reads on into block 1 before the browser seeks away. That's 1 MiB, about 4 s at 2 Mbit/s. Avoiding it needs a change to the bridge's worker (the loader).
+- **Debugging:** sessionStorage `cinemaDebug` logs each range the player asks for and each block fetched. A `cinema-switch` event on `[data-player]` (detail `"720p"`/`"1080p"`) switches as the rules would. Each switch logs its plan.
 - **Upload order** (each step needs the address from the one before):
   1. the 720p file, then `record file`;
   2. `npm run sites` and upload Cinema, then `record cinema`;

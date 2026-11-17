@@ -106,6 +106,30 @@ for (const mode of MODES) {
 test("Cinema drops to 720p when the network can't keep up, and goes back", async ({ page }) => {
   test.skip(!process.env.CINEMA_MEASURE, "set CINEMA_MEASURE=1 to measure streaming from Autonomi mainnet");
   test.setTimeout(600_000);
+  page.on("console", (m) => {
+    if (m.text().startsWith("[cinema]") && !/ (asks|block) /.test(m.text())) console.log(m.text());
+  });
+  // Stalls while playing: each "waiting" until the next "playing", in seconds of wall time.
+  await page.addInitScript(() => {
+    const w = window as unknown as { stalls: [number, number][]; since: number };
+    w.stalls = [];
+    w.since = 0;
+    document.addEventListener("waiting", () => (w.since ||= performance.now()), true);
+    document.addEventListener(
+      "playing",
+      () => {
+        if (w.since) w.stalls.push([Math.round(w.since / 100) / 10, Math.round((performance.now() - w.since) / 100) / 10]);
+        w.since = 0;
+      },
+      true,
+    );
+  });
+  const videoState = () =>
+    page.evaluate(() => {
+      const v = document.querySelector("video")!;
+      const p = document.querySelector("[data-player]")!;
+      return { t: v.currentTime, paused: v.paused, ready: v.readyState, network: v.networkState, error: v.error?.code, state: p.getAttribute("data-state"), ahead: p.getAttribute("data-ahead-seconds") };
+    });
   await page.goto(nameUrl("cinema"));
   const player = page.locator("[data-player]");
   const films = JSON.parse((await player.getAttribute("data-films")) ?? "[]");
@@ -132,8 +156,14 @@ test("Cinema drops to 720p when the network can't keep up, and goes back", async
   await expect(player).toHaveAttribute("data-quality", "1080p", { timeout: 300_000 });
   const upAt = Number(await player.getAttribute("data-switched-at"));
   const upWall = (Date.now() - t0) / 1000;
-  await expect.poll(time, { timeout: 60_000 }).toBeGreaterThan(upAt + 2);
-  console.log(JSON.stringify({ heldUntilWall: held, downAtFilmS: Math.round(downAt), downWall, upAtFilmS: Math.round(upAt), upWall, switches: await player.getAttribute("data-switches") }));
+  try {
+    await expect.poll(time, { timeout: 60_000 }).toBeGreaterThan(upAt + 2);
+  } catch (e) {
+    console.log("after the switch up:", JSON.stringify(await videoState()));
+    throw e;
+  }
+  const stalls = await page.evaluate(() => (window as unknown as { stalls: [number, number][] }).stalls.slice(1));
+  console.log(JSON.stringify({ stallsAfterStart: stalls, heldUntilWall: held, downAtFilmS: Math.round(downAt), downWall, upAtFilmS: Math.round(upAt), upWall, switches: await player.getAttribute("data-switches") }));
 });
 
 // Where Cinema starts: 720p on a phone-width screen, and on a desktop whose opening seconds

@@ -85,6 +85,11 @@
     "oscar-wilde_the-importance-of-being-earnest.epub": {
       "address": "3ef25c1dc4408827348141b0dd3270e8d6a028b804a242a2241ad99b662c8629",
       "bytes": 419067
+    },
+    "big-buck-bunny-720p.mp4": {
+      "address": "76bb918cfaba09728124939d6ff303cedc8bcc999b6ba229341a052c3d1cde51",
+      "bytes": 123705804,
+      "cost": "2.89 ANT"
     }
   }
 }
