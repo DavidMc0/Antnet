@@ -768,6 +768,13 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
   4. Watch for an answer to the issue #10 update (posted to Autonomi support by the user).
   5. Re-record a 4K 30 fps copy if the browser can fetch its chunks: run `node tools/record-scan.mjs 289d33813926d03993357676ea3a34ddca35540be40090498120985f585d5a51 149`, with the dev server running.
 
+## Cinema v5: a 4K download button, live (2026-11-18)
+
+- **What changed:** "Take a copy home" now has a second button, for the 4K 60 fps copy (`big-buck-bunny-2160p60.mp4`, 673 MB, `32e07381…d28a`). It sits under the 1080p button. Both buttons come from the Download Button's generator (`sites/shared/button.mjs`), in the dark style, and are stacked and centred. The 4K button appears only while that copy is recorded in `addresses.json`. When it shows, the text above the buttons says "These buttons were… Each leads…".
+- **Published:** Cinema v5 `220cd79b…aa9f` (4 records, 0.2910 ANT). The SHA-256 matched the built archive. The user deployed the loader for `names.json`. Committed `370a15d`.
+- **Not checked live by Claude.** The built page was checked: both buttons are there, and their links point to the right addresses and sizes.
+- **Next:** unchanged from Cinema v4 above.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
