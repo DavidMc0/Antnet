@@ -9,11 +9,11 @@
       "cost": "0.2849 ANT (gas: 0.000004 ETH)"
     },
     "cinema": {
-      "address": "382a517e4f7a75389baf14f920aac6c836d439b142ba67ec2399f7624a5dbd35",
-      "sha256": "710cbf9b53a05a6116296f50ab8cb7c4697751a06055e24aa2b8afff9de195fe",
-      "published": "2026-11-17",
+      "address": "220cd79bf10fa989c7990690d94af3c14dad21bc9ecd82c3fea587af30beaa9f",
+      "sha256": "64590701f5982a7e4c780d5fc05509968477213d10b35f1b2225ca7c1896d7e8",
+      "published": "2026-11-18",
       "since": "2026-11-12",
-      "cost": "0.3188 ANT"
+      "cost": "0.2910 ANT"
     },
     "download": {
       "address": "161b69a001da9969df0b58ffce8a74635ccce06279e85ac66c0f9e373bbe48b6",

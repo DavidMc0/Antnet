@@ -123,6 +123,18 @@ export async function build(ctx) {
     size: FILM.bytes,
     address: FILM.address,
   });
+  // The 4K copy (Blender's own 60 fps release) gets a second button, once it is recorded.
+  const film4k = COPIES.find((c) => c.height === 2160 && c.fps === 60);
+  const at4k = ctx.files?.[film4k.file];
+  const button4k = at4k
+    ? await buttons.add({
+        style: "dark",
+        href: ctx.hrefFor("download", `/f/ant/${at4k.address}?n=${encodeURIComponent(film4k.file)}&s=${at4k.bytes}`),
+        fileName: film4k.file,
+        size: at4k.bytes,
+        address: at4k.address,
+      })
+    : "";
   files.set(BUTTON_CSS, buttons.css());
 
   // The copies the player may play, best first: the 1080p film and those recorded.
@@ -204,8 +216,8 @@ ${ctx.headTags}
 
 <section class="take-home" aria-labelledby="take-home-h">
   <h2 id="take-home-h">Take a copy home</h2>
-  <p>This button was made with the <a href="${ctx.hrefFor("download")}">Download Button</a>, and pasted in as any website would. It leads to a download page that is on Autonomi too, and your browser checks every piece of the video as it saves it.</p>
-  <div class="take-home-button">${filmButton}</div>
+  <p>${button4k ? "These buttons were" : "This button was"} made with the <a href="${ctx.hrefFor("download")}">Download Button</a>, and pasted in as any website would. ${button4k ? "Each leads" : "It leads"} to a download page that is on Autonomi too, and your browser checks every piece of the video as it saves it.</p>
+  <div class="take-home-button">${filmButton}${button4k}</div>
   <p class="take-home-note">Chrome and Edge save it straight to disk; other browsers hold it in memory first.</p>
 </section>
 
