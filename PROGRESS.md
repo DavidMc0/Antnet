@@ -938,6 +938,13 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
 
 **Out of scope:** requests 2 (open a site archive as a site) and 3 (tell the hosted loader the app is there) stay as written proposals.
 
+**Also next session (the user's idea, agreed 2026-11-19): a "Websites" page in the fork's sidebar, under Wallet.**
+- Move browsing and publishing out of the Settings card into that page: the open box, gateway and antd status, publishing with its steps, and the list of published sites with Open and Copy link.
+- With the setting off, the page explains the feature and offers the switch.
+- Settings keeps only the switch, with a link to the page.
+- `ant://` links that arrive while the setting is off go to the Websites page, not Settings.
+- Look at `components/AppSidebar.vue` and `pages/` for the pattern. About half a day.
+
 **To test:** load it unpacked in Chrome (and Edge), with the app's setting on. A hosted link, such as `https://start.antnet.autonomirror.com/`, should open locally. With the app closed, it should open the hosted site.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
