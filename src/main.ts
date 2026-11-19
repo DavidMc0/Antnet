@@ -27,7 +27,7 @@ import {
 import { NotASiteError, deleteOtherSiteCaches, installArchive } from "./install";
 import { type NameEntry, fetchNames } from "./names";
 import { WARM_PATH, warmReporter } from "./warm";
-import { createSource } from "./source";
+import { createSource, isLocalLoader } from "./source";
 import { type SiteSource, SourceError } from "./source/types";
 import { type SiteState, type Timings, checkDue, clearState, readState, readStreams, sameLink, writeState } from "./state";
 import { TarError } from "./tar";
@@ -220,6 +220,7 @@ async function install(link: SiteLink, root: string, named?: Named, ui: InstallU
       records: result.chunks,
       recordList: result.recordList,
       arrivals: result.arrivals,
+      via: result.via ?? "browser",
       timings,
       startedAt: started,
     });
@@ -394,6 +395,7 @@ async function checkForUpdate(state: SiteState, budgetMs: number): Promise<Check
       records: result.chunks,
       recordList: result.recordList,
       arrivals: result.arrivals,
+      via: result.via ?? "browser",
       timings,
       startedAt: started,
     });
@@ -463,7 +465,12 @@ type Ident = { link: SiteLink } | { name: string };
 
 async function info(ident: Ident, label: string, status?: string): Promise<void> {
   const stored = await readState(location.origin);
-  const source = import.meta.env.VITE_SOURCE === "fixture" ? "fixture (test files over HTTP)" : "Autonomi mainnet";
+  const source =
+    import.meta.env.VITE_SOURCE === "fixture"
+      ? "fixture (test files over HTTP)"
+      : isLocalLoader()
+        ? "Autonomi mainnet, through Antnet Gateway on this computer when it is running"
+        : "Autonomi mainnet";
   let state: SiteState | null;
   let link: SiteLink | null;
   let name: { name: string; entry: NameEntry | null | "unreadable" } | undefined;

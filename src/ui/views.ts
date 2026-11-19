@@ -1,6 +1,7 @@
 // The shell's views: loading screen, landing page, info page and error page.
 
 import type { SiteLink } from "../host";
+import { isLocalLoader } from "../source";
 import type { NameEntry } from "../names";
 import type { WarmReport } from "../warm";
 import { type SiteState, type StreamRecord, sameLink } from "../state";
@@ -165,7 +166,9 @@ export function showLanding(opts: LandingOptions): void {
       h(
         "p",
         {},
-        "Every byte comes from Autonomi nodes over WebRTC and is verified in your browser. No gateway sits in the data path.",
+        isLocalLoader()
+          ? "Every byte comes from Autonomi nodes. Antnet Gateway on this computer fetches and checks it, or your browser does over WebRTC when the gateway isn't running. No server on the internet sits in the data path."
+          : "Every byte comes from Autonomi nodes over WebRTC and is verified in your browser. No gateway sits in the data path.",
       ),
       h(
         "p",
@@ -423,7 +426,7 @@ export function showFrontDoor(opts: FrontDoorOptions): FrontDoorView {
               s.records !== undefined ? `${s.records + 1} records` : null,
               doorBytes(s.bytes),
               `arrived in ${total}`,
-              "every byte checked in your browser",
+              s.via === "gateway" ? "every byte checked on your computer" : "every byte checked in your browser",
             ]
           : ["Fetched from the network and checked in your browser."];
         // Spans, so the facts wrap as units; the spaces between them are for screen readers and copying.
@@ -606,6 +609,15 @@ export function showInfo(opts: InfoOptions): void {
           row("Size", formatBytes(state.bytes)),
           row("Files", String(state.files), "files"),
           state.records !== undefined ? row("Records", `${state.records + 1} (${state.records} chunks + DataMap)`) : null,
+          state.via
+            ? row(
+                "Fetched by",
+                state.via === "gateway"
+                  ? "Antnet Gateway on this computer, through antd, the Autonomi native client. It checked every chunk."
+                  : "Your browser, directly from Autonomi nodes over WebRTC. It checked every chunk.",
+                "via",
+              )
+            : null,
           row("Installed", formatTime(state.installedAt)),
           canChange ? row("Last checked", formatTime(state.checkedAt)) : null,
           canChange

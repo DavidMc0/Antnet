@@ -5,6 +5,7 @@ import type { SiteLink } from "./host";
 import { SETTINGS_FILE, cachePathFor, headersFor, isReservedPath, parseSettings } from "./site";
 import { type Arrival, type RecordDetail, type SiteState, type Timings, writeState } from "./state";
 import { readTar } from "./tar";
+import type { FetchedVia } from "./source/types";
 
 export class NotASiteError extends Error {
   constructor(message: string) {
@@ -20,6 +21,7 @@ export interface InstallInput {
   blake3: string;
   bytes: Uint8Array;
   records?: number;
+  via?: FetchedVia;
   recordList?: RecordDetail[];
   arrivals?: Arrival[];
   /** The short name this origin is, with its registration date, when opened by name. */
@@ -82,6 +84,7 @@ export async function installArchive(input: InstallInput): Promise<SiteState> {
     title: settings.title,
     ignored,
     records: input.records,
+    ...(input.via ? { via: input.via } : {}),
     declaredName: settings.name,
     recordList: input.recordList,
     arrivals: input.arrivals,

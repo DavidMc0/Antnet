@@ -834,6 +834,7 @@ The crate's back end is behind one interface (plan step 1), so either can be use
    - A third `SiteSource`, `GatewaySource`, beside the SDK and fixture sources. The shell uses it when the loader root ends in `.localhost` and `/status` says antd is connected, and falls back to WebRTC otherwise.
    - The receipt says which path was used.
    - **Measure:** ten cold opens of each demo site through the gateway and through WebRTC, and one record that browsers can't reach but the gateway can (from the census). These numbers are what persuade engineers.
+   - **Built 19 November 2026** (PROGRESS.md, "Antnet Gateway and GatewaySource"). Checked end to end against a stand-in for antd (`tools/fake-antd.mjs`) in Chromium and Firefox. On 19 November it also opened Start through a real antd on mainnet, with the same content hash as the hosted loader. Not yet measured.
    - **The earliest thing worth showing,** about a week in: send it to the Autonomi team privately before building the fork (section 12.11 plan step 2).
 3. **The ant-ui fork (about a week).**
    - One platform, the one used for presenting, unsigned and labelled "unsigned test build".

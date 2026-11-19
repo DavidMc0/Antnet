@@ -3,6 +3,7 @@
 import { CHECK_INTERVAL_MS, META_CACHE, STATE_PATH, STREAMS_PATH } from "./config";
 import type { SiteLink } from "./host";
 import type { SiteSettings } from "./site";
+import type { FetchedVia } from "./source/types";
 
 export interface Timings {
   connectMs?: number;
@@ -52,6 +53,8 @@ export interface SiteState {
   title?: string;
   ignored?: string[];
   records?: number;
+  /** Who fetched and checked the archive. Absent on sites installed before this was recorded. */
+  via?: FetchedVia;
   /** The name the site gives itself in its settings file, if any. */
   declaredName?: string;
   recordList?: RecordDetail[];

@@ -775,6 +775,53 @@ DEMO.md 3.3. Built in `sites/colonysim/`, at 26 KiB. It uses the shared policy, 
 - **Not checked live by Claude.** The built page was checked: both buttons are there, and their links point to the right addresses and sizes.
 - **Next:** unchanged from Cinema v4 above.
 
+## Antnet Gateway and GatewaySource (2026-11-19)
+
+The proof of concept in DEMO.md 12.14, steps 1 and 2.
+
+**The gateway**
+- A new repo, `antnet-gateway`: `C:\antnet-gateway`, private on GitHub as DavidMc0/antnet-gateway.
+- It serves the loader on `*.antnet.localhost:47114` and passes `/_autonomi/local/{status,pointer,fetch,stream}` to antd.
+- 15 Rust tests.
+
+**The loader**
+- **`npm run build:local`** builds into `dist-local/`.
+- **`src/source/gateway.ts`** adds two sources:
+  - `GatewaySource` reads through the gateway.
+  - `GatewayFirstSource` tries the gateway first. It falls back to WebRTC if the gateway is absent, antd isn't connected, or a call fails with a network error, and then stays on WebRTC for that source's life. Not found, too large and "not a file" are passed on without asking WebRTC.
+- **`createSource()`** uses `GatewayFirstSource` only when the loader root ends in `.localhost`, so the hosted loader never calls the gateway.
+- **The fetch path is recorded:** fetch results and the site state record `via: "gateway" | "browser"`.
+- **The wording:**
+  - The front door's receipt says "every byte checked on your computer" when the gateway fetched the site.
+  - The info page has a "Fetched by" row.
+  - The local landing page no longer says "No gateway sits in the data path".
+- **Chunk count:** the gateway doesn't report one, so `chunks` is now optional and the Records row is left out for gateway installs.
+- **Tests:** 12 unit tests in `tests/unit/gateway.test.ts`. All 229 unit tests and the 80 fixture end-to-end tests pass.
+
+**End-to-end check, against `tools/fake-antd.mjs`** (a stand-in for antd serving the fixtures):
+- The plain fixture opens by immutable label and through a pointer in Chromium and Firefox.
+- The info page says "Fetched by: Antnet Gateway on this computer…".
+- The gateway's content hash matches `b3sum` of the archive.
+
+**Against a real antd (the user, 2026-11-19):**
+- The user installed antd v0.17.0 and ran the gateway. `start.antnet.localhost:47114` opened Start through the gateway on mainnet.
+- **Content hash:** `39b2f518…a6ba`. This is `b3sum` of `publish/sites/start.tar`, Start v6 (`ae5078da…`).
+- A fresh Chromium install from the hosted loader gives the same hash for the same archive, so the SDK's hash is plain BLAKE3 as well.
+- The user's own hosted copy of Start showed `646a06d1…`, which is an older version that hadn't been checked since Start v6 went live. On the next visit, the background check offered a reload to the latest version, and afterwards the hash was `39b2f518…a6ba`, matching the local copy. Not a bug.
+
+**Not checked yet:**
+- Measurements.
+- Real Safari.
+
+**Known limits:**
+- The gateway only answers once antd has the whole archive, so the loading screen shows no download progress on this path.
+- Cinema's media still streams through the SDK's bridge. The gateway's `stream` endpoint isn't used yet.
+- The front door's local wording (DEMO.md 12.5) isn't done.
+
+**Next:**
+1. Run against a real antd and take the measurements (DEMO.md 12.14 step 2).
+2. Then the ant-ui fork.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

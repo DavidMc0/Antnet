@@ -13,13 +13,17 @@ export interface FetchArchiveResult {
   bytes: Uint8Array;
   /** Content hash reported by the source (BLAKE3 for Autonomi). */
   blake3: string;
-  /** Content chunks, not counting the DataMap record. */
-  chunks: number;
+  /** Content chunks, not counting the DataMap record, when the source knows. */
+  chunks?: number;
   /** Each record of the file, DataMap first, with what the source knows about it. */
   recordList?: RecordDetail[];
   /** When each chunk arrived, in arrival order. */
   arrivals?: Arrival[];
+  /** Who fetched and checked it: Antnet Gateway on this computer, or the browser over WebRTC. */
+  via?: FetchedVia;
 }
+
+export type FetchedVia = "gateway" | "browser";
 
 export interface SiteSource {
   /** Human-readable name for the info page. */
