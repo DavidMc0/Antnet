@@ -3,7 +3,8 @@
 // the publisher's; the info page says so.
 //
 // Once the page has loaded, it opens /_autonomi/check in a hidden frame on the site's own
-// origin. The shell there checks for a new version if one is due (at most hourly), installs
+// origin. The shell there checks for a new version if one is due (at most hourly; every
+// minute through Antnet Gateway on the user's computer), installs
 // it, and reports back. If a new version arrived, a small notice offers a reload.
 // Plain ES5 with no dependencies: it runs in whatever page the site has.
 

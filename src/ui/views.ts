@@ -623,7 +623,7 @@ export function showInfo(opts: InfoOptions): void {
           canChange
             ? row(
                 "Updates",
-                "Checked in the background, at most once an hour. For this, the loader adds one small " +
+                `Checked in the background, at most once ${isLocalLoader() ? "a minute" : "an hour"}. For this, the loader adds one small ` +
                   "script of its own to this site's pages (/_autonomi/check.js).",
                 "updates",
               )

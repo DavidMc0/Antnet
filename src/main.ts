@@ -3,6 +3,7 @@
 import "./ui/style.css";
 import {
   CHECK_INTERVAL_MS,
+  LOCAL_CHECK_INTERVAL_MS,
   CHECK_PATH,
   CHECK_RETRY_MS,
   MAX_AUTO_RELOADS,
@@ -316,6 +317,11 @@ interface CheckResult {
  * name uninstalls the site. Then, for a pointer, read the pointer within the time budget and
  * install the new archive if it moved. Records the outcome in the state record either way.
  */
+/** How long after a check the next is due: an hour when hosted, a minute through the gateway. */
+function checkIntervalMs(): number {
+  return isLocalLoader() ? LOCAL_CHECK_INTERVAL_MS : CHECK_INTERVAL_MS;
+}
+
 async function checkForUpdate(state: SiteState, budgetMs: number): Promise<CheckResult> {
   const started = performance.now();
   const now = Date.now();
@@ -325,7 +331,8 @@ async function checkForUpdate(state: SiteState, budgetMs: number): Promise<Check
     return { outcome, changed: false, removed: false };
   };
   // After a failure the next check is due after CHECK_RETRY_MS rather than a full interval.
-  const failed = (outcome: string) => record(outcome, now - CHECK_INTERVAL_MS + CHECK_RETRY_MS);
+  const interval = checkIntervalMs();
+  const failed = (outcome: string) => record(outcome, now - interval + Math.min(CHECK_RETRY_MS, interval));
   const installed = async (): Promise<CheckResult> => {
     const fresh = await readState(location.origin);
     if (fresh) {
@@ -420,7 +427,7 @@ async function backgroundCheck(): Promise<void> {
   };
   const state = await readState(location.origin);
   if (!state) return post("not-installed");
-  if (!checkDue(state, Date.now())) return post("not-due");
+  if (!checkDue(state, Date.now(), checkIntervalMs())) return post("not-due");
   const r = await checkForUpdate(state, backgroundBudgetMs());
   post(r.removed ? "removed" : r.changed ? "updated" : "no-change", r.outcome);
 }
