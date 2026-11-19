@@ -859,6 +859,36 @@ DEMO.md 12.14 step 3, browsing half.
 - **The user tried it in the app (Windows) and everything worked:** the setting, opening by name, `ant://` links with the app open and closed, and turning it off.
 - **Next:** publishing a folder as a site (step 3, second half), then the bridges (step 4).
 
+## The ant-ui fork: publishing (2026-11-19)
+
+DEMO.md 12.14 step 3, second half. It's in Settings, under "Publish a folder as a site".
+
+**The flow**
+1. `antnet_pack_site` packs the folder with `antnet_gateway::pack`. That's a Rust port of `tools/tar-writer.mjs`, and it gives the same bytes: tested against `pack.mjs`'s SHA-256 for a fixture with a PAX path, a prefix split, dotfiles and a non-ASCII name.
+2. The archive is uploaded as a public file through the Files store's `startRealUpload`, with the usual wallet payment.
+3. `antnet_prepare_pointer` signs the pointer (`pointer_sign_create` or `pointer_sign_update`) and quotes it with `prepare_pointer_payment`. Only non-zero quotes are paid, as antd does.
+4. The frontend pays with `payForQuotes`.
+5. `antnet_confirm_pointer` builds the proof and calls `pointer_put_paid`. On failure the proof is kept, so "Try storing the link again" doesn't pay twice.
+6. The site opens as `ant://p/<pointer>` through the gateway.
+
+**Keys**
+- **Where:** `%APPDATA%\autonomi\ant-gui\antnet\keys\<pointer>.key`.
+- **Format:** the `ant pointer keygen` format, a 32-byte ML-DSA-65 seed as hex, so the files also work with the CLI and antd.
+- **Written before any payment.** The site list is `antnet\sites.json`.
+- The wallet only pays for the pointer and never signs it.
+
+**Checks**
+- **Tests:** ant-ui 101 frontend (8 new) and 32 Rust; gateway 18 (2 new, the packer).
+- **The user tried it on mainnet and everything worked:** a new site, then an update behind the same link.
+- **Update checks (found by the user):** a browser with the old version cached didn't update at once, because checks were at most hourly. The local loader now checks on any visit at least a minute after the last check (`LOCAL_CHECK_INTERVAL_MS`, commit `3e9283d`); through antd a check is one pointer read of about a second. Hosted stays hourly. Consider about 5 minutes for an official app, so a popular site's pointer isn't read too often. A page left open doesn't check by itself.
+
+**A dev snag**
+- The app starts antd and the node daemon from `target\debug` and leaves them running.
+- While they run, a build that redoes Tauri's sidecar copy fails with "Access is denied". `cargo clippy` did; `cargo build` and `tauri dev` didn't.
+- The fix is to stop the `target\debug\antd.exe` process.
+
+**Next:** step 4, the bridges ("Open in the Autonomi app" on the hosted loader), then the video.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
