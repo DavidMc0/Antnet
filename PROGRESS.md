@@ -809,8 +809,25 @@ The proof of concept in DEMO.md 12.14, steps 1 and 2.
 - A fresh Chromium install from the hosted loader gives the same hash for the same archive, so the SDK's hash is plain BLAKE3 as well.
 - The user's own hosted copy of Start showed `646a06d1…`, which is an older version that hadn't been checked since Start v6 went live. On the next visit, the background check offered a reload to the latest version, and afterwards the hash was `39b2f518…a6ba`, matching the local copy. Not a bug.
 
+**Measured (2026-11-19, `docs/measurements/2026-11-19-gateway.md`):**
+- The set-up: 100 cold opens in Chromium, alternating paths, with antd's cache at 1 chunk. All succeeded.
+- **The gateway reached two records the browser still can't.** Records 11 and 70 of `289d3381…` arrived through the gateway in 33 s and 9.5 s. In the browser SDK they failed with "Missing chunk", as on 17 November.
+- **Pointers resolve about ten times faster:** median 1.3 s against 14.4 s.
+- **A first fetch through antd was not faster:**
+  - The gateway took 12–31 s against WebRTC's 6–37 s, and was slower for 4 of the 5 sites.
+  - Re-fetches of a site antd had fetched before took 1–4 s against 9–31 s for a fresh browser, even with its cache at 1 chunk.
+  - The cause isn't known.
+- **So, in the demo:**
+  - Say "reaches records the browser can't" and "resolves pointers faster".
+  - Don't say "faster" in general.
+- **Tools:**
+  - `tools/measure-gateway.mjs` makes the measurements.
+  - The record test was a variant of `tools/record-scan.mjs` that reads only records 11, 70 and 100.
+- **Set-up notes:**
+  - The user restarted antd with `--chunk-cache-capacity 1` for this. The old instance (started by the installer, with no window) needed `Stop-Process`.
+  - Restart antd normally afterwards.
+
 **Not checked yet:**
-- Measurements.
 - Real Safari.
 
 **Known limits:**

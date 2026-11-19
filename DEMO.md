@@ -661,7 +661,10 @@ Antnet Local's first release only serves the loader; the browser still fetches e
 **What it adds**
 
 - **Every chunk.** About half of mainnet nodes never answer a browser's WebRTC dial, which leaves roughly 0.9% of records with no browser-reachable holder (spec section 2). The native client reaches nodes over QUIC, the network's normal transport, so it isn't limited to the browser-reachable half.
-- **Probably faster.** No WebRTC or WASM overhead, more fetches in parallel, one connection pool for all sites, and one chunk cache shared by every site. Measure it against the browser path before claiming it (tests below).
+- **Faster in some ways, not all. Measured 19 November 2026** (`docs/measurements/2026-11-19-gateway.md`):
+  - Pointers resolved about ten times faster (median 1.3 s against 14.4 s).
+  - Sites antd had fetched before came back in 1–4 s against 9–31 s.
+  - **A first fetch of a site antd hadn't seen was no faster,** and usually slower (12–31 s against 6–37 s). Don't claim "faster" in general.
 - **Work without a page open.** The app reads pointers itself: the names pointer (section 12.4), update checks (section 5.3) and loader releases (section 12.6), with no hidden frames needed.
 - **Networks that block WebRTC but allow other UDP** can connect. QUIC also runs over UDP, so **a network that blocks all UDP blocks the native client too.** On its own it doesn't fix the "can't connect" case in section 9; only a relay over TCP would.
 
@@ -834,7 +837,7 @@ The crate's back end is behind one interface (plan step 1), so either can be use
    - A third `SiteSource`, `GatewaySource`, beside the SDK and fixture sources. The shell uses it when the loader root ends in `.localhost` and `/status` says antd is connected, and falls back to WebRTC otherwise.
    - The receipt says which path was used.
    - **Measure:** ten cold opens of each demo site through the gateway and through WebRTC, and one record that browsers can't reach but the gateway can (from the census). These numbers are what persuade engineers.
-   - **Built 19 November 2026** (PROGRESS.md, "Antnet Gateway and GatewaySource"). Checked end to end against a stand-in for antd (`tools/fake-antd.mjs`) in Chromium and Firefox. On 19 November it also opened Start through a real antd on mainnet, with the same content hash as the hosted loader. Not yet measured.
+   - **Built 19 November 2026** (PROGRESS.md, "Antnet Gateway and GatewaySource"). Checked end to end against a stand-in for antd (`tools/fake-antd.mjs`) in Chromium and Firefox. On 19 November it also opened Start through a real antd on mainnet, with the same content hash as the hosted loader. **Measured the same day** (`docs/measurements/2026-11-19-gateway.md`): it reached two records the browser still can't, and resolved pointers about ten times faster, but a first fetch was no faster than WebRTC.
    - **The earliest thing worth showing,** about a week in: send it to the Autonomi team privately before building the fork (section 12.11 plan step 2).
 3. **The ant-ui fork (about a week).**
    - One platform, the one used for presenting, unsigned and labelled "unsigned test build".
@@ -855,8 +858,8 @@ The crate's back end is behind one interface (plan step 1), so either can be use
 | 0:00 | The Autonomi app (the fork), with a node running. Turn on "Open Autonomi sites in your browser". | "This is the Autonomi app, with one new setting." |
 | 0:15 | An email containing an `ant://` link. Click it: the browser opens Start at its local address. | "An Autonomi link, clicked like any other. The app fetched this site from the network on this computer. No web server." |
 | 0:35 | Open Cinema. Press play, seek to the middle and near the end. | "A full film, streamed from the network through the app." |
-| 0:55 | A site whose record browsers can't reach: it fails on the hosted loader, then opens through the app. | "The app reaches parts of the network a browser can't." |
-| 1:10 | The measurements, as a simple table on screen. | "Measured: (the numbers from step 2)." |
+| 0:55 | A file with records browsers can't reach (the prepared 4K Cinema copy, `289d3381…`, records 11 and 70): it stops in the browser, then plays through the app. | "The app reaches parts of the network a browser can't." |
+| 1:10 | The measurements, as a simple table on screen: the two unreachable records, and pointer resolution (1.3 s against 14.4 s). Not a general "faster" claim (section 12.10). | "Measured: records the browser couldn't fetch arrived in seconds, and finding a site's latest version took about a second instead of fourteen." |
 | 1:25 | In the app: Publish a folder as a site. Pay, wait, open it. | "Publishing from the same app: pick a folder, pay once, and it's a website." |
 | 1:45 | A hosted `antnet.autonomirror.com` link: press "Open in the Autonomi app". | "Links from the web open in the app too." |
 | 1:55 | The questions slide. | "This is a community proof of concept. Here's what we'd like to ask the Autonomi team." |
@@ -875,7 +878,7 @@ Record the upload in real time once, then cut it. Narrate over the wait if prese
 - [x] Step 0 findings written down: licences, ant-webex's current state, antd's API (19 November 2026).
 - [ ] Step 0's remaining checks: ant-ui builds on Windows, antd streams the Cinema film from mainnet, where antd keeps pointer keys.
 - [ ] The gateway opens Start, Cinema and Library in Chrome and Firefox; Safari's result recorded either way.
-- [ ] Gateway versus WebRTC measurements recorded, and one browser-unreachable record opened through the gateway.
+- [x] Gateway versus WebRTC measurements recorded, and one browser-unreachable record opened through the gateway (19 November 2026: two records).
 - [ ] With the gateway stopped, installed sites still open, and the shell falls back to WebRTC for new ones.
 - [ ] The fork's setting, menu item and `ant://` links work; ant-ui's own tests still pass.
 - [ ] Publishing a folder from the app produces a site that opens from a clean origin.
