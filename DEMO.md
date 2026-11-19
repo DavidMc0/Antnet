@@ -1,6 +1,6 @@
 # Antnet demo plan
 
-*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. Antnet Local, the loader as a desktop app, and its page on the demo site were added on 13 November (sections 3.8 and 12). Also on 13 November: the front door's claim and the script's opening line were corrected, because the host sends each site's loader page the first time that site is opened (journey step 1, sections 4.5, 5.10 and 7). A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
+*Drafted 11 November 2026, against the repository at `ad9e575` (milestones M1–M3); short names added the same day (section 5.9). Updated that evening with the decisions in section 11: the loader is at `antnet.autonomirror.com`, the app is called ColonySim, and short names are built. The Download Button site (section 3.6) was added later that evening. Antnet Local, the loader as a desktop app, and its page on the demo site were added on 13 November (sections 3.8 and 12). Also on 13 November: the front door's claim and the script's opening line were corrected, because the host sends each site's loader page the first time that site is opened (journey step 1, sections 4.5, 5.10 and 7). On 19 November: phase 2 of Antnet Local, with the native client built in, a plan to offer the gateway to the Autonomi app, ant-ui, so it can browse and publish sites, and a browser fork considered and set aside (sections 12.10–12.13), an "Open in the Autonomi app" button that hands a hosted link to the app (section 5.11), and Autonomi's own browser extension, ant-webex, adopted as the extension route instead of building one (section 12.11). Also a proof-of-concept plan to show all this to the community and the Autonomi team (section 12.14). Later on 19 November, step 0 of that plan was checked against Autonomi's own code (ant-ui, ant-webex and antd, read from the GitLab mirrors because `github.com/WithAutonomi` returned 404). antd already provides the native reads the gateway needs, so the gateway now passes requests to antd instead of linking its own client (sections 12.10, 12.11 and 12.14), and ant-ui already uses `autonomi://` for file links (sections 5.11 and 12.11). A plan for a small set of linked sites that shows what Antnet does and leaves people wanting more of it.*
 
 ## 1. What the demo has to do
 
@@ -226,6 +226,7 @@ It will still be seen: by anyone who clicks early, follows a deep link, or uses 
 - one line of context: "Fetching this site from the Autonomi network. First visits take a few seconds.";
 - after 20 s, a second line: "Still looking. Some records take longer to find.";
 - in the footer, one quiet line that says where each part came from: "This loading page came from `antnet.autonomirror.com`. The site is coming from the Autonomi network." Visitors who notice the loading page between sites then hear it from the demo, not discover it.
+- once the app exists, a small "Open in the Autonomi app" link (section 5.11).
 
 ### 5.5 When it can't connect
 
@@ -257,7 +258,7 @@ The loader adds a small address box to every site, opened with a keyboard shortc
 
 - **How it gets in:** when the service worker serves an HTML file, it inserts `<script src="/_autonomi/bar.js" defer></script>` as the first element of `<head>`. The script is a reserved loader file served from the site's own origin, so a site policy of `script-src 'self'` still allows it. A site whose policy blocks it simply has no bar.
 - **Shortcut:** the default is **Alt+Shift+A**. Pages can't override Ctrl/Cmd+L or Ctrl/Cmd+T, and Ctrl/Cmd+K is already used for search on many sites. The script listens on `window` in the capture phase, ignores key presses while focus is in a text field, and shows a small hint the first time a visitor opens any site: "Press Alt+Shift+A to open another Autonomi site."
-- **The box:** drawn inside a shadow DOM, so the site's styles can't change it. It shows the current site's address (read from the hostname), accepts the same inputs as `?open=`, lists the sites visited in this browser on this loader, and has a link to this site's info page. Enter goes to the target's loader URL; Escape closes it.
+- **The box:** drawn inside a shadow DOM, so the site's styles can't change it. It shows the current site's address (read from the hostname), accepts the same inputs as `?open=`, lists the sites visited in this browser on this loader, has a link to this site's info page, and, once the app exists, an "Open this site in the Autonomi app" item (section 5.11). Enter goes to the target's loader URL; Escape closes it.
 - **Recent sites:** each site's origin keeps its own storage, so a shared list needs a reserved path on the root domain that the bar reads and writes through a hidden frame with `postMessage`. Until that is built, the box shows only the current site.
 - **Opting out:** `"loaderBar": false` in `.autonomi-site.json`.
 - **Say what it is:** the info page notes that the loader adds this one script to the site's HTML. It is loader code, not the publisher's, which matters because the receipt says the page was checked in the browser.
@@ -381,6 +382,50 @@ The host has to answer the first request to every site's subdomain, because noth
 
 **Tests:** opening a second site after Start makes one small request to the host for the stub, and the loader's files are served from the browser's cache (developer tools, Network tab); a stub whose integrity hash doesn't match refuses to run and shows a plain error; the build hash on the info page matches the published copy.
 
+### 5.11 "Open in the Autonomi app": from a hosted link to the local gateway
+
+*Added 19 November 2026. Useful once Antnet Local (section 12) or the Autonomi app with the gateway (section 12.11) exists; until then the button stays hidden behind a build setting.*
+
+A link someone shares, such as `cinema.antnet.autonomirror.com`, always opens on the hosted loader: the browser asks the web host, and nothing on the visitor's computer is involved. This button is the bridge to the local version. It is an ordinary `ant://` link for the same site; the app registers that scheme, so the operating system hands the link to the app, which opens the browser at the site's local address.
+
+**What the visitor sees**
+
+1. On the hosted loading screen or info page, a small secondary link: **"Open in the Autonomi app"**, with a second line, "Needs the Autonomi app or Antnet Local. Get it" (linking to the `local` page, section 3.8).
+2. The first time, the browser asks whether to open the app ("Open Autonomi?"), with an option to always allow this site to open such links.
+3. The app opens the browser at the local address, for example `http://cinema.autonomi.localhost:<port>/`, and the site loads through the gateway (section 12.10).
+
+**The link**
+
+- **It carries the resolved address, never only the name.** The hosted shell already knows the chain from its state record (section 5.9), so the button works even when the app has no names directory turned on (section 12.11):
+  - an immutable site: `ant://<64 hex>`, the form ADR-0006 already defines for a public file;
+  - a pointer site, or a name on a pointer: `ant://p/<64 hex>`. **ADR-0006 has no pointer form yet,** so this is Antnet's proposal; agree it with the Autonomi team before the app ships (section 12.11 questions);
+  - a name, as a hint only: `?name=cinema` added to either form. The app uses it if its own directory maps that name to the same address, and ignores it otherwise.
+- **The current path, query and fragment** are carried too, percent-encoded, so a deep link such as a Download Button page (`/f/ant/<address>?n=…&s=…`) opens at the same place.
+- **The app maps the link** to `http://<root>:<port>/?open=<the link>`, and the local root page redirects as it does for any `?open=` input (section 5.7 A). Anything the app doesn't recognise opens the local root page with the input filled in.
+
+**Where it appears**
+
+- **Loading screen** (section 5.4): under the progress lines, from the start. It doesn't promise speed: "Open in the Autonomi app" only.
+- **Info page** (spec section 3.6): beside "Open the site".
+- **In-page address box** (section 5.7 B): an item "Open this site in the Autonomi app".
+- **Start's fine print** (section 4.4): "Have the Autonomi app or Antnet Local? Open Antnet there", linking to `ant://p/<Start's pointer>?name=start`.
+- **Not inside site pages** beyond the address box: sites don't need to change.
+
+**Limits to state plainly**
+
+- **The page can't tell whether the app is installed.** Without it, clicking the link does nothing in some browsers and shows an error in others, which is why the "Needs…" line and the Get it link sit beside it. Don't try to detect the app from the page by contacting localhost: Chrome would ask the visitor's permission first (section 12.8). The ant-webex extension can check without a prompt, so with it installed the button can be shown only when the app is running (section 12.11).
+- **Saved data doesn't move.** The local site is a different origin, so ColonySim's colonies and other site storage start fresh there. Say so on the info page.
+- **Not `autonomi://`.** The Autonomi app already registers `autonomi://` and treats `autonomi://<address>` as a file to download (section 12.11), so the button uses `ant://` for sites rather than changing what an existing link means.
+- **One handler per computer.** If both Antnet Local and the Autonomi app are installed, the operating system chooses one for `ant://`. Both use the same crate (section 12.11), so either works; Antnet Local's installer should not take over the scheme from the Autonomi app if it is already registered.
+- **It isn't automatic.** Sending every hosted link to the app without a click needs a browser extension: the changes requested from ant-webex (section 12.11).
+
+**Tests**
+
+- With the app installed: the button opens the same site locally from an immutable site, a pointer site, a named site and a deep link with a query and fragment, in Chrome, Firefox, Edge and Safari.
+- Without the app: the click fails harmlessly and the "Needs…" line is visible.
+- An app without names turned on opens a named site by its address; with names turned on and a matching directory, it opens the name's local address.
+- A malformed or unknown `ant://` link opens the local root page with the input filled in, never an error from the app.
+
 ---
 
 ## 6. Links and publish order
@@ -470,6 +515,7 @@ The upload, the name check and the pointer update take real time. In a recording
 - [ ] Every hand-picked name opens its site, and a test claim goes through the GitHub form and Action end to end, including a rejected one.
 - [ ] Nowhere does the demo claim that a page is the last one a server will send. The front door, Start, the fine print, the loading screen and the script all say the host sends only the loader (section 4.5).
 - [ ] Section 5.10's tests, if the stub is built: shared loader files come from the cache on a second site, and the info page's build hash matches the published loader.
+- [ ] If the "Open in the Autonomi app" button is enabled: the tests in section 5.11.
 - [ ] `publish/start.key` backed up somewhere other than the laptop.
 
 ---
@@ -485,6 +531,8 @@ The upload, the name check and the pointer update take real time. In a recording
 7. **The name claim form and Action**, tested with a throwaway site.
 8. **Checks, recording, share.**
 9. **Antnet Local** (section 12), after the demo is shared. Start with the Safari test in section 12.9: it decides the macOS story.
+10. **Phase 2, the native client** (section 12.10), after Antnet Local's first release. Start by measuring the gateway path against WebRTC.
+11. **The `antnet-gateway` crate and a conversation with the Autonomi team** (section 12.11), as soon as Antnet Local works. Then the ant-ui fork, the "Open in the Autonomi app" button on the hosted loader (section 5.11), and publishing from the app. **The proof of concept in section 12.14 is the fast route through steps 9–11:** it needs only the M1–M3 loader and can run in parallel with the demo.
 
 ## 11. Open decisions
 
@@ -495,8 +543,9 @@ The upload, the name check and the pointer update take real time. In a recording
 - ~~**Is Colony the right app?**~~ Decided: keep the simulation, named ColonySim.
 - **Ask the Foundation** about the docs mirror label and about publishing autonomi.com themselves?
 - **Pointer read time.** About 19 s on a new connection is the demo's slowest step. Warm-up hides it. Raised with the SDK maintainers on 11 November (`docs/sdk-issue-read-latency.md`).
+- **Offer the gateway to ant-ui?** Section 12.11; first, ask the Autonomi team the questions listed there.
 - **Offline.** Installed sites keep working without a connection, and the tests cover it, but the demo doesn't make a point of it: that is normal for anything a browser has already downloaded.
-- **Antnet Local's name.** "Antnet Local" (used in this document) or "Local Antnet Gateway"? In Autonomi, a gateway usually fetches from the network on the browser's behalf, as AntTP does. Antnet Local doesn't: the browser still does all the fetching. "Gateway" becomes accurate if the native client is added (section 12.10).
+- **Antnet Local's name.** In Autonomi, a gateway usually fetches from the network on the browser's behalf, as AntTP does. The first release doesn't, so this document calls it Antnet Local. Phase 2 adds the native client (section 12.10), and "Antnet Gateway" then becomes accurate. Rename at phase 2, or use one name from the start? Inside ant-ui (section 12.11) it would be a feature, not a product, so it needs no name there.
 - **Antnet Local's host layout and port:** `<label>.antnet.localhost` or `<label>.localhost`, and which fixed port (section 12.3).
 - **Code signing budget** for Antnet Local: an Apple Developer ID and a Windows signing certificate or Azure Trusted Signing (section 12.7).
 - **Open at login:** on or off by default for Antnet Local?
@@ -515,7 +564,7 @@ The upload, the name check and the pointer update take real time. In a recording
 - **It keeps working when `antnet.autonomirror.com` doesn't:** if the host is down, blocked on a network, or flagged by a browser blocklist.
 - **`ant://` links open from anywhere on the computer** (email, chat, documents), because the installer registers the scheme with the operating system. A website can't do that.
 
-**What it doesn't change:** it isn't faster, and networks that block UDP still can't connect, because the browser makes the same WebRTC connections as before. The native client could fix the second later (section 12.10).
+**What the first release doesn't change:** it isn't faster, it can't reach records with no browser-reachable holder, and networks that block UDP still can't connect, because the browser makes the same WebRTC connections as before. Phase 2 (section 12.10) addresses the first two. It doesn't fix the third, because the native client's QUIC also runs over UDP.
 
 ### 12.1 Why a local server, not a downloaded HTML file
 
@@ -562,7 +611,7 @@ When hosted, `names.json` comes from the host (section 5.9). Locally there is no
 
 - **Nothing in the archives.** Portable links (`/_autonomi/go/…`), name links and `?open=` already work on any loader root.
 - **Wording.** The loader knows it is local when its root ends in `.localhost`. Start's top line gains a second sentence there: "Even the loader came from your own computer." The fine print line about the web host changes as shown in section 4.4. The info page shows "Loader: Antnet Local x.y.z".
-- **Links shared on the web** point at `antnet.autonomirror.com` and open there. To open one locally, paste it into Open an address…, or use the `ant` keyword. A browser extension that redirects them is a later option.
+- **Links shared on the web** point at `antnet.autonomirror.com` and open there. To open one locally, use the hosted page's "Open in the Autonomi app" button (section 5.11), paste it into Open an address…, or use the `ant` keyword. Redirecting them automatically is one of the changes requested from Autonomi's ant-webex extension (section 12.11).
 - **The Download Button** keeps its hosted base URL for links and embed codes. Opened locally, the download page works as usual.
 
 ### 12.6 Updates
@@ -601,8 +650,233 @@ A small Antnet site (section 3.8) in the demo's style, with its own look.
 - A request with a foreign Host header, and a names write from another origin, are both refused.
 - Each installer installs, registers `ant://`, starts at login only when chosen, updates through the signed updater, and uninstalls cleanly.
 
-### 12.10 Later
+### 12.10 Phase 2: the native client (Antnet Gateway)
 
-- **The native client inside the app.** It could fetch sites itself on networks that block UDP, read pointers for names and loader updates without a page open, and would make the app a gateway in the usual Autonomi sense.
-- **A browser extension** that sends `antnet.autonomirror.com` links to Antnet Local when it is running.
+*Added 19 November 2026. Build after Antnet Local's first release (section 10, step 9). Nothing here has been tested or measured. Revised the same day: the native reads come from antd, not from a client built into the app.*
+
+Antnet Local's first release only serves the loader; the browser still fetches everything over WebRTC. Phase 2 puts the native Rust client (ant-core, from ant-client) behind the same app, so the app fetches from Autonomi itself. At that point it is a gateway in the usual Autonomi sense, and the product can be called **Antnet Gateway** (section 11).
+
+**The native client is antd, not our own.** antd, Autonomi's local daemon (in `ant-sdk`, MIT or Apache-2.0, v0.17.0 on ant-core 0.15.0), already answers everything the endpoints below need. It reads a public file whole or as a stream with one HTTP byte range (`206` or `416`). It resolves pointers, reporting the target's kind, and reports network health with a peer count. So the gateway doesn't link a client. It is a small loopback server that serves the loader and passes the four endpoints to antd on its own loopback port. That means no network code of Antnet's own, and one native client shared with ant-webex, which also uses antd. Linking ant-core in-process stays possible later, behind the same endpoints (section 12.11, "One client or several").
+
+**What it adds**
+
+- **Every chunk.** About half of mainnet nodes never answer a browser's WebRTC dial, which leaves roughly 0.9% of records with no browser-reachable holder (spec section 2). The native client reaches nodes over QUIC, the network's normal transport, so it isn't limited to the browser-reachable half.
+- **Probably faster.** No WebRTC or WASM overhead, more fetches in parallel, one connection pool for all sites, and one chunk cache shared by every site. Measure it against the browser path before claiming it (tests below).
+- **Work without a page open.** The app reads pointers itself: the names pointer (section 12.4), update checks (section 5.3) and loader releases (section 12.6), with no hidden frames needed.
+- **Networks that block WebRTC but allow other UDP** can connect. QUIC also runs over UDP, so **a network that blocks all UDP blocks the native client too.** On its own it doesn't fix the "can't connect" case in section 9; only a relay over TCP would.
+
+**How the loader uses it**
+
+- **Reserved loopback endpoints** on the root origin, answered by the app:
+  - `GET /_autonomi/local/fetch/<address>?max=<bytes>`: downloads a public file (a site archive) and returns its bytes after checking every chunk. Passed to antd's `/v1/data/public/<address>/stream`. That call sends the file's size first, so the gateway refuses a file over `max` (`413`) before downloading it. A body that ends short of its size is an error, not a file. The gateway adds the content's BLAKE3 hash in a header, for the info page.
+  - `GET /_autonomi/local/pointer/<address>`: resolves a pointer and returns its target and kind. Passed to antd's `/v1/pointers/<address>/resolve`.
+  - `GET /_autonomi/local/stream/<address>`: a public file with HTTP range support, for media. Passed to antd's `/v1/data/public/<address>/stream` with the `Range` header.
+  - `GET /_autonomi/local/status`: the gateway's version, whether antd answers, and antd's version and peer count, from antd's `/health`.
+- **The shell tries the app first.** When the loader root ends in `.localhost` and `/status` reports a connected client, the shell fetches archives and pointers through these endpoints. If a call fails or times out, it falls back to the SDK over WebRTC, exactly as today. The hosted loader never calls them.
+- **The loading screen and the receipt** say which path was used: "Fetched by Antnet Gateway on your computer" or "Fetched by your browser".
+- **Streaming gets simpler.** A site can point a `<video>` at `/_autonomi/local/stream/<address>` and let the browser make ordinary range requests, with no SDK and no media bridge (section 5.8). Sites must still work without it, because the hosted loader and phones don't have it. This is the declarative form from section 5.8's "later" list, offered only where the gateway is present.
+- **The Download Button** can save through the same endpoint, so large files download at native speed in every browser, not only Chrome and Edge.
+
+**What changes in the claims**
+
+- **Where checking happens.** On this path the app checks each chunk, not the browser. It is still on the user's own computer, so the receipt changes from "checked in your browser" to "checked on your computer", and the info page says which.
+- **Avoid "faster" and "reaches everything"** until the tests below have numbers.
+
+**Safety**
+
+- The endpoints are read-only, accept only GET and HEAD, and get the same Host check as the rest of the app (section 12.3). No CORS headers are sent, so only pages on `*.antnet.localhost` can read their responses.
+- **Any installed site can ask the gateway to fetch any address.** Each site can already do that through the SDK, so this adds no new power, but limit fetches in flight and the cache size so one site can't exhaust the machine.
+- **No wallet and no uploads.** Phase 2 only reads. Publishing stays in the `ant` CLI, so the app still holds no keys (spec section 4).
+
+**Packaging**
+
+- antd runs beside the gateway as a separate program: either one the user already has (ant-webex's setup installs it), or one the app ships and starts, as ant-ui already does with its own daemon. The gateway's binary stays small.
+- antd's version is pinned per release and updated through the signed updater (section 12.6), like the loader.
+- antd opens outbound UDP connections to nodes. Some firewalls (Windows Defender Firewall, macOS's application firewall, Little Snitch) will ask the user to allow that on first launch, so the installer and the `local` page should say so.
+
+**Tests**
+
+- Each demo site opened through the gateway and through WebRTC, cold, ten times each, on two networks: time to open and failures.
+- A record known to have no browser-reachable holder (from the census) loads through the gateway.
+- With the client disconnected (network off, then on), the shell falls back to WebRTC and the receipt says so.
+- Cinema plays and seeks through `/stream/`; the Download Button saves a 1 GB file through the gateway in Firefox and Safari.
+- A network that allows UDP but blocks WebRTC, if one can be found or simulated: the gateway connects where the browser can't.
+- A network that blocks all UDP: both paths fail, and the "can't connect" page appears.
+- Requests with a foreign Host header or another method are refused; many parallel fetches from one site are throttled.
+
+### 12.11 Inside the Autonomi app (ant-ui)
+
+*Added 19 November 2026. A proposal to the Autonomi team, not something Antnet controls. Nothing here has been discussed with them yet.*
+
+**The idea:** offer the gateway to ant-ui, the official Autonomi desktop app, so one app lets people upload and download files, run nodes, **browse Autonomi websites in their own browser, and publish sites of their own.** Start with a fork that shows it working, and aim for the team to adopt it upstream.
+
+**Why ant-ui fits**
+
+- **Same stack.** ant-ui is Tauri 2 with ant-core 0.15 linked in-process, the same ant-core release antd uses. The gateway becomes one more Rust component in an app that already connects to the network, not a new app.
+- **It already has the pieces.** Checked in ant-ui's code on 19 November 2026 (MIT or Apache-2.0, the same as Antnet; version 0.9.10-rc.1):
+  - It already runs a loopback HTTP server: its wallet bridge, built on axum, the same library as the gateway.
+  - It already registers a link scheme, `autonomi://`, through Tauri's deep-link plugin, with single-instance forwarding on Windows and Linux. Today `autonomi://<address>?name=<file>` opens a file download.
+  - It already ships a daemon beside the app (its `ant` binary, as a Tauri sidecar), which is how antd could ship too.
+- **Its users already run it.** Node operators often leave the app running, which is exactly what a local gateway needs.
+- **Signing and distribution are already solved.** The Foundation signs and ships ant-ui, removing the biggest cost and risk in section 12.7.
+- **Publishing fits beside it.** ant-ui already uploads files and pays through WalletConnect, with the split payment flow keeping keys out of the app. Packing a folder, uploading it as a site and creating or updating its pointer are a short step from there.
+- **Good for the network.** Every node operator gets a reason to browse Autonomi sites, and every site visitor sees a reason to install the app.
+
+**Plan**
+
+1. **Extract the gateway into its own crate, `antnet-gateway`,** with a narrow interface: pass in a back end for network reads (an in-process ant-core client, or a connection to a local daemon such as antd; see "One client or several" below), a port and a configuration (the names directory URL or pointer, whether update checks run); get back a running loopback server with the embedded loader and the phase 2 endpoints, plus a handle to stop it and to read its status. Antnet Local becomes a thin tray app around this crate.
+2. **Ask the Autonomi team early,** before building the fork in earnest: an issue or discussion on ant-ui that links to a working Antnet Local, a short description of the crate, and the questions below.
+3. **Fork ant-ui as a thin demonstration,** kept close to upstream:
+   - one setting, off by default: "Open Autonomi sites in your browser";
+   - a menu item, "Open an Autonomi site…", taking the same inputs as `?open=`;
+   - `ant://` registration for sites beside the existing `autonomi://` for files, through the same deep-link plugin, handling the link forms in section 5.11 (including the proposed `ant://p/<address>` for pointers). The fork leaves `autonomi://<address>` meaning a file download, so upstream behaviour doesn't change;
+   - antd shipped as a second sidecar and started with the gateway, unless one is already running;
+   - a status line showing the gateway's address and whether it is running.
+4. **Add publishing in a second step,** as its own pull request: choose a folder, pack it with the same deterministic packer as `tools/pack.mjs` (ported to Rust or shared), upload it, create or update a pointer, then open the result through the gateway to check it from a clean origin, as section 6 step 3 requires. Pointer keys follow ant-ui's existing key handling, and the app warns that a lost pointer key freezes the site's link.
+   - The upload uses ant-ui's existing external-signer flow: the app prepares and quotes, the wallet pays, and the app finalises.
+   - antd has the matching calls for pointers, `/v1/pointers/prepare` and `/v1/pointers/finalize`, beside `create` and `update`. It also lists pointer keys it holds (`/v1/pointers/keys`). **Check where antd keeps those keys** before choosing between antd and ant-ui's own client for pointer writes.
+5. **Upstream pull requests,** small and separate: the gateway setting first, publishing second. The crate stays in its own repository, versioned, so ant-ui can pin it.
+6. **Keep Antnet Local** as the standalone option for people who want to browse without running nodes or holding a wallet. Both use the same crate, so fixes land in both.
+
+**The browser extension: ant-webex, not our own**
+
+Autonomi already publishes a browser extension, ant-webex (MIT or Apache-2.0, Chrome and Firefox, version 0.2.2 on the stores as of 19 November 2026; source on GitHub at `WithAutonomi/ant-webex`, mirrored at `gitlab.com/autonomi/ant-webex`). Request changes to it instead of building an Antnet extension. *Checked against the GitLab mirror's code on 19 November 2026:* it is a Manifest V3 extension whose background worker finds antd (port 8082 by default, or the port antd writes to a file, read through a native messaging host), checks its health every 30 seconds, and fetches through it.
+
+- **What it does now:** shows Autonomi content inside ordinary web pages. When a page references a file with an `autonomi://` link or embed, it fetches the file through **antd**, a local daemon running the native client, and shows it inline (images, video, audio, PDFs) or offers it as a download. It walks the user through installing antd, and asks for optional access to localhost.
+- **What it doesn't do:** open whole websites with their own addresses, redirect hosted links, or handle `ant://` links.
+- **Why it is the right base:** it is in both stores under Autonomi's name, it already has localhost access and a local native client, and it already onboards users to a local program. An extension with localhost access can also check whether the gateway is running without the prompt Chrome shows web pages (section 5.11).
+
+**Changes to request from ant-webex**
+
+1. **Open Autonomi sites through the local gateway when it is running.** Links to `antnet.autonomirror.com` (and any loader that declares itself, for example by a `<meta>` tag the shell adds) go to the same site's local address, carrying the resolved address, path and query as section 5.11 does. When the gateway isn't running, links open as usual. This is the automatic version of the "Open in the Autonomi app" button.
+2. **Treat a link to a site archive as a site, not a download.** If the file is a tar archive with `index.html` at its root (the `autonomi-site/1` format, spec section 5), offer "Open as a website" through the gateway beside "Download".
+3. **Tell the hosted loader when the app is available,** so the loading screen and info page show "Open in the Autonomi app" only when it will work.
+4. **Agree one link scheme** (next paragraph).
+
+**One link scheme.** ant-webex and ant-ui both use `autonomi://` (ant-ui as `autonomi://<address>?name=<file>`, opening a download); Autonomi's own link format (ant-client ADR-0006) uses `ant://<address>` and `ant://manifest/…`; and none has a pointer form or a way to say "open this as a site". Ask the team to settle on one scheme, with a pointer form (Antnet proposes `ant://p/<address>`, section 5.11). Until then the app should accept both schemes, and Antnet's own links use `ant://`.
+
+**One client or several.** As planned, ant-webex, ant-ui and the gateway could each run their own native client: antd for the extension, the `ant` daemon for ant-ui's node management, and ant-core linked in-process for uploads and for the gateway. Each opens its own connections to the network. Two options for the team:
+
+- **Gateway on antd. Chosen for the proof of concept.** antd already serves a native client to local programs over a REST API. Its code (checked 19 November 2026) supports what section 12.10 needs: whole and streamed public reads, one HTTP byte range per request, pointer resolution with the target's kind, and a health call with a peer count. One client serves the extension and the gateway, and the Autonomi team maintains the network code. The gateway stays a small loopback server that serves the loader and passes requests through.
+- **Gateway with its own client,** linked in-process. Possible later inside ant-ui, which already has a connected ant-core client, at the cost of porting antd's range-read code (also MIT or Apache-2.0).
+
+The crate's back end is behind one interface (plan step 1), so either can be used. Which daemon ant-ui would standardise on is the team's call.
+
+**Defaults that should differ in an official app**
+
+- **Names.** Antnet's directory and the Download Button's removal list are Antnet's decisions, and in an official app they would read as the Foundation's. ant-ui should ship with raw `p…`/`i…` addresses and `ant://` links only, with an optional setting to add a names directory by its pointer, Antnet's or anyone else's. That requires the names-on-Autonomi work in section 12.4.
+- **Loader domain and branding.** Use a neutral local root, for example `*.autonomi.localhost`, chosen with the team. The loader's wording ("No server sent this page", the fine print) is reviewed by them.
+- **Updates.** The loader ships inside ant-ui releases, so loader fixes wait for an ant-ui release. That matches section 12.6.
+
+**Questions for the Autonomi team**
+
+- Is browsing Autonomi sites from the app something they want, and on by default or opt-in?
+- Would they adopt an external crate, or want the code inside ant-ui?
+- Who reviews and owns the loader's code, which runs inside every site the user opens? Section 5.10's published, reproducible build is the starting point.
+- Their position on names, abuse reports and removal lists for an official app.
+- Contribution terms for ant-ui. Its licence is settled: MIT or Apache-2.0, the same as the loader (checked 19 November 2026).
+- One link scheme, `ant://` or `autonomi://`, used by ant-webex, ant-ui and the gateway alike, with a pointer form and a site form. ADR-0006 defines `ant://<address>` and `ant://manifest/…`; ant-webex and ant-ui use `autonomi://<address>` for files; none has a pointer form. Antnet proposes `ant://p/<address>` (section 5.11).
+- Would they accept the ant-webex changes above, and should the gateway use antd as its back end, so one native client serves the extension, the gateway and ant-ui?
+- Whether the native client inside ant-ui should share one network connection between the gateway, uploads and node management.
+
+**Risks**
+
+- **They may decline, or want it later.** Nothing is lost: the crate still powers Antnet Local.
+- **Fork drift.** ant-ui changes often. Keep the fork's changes small and rebase often; don't add features to the fork that aren't headed upstream.
+- **Scope.** A bigger app means more to test with each release. The gateway's tests (sections 12.9 and 12.10) move into the crate, so ant-ui only tests the integration.
+
+**Tests for the fork**
+
+- Turning the setting on starts the gateway, and turning it off stops it and frees the port.
+- With nodes running, browsing still works, and node management is unaffected.
+- `ant://` links open sites from other apps.
+- A site published from the app opens through the gateway from a clean origin, and its pointer update is picked up by the next check.
+- ant-ui's existing test suite still passes unchanged.
+
+### 12.12 Considered and not planned
+
+- **A fork of an open-source browser** with Antnet built in. Its per-site origins and `ant://` handling are already provided by Antnet Local (sections 12.2 and 12.3), and its native fetching by phase 2. Keeping a Chromium or Firefox fork current with security fixes needs a dedicated team; a fork that falls behind is less safe than the browser people already use; and few people switch browsers for one feature. Precedents: Beaker Browser (Dat) was discontinued, and Brave removed its built-in IPFS node in 2024 after low use.
+- **A browser extension on its own.** Extensions can't open UDP sockets or run the native client, so one can't replace the app. ant-webex works the same way: it relies on antd running locally.
+- **An Antnet browser extension.** Autonomi's ant-webex already exists, is in both stores and talks to a local client, so the plan requests changes to it instead (section 12.11).
+
+### 12.13 Later
+
+- **The ant-webex changes** (section 12.11), once the gateway exists: sending hosted links to the local gateway automatically, opening site archives as websites, and showing "Open in the Autonomi app" only when the app is running.
+- **A relay over TCP** for networks that block all UDP, if Autonomi provides one. It would be a server, so say so wherever it is used.
 - **A single-file HTML loader** for simple static sites, for people who can't install anything (section 12.1).
+
+### 12.14 Proof of concept for the community and the team
+
+*Added 19 November 2026. The aim is to show, not describe: a short video and a build people can try, in which the Autonomi app opens Autonomi sites in an ordinary browser and publishes a new one, with measurements beside it. Estimates are rough until step 0 is done.*
+
+**What's in, and what's cut**
+
+- **In:** the `antnet-gateway` crate (sections 12.10 and 12.11), a fork of ant-ui that uses it, the "Open in the Autonomi app" button (section 5.11), and three demo sites.
+- **Cut for now:** the standalone Antnet Local tray app (a command-line wrapper is enough for testing), code signing, the updater, names sync over Autonomi (ship a bundled `names.json`), the `local` page, and more than one platform.
+- **Starting point:** the loader build from milestones M1–M3. The proof of concept doesn't have to wait for the full demo in section 10.
+
+**Steps**
+
+0. **Check before building. Mostly done on 19 November 2026.**
+   - **Licences:** ant-ui, ant-webex and antd are all MIT or Apache-2.0, the same as the loader. ant-ui's contribution terms are still to read.
+   - **ant-webex's code:** as section 12.11 now describes; it fetches through antd.
+   - **antd's API:** supports range reads, pointer resolution and health with a peer count (section 12.10). **The gateway reads through antd.**
+   - **Still to do:** build ant-ui on Windows; run antd (v0.17.0 has a Windows build and MSI) against mainnet; check that its stream plays and seeks the Cinema film; and see where antd keeps pointer keys (section 12.11 plan step 4).
+1. **The gateway (2–3 days).** Its own repository, `antnet-gateway`: a Rust crate and a command-line tool, `antnet-gateway --port … --loader … --antd …`.
+   - It serves a loader build made with `VITE_LOADER_ROOT=antnet.localhost` on `*.antnet.localhost` at a fixed port, following the same rules as the hosted nginx configuration. It applies the Host check (section 12.3) and passes the four endpoints in section 12.10 to antd.
+   - Its tests use a stand-in for antd, so they run without the network.
+   - Test first in Chrome, Firefox and Safari on one machine (section 12.9). Safari is the main unknown. If it fails, note it and carry on in Chrome and Firefox.
+   - **Built 19 November 2026** (`C:\antnet-gateway`; not yet pushed or tested against a real antd). `npm run build:local` here builds the loader for it.
+     - Checked in Playwright's Chromium, Firefox and WebKit on Windows: a secure context, the service worker registers, and `start` resolves to its pointer.
+     - Chromium and Firefox then fetch over WebRTC as usual. Playwright's Windows WebKit couldn't connect over WebRTC, which says nothing yet about real Safari.
+     - The front door still says "A web server sent you this page" there; the local wording in section 12.5 isn't done.
+2. **The loader uses it (about 2 days).**
+   - A third `SiteSource`, `GatewaySource`, beside the SDK and fixture sources. The shell uses it when the loader root ends in `.localhost` and `/status` says antd is connected, and falls back to WebRTC otherwise.
+   - The receipt says which path was used.
+   - **Measure:** ten cold opens of each demo site through the gateway and through WebRTC, and one record that browsers can't reach but the gateway can (from the census). These numbers are what persuade engineers.
+   - **The earliest thing worth showing,** about a week in: send it to the Autonomi team privately before building the fork (section 12.11 plan step 2).
+3. **The ant-ui fork (about a week).**
+   - One platform, the one used for presenting, unsigned and labelled "unsigned test build".
+   - An opt-in setting, "Open Autonomi sites in your browser", which starts antd (shipped as a second sidecar) and the gateway inside the app.
+   - An "Open an Autonomi site…" menu item.
+   - `ant://` registered for sites beside the existing `autonomi://` for files (section 5.11).
+   - **"Publish a folder as a site"**, minimal: choose a folder, pack it, upload it with ant-ui's existing wallet flow, create or update a pointer, then open the result through the gateway from a clean origin. This shows the whole loop: run a node, browse, publish.
+   - Keep the fork's changes small and in one branch, ready to become upstream pull requests.
+4. **The bridges (a few days).**
+   - The "Open in the Autonomi app" button on the hosted loader, behind a build setting (section 5.11).
+   - **Optional:** a small patch to a fork of ant-webex that redirects hosted links to the gateway when it is running. If time is short, show the button and describe the extension change instead.
+5. **Content.** Start, Cinema and Library from the hosted demo (section 3). Cinema matters most: streaming and seeking through the gateway is the most visible difference.
+
+**The video (about two minutes)**
+
+| Time | On screen | Say |
+| --- | --- | --- |
+| 0:00 | The Autonomi app (the fork), with a node running. Turn on "Open Autonomi sites in your browser". | "This is the Autonomi app, with one new setting." |
+| 0:15 | An email containing an `ant://` link. Click it: the browser opens Start at its local address. | "An Autonomi link, clicked like any other. The app fetched this site from the network on this computer. No web server." |
+| 0:35 | Open Cinema. Press play, seek to the middle and near the end. | "A full film, streamed from the network through the app." |
+| 0:55 | A site whose record browsers can't reach: it fails on the hosted loader, then opens through the app. | "The app reaches parts of the network a browser can't." |
+| 1:10 | The measurements, as a simple table on screen. | "Measured: (the numbers from step 2)." |
+| 1:25 | In the app: Publish a folder as a site. Pay, wait, open it. | "Publishing from the same app: pick a folder, pay once, and it's a website." |
+| 1:45 | A hosted `antnet.autonomirror.com` link: press "Open in the Autonomi app". | "Links from the web open in the app too." |
+| 1:55 | The questions slide. | "This is a community proof of concept. Here's what we'd like to ask the Autonomi team." |
+
+Record the upload in real time once, then cut it. Narrate over the wait if presenting live.
+
+**Sharing it**
+
+1. **Contact the Autonomi team privately** a few days before posting: the video, the repositories, and the questions from section 12.11. They shouldn't learn about it from a public post.
+2. **A forum post** with the video, the measurements, the repositories (the crate, the ant-ui fork branch, and any ant-webex patch), the unsigned build with SHA-256 hashes, and the questions for the team.
+3. **State plainly:** a community proof of concept, not an Autonomi product; unsigned test builds; one platform; what was measured and what wasn't.
+4. **An issue or discussion on ant-ui** linking to the post, proposing the two upstream pull requests in section 12.11 (browsing first, publishing second).
+
+**Checklist**
+
+- [x] Step 0 findings written down: licences, ant-webex's current state, antd's API (19 November 2026).
+- [ ] Step 0's remaining checks: ant-ui builds on Windows, antd streams the Cinema film from mainnet, where antd keeps pointer keys.
+- [ ] The gateway opens Start, Cinema and Library in Chrome and Firefox; Safari's result recorded either way.
+- [ ] Gateway versus WebRTC measurements recorded, and one browser-unreachable record opened through the gateway.
+- [ ] With the gateway stopped, installed sites still open, and the shell falls back to WebRTC for new ones.
+- [ ] The fork's setting, menu item and `ant://` links work; ant-ui's own tests still pass.
+- [ ] Publishing a folder from the app produces a site that opens from a clean origin.
+- [ ] The "Open in the Autonomi app" button opens the same site locally, including a deep link.
+- [ ] The video, the post and the build, with hashes; the team contacted before posting.

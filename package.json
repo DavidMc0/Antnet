@@ -9,6 +9,7 @@
     "dev:autonomi": "cross-env VITE_SOURCE=autonomi vite",
     "build": "tsc --noEmit && vite build",
     "build:deploy": "cross-env VITE_LOADER_ROOT=antnet.autonomirror.com npm run build",
+    "build:local": "tsc --noEmit && cross-env VITE_LOADER_ROOT=antnet.localhost vite build --outDir dist-local",
     "sites": "node sites/build.mjs",
     "build:fixture": "npm run fixtures && cross-env VITE_SOURCE=fixture vite build",
     "preview": "vite preview",

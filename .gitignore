@@ -7,6 +7,7 @@ playwright-report/
 *.key
 *.tar
 dist-fixture/
+dist-local/
 publish/
 # Kept private for now; README.md outlines the design.
 Autonomi_Site_Loader_SPEC.md
