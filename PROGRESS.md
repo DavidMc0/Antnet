@@ -839,6 +839,26 @@ The proof of concept in DEMO.md 12.14, steps 1 and 2.
 1. Run against a real antd and take the measurements (DEMO.md 12.14 step 2).
 2. Then the ant-ui fork.
 
+## The ant-ui fork: browsing (2026-11-19)
+
+DEMO.md 12.14 step 3, browsing half.
+
+- **Where:** `C:\ant-ui`, cloned from `gitlab.com/autonomi/ant-ui` (the `upstream` remote). Branch `antnet-sites`, pushed to the private repo DavidMc0/ant-ui (`origin`). `ANTNET.md` there describes the change.
+- **Building on Windows:** it builds and its tests pass.
+  - The `ant` sidecar is the user's installed `ant.exe` 0.3.13, because upstream's `download-sidecar.ps1` uses GitHub, which is unreachable.
+  - Run `npx nuxt prepare` before its tests.
+- **What it adds:**
+  - `src-tauri/src/antnet.rs` runs the gateway in-process, started and stopped by `antnet-gateway`'s new `start()` and `Running::stop()`. If antd isn't running, it finds and starts one, detached.
+  - An `antnet_sites` setting, off by default, with a section in Settings: the switch, the gateway's status and antd's peers, and an open box.
+  - `ant://` links open sites. With the setting off, they lead to Settings, and turning it on opens the link.
+  - The loader is bundled as a resource and antd as a second sidecar. `scripts/setup-antnet.ps1` puts both in place.
+- **The loader** now accepts `ant://p/<hex>` for pointers. A `?name=` hint is dropped; a deep link's other query parameters and its fragment are kept.
+- **Tests:**
+  - ant-ui: 97 frontend tests (5 new) and 32 Rust tests pass.
+  - The gateway: 16 tests (1 new, start and stop).
+- **The user tried it in the app (Windows) and everything worked:** the setting, opening by name, `ant://` links with the app open and closed, and turning it off.
+- **Next:** publishing a folder as a site (step 3, second half), then the bridges (step 4).
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

@@ -86,6 +86,15 @@ describe("parseAddressInput", () => {
     expect(ok(`0x${HEX}`)).toEqual({ link: { kind: "i", address: HEX }, rest: "/" });
     expect(ok(`ant://${HEX}/x`)).toEqual({ link: { kind: "i", address: HEX }, rest: "/x" });
     expect(ok(`web+ant://${HEX}`)).toEqual({ link: { kind: "i", address: HEX }, rest: "/" });
+    // The pointer form, the app's name hint, and deep links (DEMO.md 5.11).
+    expect(ok(`ant://p/${HEX}`)).toEqual({ link: { kind: "p", address: HEX }, rest: "/" });
+    expect(ok(`ANT://P/${HEX.toUpperCase()}/`)).toEqual({ link: { kind: "p", address: HEX }, rest: "/" });
+    expect(ok(`ant://p/${HEX}?name=start`)).toEqual({ link: { kind: "p", address: HEX }, rest: "/" });
+    expect(ok(`ant://${HEX}/f/ant/x?n=a.mp4&name=cinema&s=9#t`)).toEqual({
+      link: { kind: "i", address: HEX },
+      rest: "/f/ant/x?n=a.mp4&s=9#t",
+    });
+    expect(ok(`ant://${HEX}/x?names=1`)).toEqual({ link: { kind: "i", address: HEX }, rest: "/x?names=1" });
     expect(ok(`loader.example/p/ant/${HEX}`)).toEqual({ link: { kind: "p", address: HEX }, rest: "/" });
     expect(ok(`/ant/${HEX}/y`)).toEqual({ link: { kind: "i", address: HEX }, rest: "/y" });
     expect(ok(`https://p${BODY}.loader.example/z`)).toEqual({ link: { kind: "p", address: HEX }, rest: "/z" });

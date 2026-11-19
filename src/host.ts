@@ -210,8 +210,20 @@ export function parseAddressInput(
   if (/^web\+ant:/i.test(text)) text = text.replace(/^web\+ant:/i, "ant:");
   // The ant CLI prints addresses as 0x-prefixed hex.
   if (/^0x[0-9a-f]{64}$/i.test(text)) text = text.slice(2);
-  const ant = /^ant:\/\/([0-9a-fA-F]{64})(\/.*)?$/i.exec(text);
-  if (ant) return { link: { kind: "i", address: ant[1].toLowerCase() }, rest: ant[2] ?? "/" };
+  // ant://<hex> is an immutable file (ant-client ADR-0006); ant://p/<hex> a pointer, Antnet's
+  // proposed form (DEMO.md 5.11). A path, query and fragment may follow and are kept, except
+  // a `name` parameter: the app's hint of the site's short name, which the address overrides.
+  const ant = /^ant:\/\/(p\/)?([0-9a-fA-F]{64})(\/[^?#]*)?(?:\?([^#]*))?(#.*)?$/i.exec(text);
+  if (ant) {
+    const query = (ant[4] ?? "")
+      .split("&")
+      .filter((p) => p !== "" && !/^name(=|$)/.test(p))
+      .join("&");
+    return {
+      link: { kind: ant[1] ? "p" : "i", address: ant[2].toLowerCase() },
+      rest: (ant[3] ?? "/") + (query ? "?" + query : "") + (ant[5] ?? ""),
+    };
+  }
 
   if (isAddressHex(text.toLowerCase())) return { link: { kind: rawHexKind, address: text.toLowerCase() }, rest: "/" };
 
