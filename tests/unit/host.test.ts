@@ -5,6 +5,7 @@ import {
   linkToLabel,
   loaderRootFor,
   parseAddressInput,
+  appLink,
   parseLabel,
   pathFormTarget,
 } from "../../src/host";
@@ -103,5 +104,31 @@ describe("parseAddressInput", () => {
     expect(ok("")).toHaveProperty("error");
     expect(ok("hello world")).toHaveProperty("error");
     expect(ok(HEX.slice(1))).toHaveProperty("error");
+  });
+});
+
+describe("appLink", () => {
+  const P = { kind: "p" as const, address: HEX };
+  const I = { kind: "i" as const, address: HEX };
+
+  it("carries the resolved address, the page and a name hint (DEMO.md 5.11)", () => {
+    expect(appLink(I)).toBe(`ant://${HEX}`);
+    expect(appLink(P)).toBe(`ant://p/${HEX}`);
+    expect(appLink(P, { path: "/", name: "start" })).toBe(`ant://p/${HEX}/?name=start`);
+    expect(appLink(I, { path: "/f/ant/x", search: "?n=a%20b.mp4&s=9", hash: "#t" })).toBe(
+      `ant://${HEX}/f/ant/x?n=a%20b.mp4&s=9#t`,
+    );
+    expect(appLink(I, { path: "/", hash: "#top" })).toBe(`ant://${HEX}/#top`);
+  });
+
+  it("round-trips through the address box the app hands it to", () => {
+    const cases: [typeof P | typeof I, Parameters<typeof appLink>[1], string][] = [
+      [P, { name: "start" }, "/"],
+      [I, { path: "/books/a.html", search: "?page=2", hash: "#ch3", name: "library" }, "/books/a.html?page=2#ch3"],
+      [P, { path: "/f/ant/x", search: "?n=a%20b.mp4&s=9" }, "/f/ant/x?n=a%20b.mp4&s=9"],
+    ];
+    for (const [link, where, rest] of cases) {
+      expect(parseAddressInput(appLink(link, where), "antnet.localhost")).toEqual({ link, rest });
+    }
   });
 });

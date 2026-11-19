@@ -384,7 +384,7 @@ The host has to answer the first request to every site's subdomain, because noth
 
 ### 5.11 "Open in the Autonomi app": from a hosted link to the local gateway
 
-*Added 19 November 2026. Useful once Antnet Local (section 12) or the Autonomi app with the gateway (section 12.11) exists; until then the button stays hidden behind a build setting.*
+*Added 19 November 2026. Useful once Antnet Local (section 12) or the Autonomi app with the gateway (section 12.11) exists; until then the button stays hidden behind a build setting.* **Built 19 November 2026** on the loading screen and the info page, behind `VITE_OPEN_IN_APP=1`, which is off in the hosted build. The in-page address box (5.7 B) doesn't exist yet, so the button isn't there. Tested with the app's fork, both with the app running and with it closed (PROGRESS.md, "Open in the Autonomi app").
 
 A link someone shares, such as `cinema.antnet.autonomirror.com`, always opens on the hosted loader: the browser asks the web host, and nothing on the visitor's computer is involved. This button is the bridge to the local version. It is an ordinary `ant://` link for the same site; the app registers that scheme, so the operating system hands the link to the app, which opens the browser at the site's local address.
 
@@ -846,7 +846,7 @@ The crate's back end is behind one interface (plan step 1), so either can be use
    - `ant://` registered for sites beside the existing `autonomi://` for files (section 5.11).
    - **"Publish a folder as a site"**, minimal: choose a folder, pack it, upload it with ant-ui's existing wallet flow, create or update a pointer, then open the result through the gateway from a clean origin. This shows the whole loop: run a node, browse, publish.
    - Keep the fork's changes small and in one branch, ready to become upstream pull requests.
-4. **The bridges (a few days).**
+4. **The bridges (a few days).** **The button was built and tested on 19 November 2026.** The ant-webex patch is still optional.
    - The "Open in the Autonomi app" button on the hosted loader, behind a build setting (section 5.11).
    - **Optional:** a small patch to a fork of ant-webex that redirects hosted links to the gateway when it is running. If time is short, show the button and describe the extension change instead.
 5. **Content.** Start, Cinema and Library from the hosted demo (section 3). Cinema matters most: streaming and seeking through the gateway is the most visible difference.

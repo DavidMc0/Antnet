@@ -96,6 +96,23 @@ export function parseLabel(label: string): SiteLink | { error: string } {
   return { kind, address };
 }
 
+/**
+ * The "Open in the Autonomi app" link for a page of a site (DEMO.md 5.11). It carries the
+ * resolved address, never only the name: `ant://<hex>` for an immutable site, `ant://p/<hex>`
+ * for a pointer (Antnet's proposed form). The page's path, query and fragment follow, so a deep
+ * link opens at the same place, and a short name rides along as a `name` hint, which the app
+ * may ignore. `path` and `search` are as `location` gives them, already percent-encoded.
+ */
+export function appLink(link: SiteLink, where: { path?: string; search?: string; hash?: string; name?: string } = {}): string {
+  const base = link.kind === "p" ? `ant://p/${link.address}` : `ant://${link.address}`;
+  const path = where.path && where.path !== "/" ? (where.path.startsWith("/") ? where.path : "/" + where.path) : "";
+  const params = (where.search ?? "").replace(/^\?/, "").split("&").filter(Boolean);
+  if (where.name) params.push(`name=${encodeURIComponent(where.name)}`);
+  const query = params.length ? "?" + params.join("&") : "";
+  const hash = where.hash && where.hash !== "#" ? where.hash : "";
+  return base + (path || (query || hash ? "/" : "")) + query + hash;
+}
+
 export function linkToLabel(link: SiteLink): string {
   return link.kind + hexToLabelBody(link.address);
 }

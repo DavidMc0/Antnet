@@ -889,6 +889,32 @@ DEMO.md 12.14 step 3, second half. It's in Settings, under "Publish a folder as 
 
 **Next:** step 4, the bridges ("Open in the Autonomi app" on the hosted loader), then the video.
 
+## Open in the Autonomi app (2026-11-19)
+
+DEMO.md 5.11, and step 4 of 12.14.
+
+**The loader**
+- `appLink()` in `src/host.ts` builds the link: `ant://<hex>` for an immutable site, `ant://p/<hex>` for a pointer.
+  - It carries the page's path, query and fragment, plus a `name` hint.
+  - Unit tests check that each link reads back as the same site and page through `parseAddressInput`, which is what the app hands it to.
+- **Where it shows:** on the loading screen, linking to the page being opened, and on the info page, linking to the site's home page.
+- **The text:** a line beside the link says it needs the app with the setting on, for now an Antnet test build.
+- **When it shows:** only with `VITE_OPEN_IN_APP=1`, and never on the local loader. The hosted build has it off.
+- **Tests:** 231 unit and 80 end-to-end.
+
+**The fork**
+- With the setting on, `ant://` links are now opened by the app's Rust side (`antnet::take_site_links`): from single-instance forwarding, the launch URL and the deep-link event.
+- So a click works even when the app's window can't load. The user found that case: a development build launched by a click while `npm run tauri dev` wasn't running.
+- One click delivered by two routes opens once (a 2-second guard).
+- With the setting off, links still go to the frontend, which shows the switch in Settings.
+- **Tests:** 34 Rust tests.
+
+**Checked by the user:** the button on a mainnet loader served locally with the button on. It worked with the app closed (a cold start) and with it running.
+
+**Open decision:** whether the hosted site shows the button. The suggestion is to keep it off while the fork is private: on for the video only, or once the fork is public.
+
+**Next:** the ant-webex patch (optional), then the video.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:

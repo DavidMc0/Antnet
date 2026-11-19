@@ -25,6 +25,7 @@ import {
   siteOrigin,
   targetOrigin,
 } from "./host";
+import { appLink } from "./host";
 import { NotASiteError, deleteOtherSiteCaches, installArchive } from "./install";
 import { type NameEntry, fetchNames } from "./names";
 import { WARM_PATH, warmReporter } from "./warm";
@@ -151,6 +152,16 @@ interface Named {
   since?: string;
 }
 
+/**
+ * The "Open in the Autonomi app" link for this page (DEMO.md 5.11), when the build offers it
+ * (VITE_OPEN_IN_APP=1). Never on the local loader: that already is the app's.
+ */
+function appHref(link: SiteLink, name?: string, path = location.pathname): string | undefined {
+  if (import.meta.env.VITE_OPEN_IN_APP !== "1" || isLocalLoader()) return undefined;
+  const here = path === location.pathname;
+  return appLink(link, { path, search: here ? location.search : "", hash: here ? location.hash : "", name });
+}
+
 /** Where an install reports to: the loading screen, or (warm-up) the page that embedded it. */
 interface InstallUI {
   step(text: string, stage: InstallStage): void;
@@ -165,6 +176,7 @@ function pageUI(link: SiteLink, root: string, named?: Named): InstallUI {
     link,
     named ? `Opening ${named.name}` : link.kind === "p" ? "Opening the latest version of a site" : "Opening a site",
     root,
+    appHref(link, named?.name),
   );
   return {
     step: (text) => view.step(text),
@@ -502,6 +514,8 @@ async function info(ident: Ident, label: string, status?: string): Promise<void>
     state,
     streams: await readStreams(location.origin),
     sourceName: source,
+    // The site's home page: the info page's own path is the loader's.
+    appHref: link ? appHref(link, name?.name, "/") : undefined,
     status,
     onCheck: async () => {
       if (!state) return;

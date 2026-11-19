@@ -21,6 +21,21 @@ function addressBlock(link: SiteLink): HTMLElement {
   );
 }
 
+/**
+ * "Open in the Autonomi app" (DEMO.md 5.11): an ant:// link, which the app registers, for this
+ * site at this page. A page can't tell whether the app is installed (asking localhost would
+ * make Chrome ask the visitor's permission), so the line beside it says what it needs.
+ */
+function openInApp(href: string): HTMLElement {
+  return h(
+    "p",
+    { class: "small open-in-app", "data-testid": "open-in-app" },
+    h("a", { href }, "Open in the Autonomi app"),
+    h("br", {}),
+    "Needs the Autonomi app with “Open Autonomi sites in your browser” turned on, for now a test build from Antnet. Without it, the link does nothing.",
+  );
+}
+
 export interface LoadingView {
   step(text: string): void;
   progress(done: number, total?: number, unit?: "bytes" | "records"): void;
@@ -30,7 +45,7 @@ export interface LoadingView {
  * The loading screen. `host` is the web host that sent this page: it says so plainly, because
  * the host sends this loader the first time each site is opened (DEMO.md 4.5, 5.4).
  */
-export function showLoading(link: SiteLink, title: string, host?: string): LoadingView {
+export function showLoading(link: SiteLink, title: string, host?: string, appHref?: string): LoadingView {
   const stepEl = h("p", { class: "step", "data-testid": "step" }, "Starting…");
   const bar = h("progress", { max: "1", value: "0" });
   const detail = h("p", { class: "detail" }, "");
@@ -43,7 +58,17 @@ export function showLoading(link: SiteLink, title: string, host?: string): Loadi
     : "";
   mount(
     brand(),
-    h("main", { class: "card", "data-view": "loading" }, h("h1", {}, title), addressBlock(link), stepEl, bar, detail, origin),
+    h(
+      "main",
+      { class: "card", "data-view": "loading" },
+      h("h1", {}, title),
+      addressBlock(link),
+      stepEl,
+      bar,
+      detail,
+      origin,
+      appHref ? openInApp(appHref) : "",
+    ),
   );
   bar.removeAttribute("value"); // indeterminate until there's progress
   return {
@@ -483,6 +508,8 @@ export interface InfoOptions {
   /** Files this site streamed from Autonomi through the media bridge (DEMO.md 5.8). */
   streams?: StreamRecord[];
   sourceName: string;
+  /** The "Open in the Autonomi app" link, when the build offers it (DEMO.md 5.11). */
+  appHref?: string;
   /** Runs a check and re-renders the page with the outcome. */
   onCheck(): Promise<void>;
   /** Clears storage and re-renders the page (with a status message). */
@@ -695,6 +722,7 @@ export function showInfo(opts: InfoOptions): void {
         ),
         h("a", { class: "button", href: "/" }, "Open the site"),
       ),
+      opts.appHref ? openInApp(opts.appHref) : "",
       status,
     ),
   );
