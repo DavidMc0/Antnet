@@ -6,7 +6,7 @@
 //
 // Needs antd and the gateway running: antnet-gateway --loader dist-local
 //   node tools/measure-gateway.mjs [--runs 10] [--sites start,cinema,library,colonysim,download]
-//                                  [--browser chromium] [--out measurements.jsonl]
+//                                  [--browser chromium] [--headed] [--out measurements.jsonl]
 //
 // antd keeps a chunk cache (64 chunks by default), so only each site's first gateway open is
 // cold there; later ones may be served from antd's memory. Both are reported. For cold opens
@@ -23,6 +23,8 @@ const RUNS = Number(opt("runs", "10"));
 const SITES = opt("sites", "start,cinema,library,colonysim,download").split(",");
 const BROWSER = { chromium, firefox, webkit }[opt("browser", "chromium")];
 const OUT = opt("out", "");
+/** A visible window: headless browsers are said to do worse with WebRTC. */
+const HEADED = process.argv.includes("--headed");
 const TIMEOUT_MS = 180_000;
 
 const PATHS = {
@@ -81,10 +83,10 @@ async function open(browser, path, name) {
   }
 }
 
-const browser = await BROWSER.launch();
+const browser = await BROWSER.launch({ headless: !HEADED });
 const results = [];
 const seenGateway = new Set();
-console.log(`${RUNS} runs × ${SITES.length} sites × 2 paths, ${opt("browser", "chromium")}`);
+console.log(`${RUNS} runs × ${SITES.length} sites × 2 paths, ${opt("browser", "chromium")}${HEADED ? ", headed" : ", headless"}`);
 for (let run = 1; run <= RUNS; run++) {
   for (const name of SITES) {
     const order = run % 2 ? ["gateway", "webrtc"] : ["webrtc", "gateway"];

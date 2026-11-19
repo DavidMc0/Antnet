@@ -811,7 +811,7 @@ The proof of concept in DEMO.md 12.14, steps 1 and 2.
 
 **Measured (2026-11-19, `docs/measurements/2026-11-19-gateway.md`):**
 - The set-up: 100 cold opens in Chromium, alternating paths, with antd's cache at 1 chunk. All succeeded.
-- **The gateway reached two records the browser still can't.** Records 11 and 70 of `289d3381…` arrived through the gateway in 33 s and 9.5 s. In the browser SDK they failed with "Missing chunk", as on 17 November.
+- **The gateway reached two records the browser still can't.** Records 11 and 70 of `289d3381…` arrived through the gateway in 33 s and 9.5 s. In the browser SDK they failed with "Missing chunk", as on 17 November. They also failed in headed Chromium and in the installed Edge, so it isn't a headless problem (raised on the Autonomi Discord).
 - **Pointers resolve about ten times faster:** median 1.3 s against 14.4 s.
 - **A first fetch through antd was not faster:**
   - The gateway took 12–31 s against WebRTC's 6–37 s, and was slower for 4 of the 5 sites.
