@@ -915,6 +915,31 @@ DEMO.md 5.11, and step 4 of 12.14.
 
 **Next:** the ant-webex patch (optional), then the video.
 
+**Decided by the user (2026-11-19, end of day):** the hosted build keeps the button off while the fork is private. Turn it on only for recording the video (`cross-env VITE_OPEN_IN_APP=1 npm run build:deploy`, then deploy), and deploy without it afterwards.
+
+## Next session: the ant-webex patch (planned 2026-11-19)
+
+The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex", request 1 only).
+
+**Where**
+- Clone `gitlab.com/autonomi/ant-webex` to `C:\ant-webex`, with the GitLab repo as `upstream`, on branch `antnet-redirect`.
+- Repo name suggested: DavidMc0/ant-webex, private. **Confirm the name with the user before creating it**, as for ant-ui.
+
+**The code**
+- It's a small MV3 TypeScript extension, about 3,400 lines: background worker in `src/background/index.ts`; manifests in `src/manifest.json`, `manifest.chrome.json` and `manifest.firefox.json`; build with `build.mjs`.
+- It already has `http://127.0.0.1/*` and `http://localhost/*` host permissions, used to find antd on port 8082.
+
+**The patch, about 100 lines**
+- **A popup switch, off by default:** "Open Antnet links in the Autonomi app when it's running".
+- **Permissions are optional,** requested when the switch is turned on, so existing users get no new-permission prompt: `declarativeNetRequest`, plus host access to `*.antnet.autonomirror.com`.
+- **While on, the background polls the gateway** (`http://127.0.0.1:47114/_autonomi/local/status`, on the existing 30-second alarm). While it answers, a dynamic redirect rule maps `https://<label>.antnet.autonomirror.com/<path>` to `http://<label>.antnet.localhost:47114/<path>`, keeping the query. When it stops answering, the rule is removed.
+- Names and `p…`/`i…` labels are the same on both loaders, so no address lookup is needed. The root `antnet.autonomirror.com` maps to `antnet.localhost:47114`.
+- **The popup notes** that a site's saved data stays with the hosted copy, because the local copy is a different origin.
+
+**Out of scope:** requests 2 (open a site archive as a site) and 3 (tell the hosted loader the app is there) stay as written proposals.
+
+**To test:** load it unpacked in Chrome (and Edge), with the app's setting on. A hosted link, such as `https://start.antnet.autonomirror.com/`, should open locally. With the app closed, it should open the hosted site.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
