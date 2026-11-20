@@ -956,7 +956,7 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
   - The redirect rule applies to top-level pages only.
   - The popup shows whether the app is running, plus the saved-data note.
 - **One difference from the plan:** the check calls `http://antnet.localhost:47114/_autonomi/local/status`, not `127.0.0.1`, because the gateway only answers its own host names. The redirect also needs antd to answer, not just the gateway.
-- **A gateway change was needed** (`antnet-gateway` `e629337`, committed but **not pushed**): the status endpoint now answers any caller. The extension's `chrome-extension://` Origin was refused before. Status starts no download. The fork builds the gateway from its path, so it gets the change on its next build.
+- **A gateway change was needed** (`antnet-gateway` `e629337`, pushed): the status endpoint now answers any caller. The extension's `chrome-extension://` Origin was refused before. Status starts no download. The fork builds the gateway from its path, so it gets the change on its next build.
 - **Tests:**
   - 32 unit tests, typecheck and lint pass.
   - An end-to-end run in Playwright Chromium, with the optional permissions granted up front because a script can't click the prompt. With the gateway up, start and the root opened locally, keeping the query and fragment. With it down, both stayed hosted. Turning the switch off removed the rule.
