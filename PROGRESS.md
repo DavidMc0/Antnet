@@ -964,6 +964,11 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
   - The user tries it unpacked in Chrome and Edge: run `npm run build` in `C:nt-webex`, then load `dist/` unpacked with the app running.
   - Firefox is untried.
 
+- **Fix after the user's first try (`b43052c`, pushed):** the switch unticked itself with no prompt.
+  - Chrome doesn't allow `declarativeNetRequest` as an optional permission, so the request was refused at once. The earlier end-to-end run missed this because it granted the permissions up front.
+  - `declarativeNetRequestWithHostAccess` is now required. It shows no install warning. The host access stays optional.
+  - Checked on the real build: the prompt now opens.
+
 **Next:** the Websites page in the fork (Fable), then the video.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
