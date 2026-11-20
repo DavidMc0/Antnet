@@ -969,6 +969,16 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
   - `declarativeNetRequestWithHostAccess` is now required. It shows no install warning. The host access stays optional.
   - Checked on the real build: the prompt now opens.
 
+- **Two more fixes from the user's testing (pushed):**
+  - `95a08b4`: the popup said the app wasn't running.
+    - Cause: granting the permission and saving the switch each start a check. The second reused the first, which had read the switch while it was still off.
+    - Fix: a check asked for mid-check now runs again afterwards. A test reproduced it 5 out of 5 times before the fix, and 0 after.
+  - `ba381a3`: **sites visited before stayed hosted.**
+    - Cause: their service worker answers navigations, which the network rule never sees.
+    - Fix: while the gateway is ready, a `document_start` script on hosted Antnet pages calls `location.replace` to the local copy. This adds the `scripting` permission, which shows no install warning.
+    - Checked with the service worker installed: the query and fragment are kept, Back doesn't bounce, and turning the switch off removes the script.
+  - **Lesson:** test with a profile that has visited the hosted sites, not only a fresh one.
+
 **Next:** the Websites page in the fork (Fable), then the video.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
