@@ -1038,3 +1038,24 @@ Section 3.6 adds **Download Button**: Autonomirror's download page and button ge
    - the claim form and Action;
    - the node list, when an SDK release reports it.
 5. **M5:** upload the bench archives, then do ten cold opens each with `npm run probe` on the live host.
+
+**Tried by the user (2026-11-20):** the Websites page works in the app, and is better than having the feature in Settings. The first launch failed with "Can't listen on port 47114 … (os error 10048)". An earlier copy of the app (PID 11336) had ended, but Windows still listed the port under it, and nothing answered. It was free once the old app window and a leftover node daemon (`ant.exe node daemon run`, from 16:30) had closed. It isn't known which one held it. **Not pushed yet:** ant-ui `735765a` waits for the user's OK.
+
+## Before recording the video (written 2026-11-20, end of day)
+
+The script is the table in DEMO.md section 12.14. Where each scene stands:
+
+| Time | Scene | Ready? |
+| --- | --- | --- |
+| 0:00 | The app with a node running; turn the feature on | Yes. It's now **Websites in the sidebar → "Turn on Websites"**, not a setting. Update the script's wording. |
+| 0:15 | An email with an `ant://` link opens Start locally | The app side works. The user writes the email themselves (for example `ant://start`). |
+| 0:35 | Cinema plays and seeks through the app | Probably. Streaming the film through antd hasn't been checked on camera; try it once first (a step 0 item still open). |
+| 0:55 | The 4K file (`289d3381…`, records 11 and 70) stops in the browser, then plays through the app | **No.** Cinema no longer lists that copy (`addresses.json` dropped it on 2026-11-17), and nothing plays an arbitrary address. Needs a small player page or a Cinema option, used on both the hosted and the local loader. |
+| 1:10 | The measurements as a table on screen | **No.** Make one still: two unreachable records (33 s and 9.5 s through the app; failed in the browser), and pointers resolved in 1.3 s against 14.4 s. |
+| 1:25 | Publish a folder from the Websites page | Yes. Have a small folder ready, and wallet funds for two payments. Record the upload once in real time and cut it. |
+| 1:45 | A hosted link's "Open in the Autonomi app" button | Needs a hosted build with the button: `npx cross-env VITE_OPEN_IN_APP=1 npm run build:deploy`, then deploy. Afterwards, rebuild with `npm run build:deploy` and deploy again. (ant-webex's redirect could replace the button in this scene.) |
+| 1:55 | The questions slide | **No.** Make it from DEMO.md's "Questions for the Autonomi team". |
+
+**Next session:** the 0:55 player, then the two stills, then a dry run of the whole script. Also tick the done items in section 12.14's checklist: the fork's setting and links, publishing, and the button.
+
+**Starting the app again:** `cd C:\ant-ui; npm run tauri dev`. If port 47114 is taken, close any earlier copy of the app and check with `Get-NetTCPConnection -LocalPort 47114 -State Listen` (an error means it's free). Restarting Windows always clears it.
