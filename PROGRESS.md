@@ -947,6 +947,25 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
 
 **To test:** load it unpacked in Chrome (and Edge), with the app's setting on. A hosted link, such as `https://start.antnet.autonomirror.com/`, should open locally. With the app closed, it should open the hosted site.
 
+## The ant-webex patch: built (2026-11-20)
+
+- **Repo:** `C:nt-webex`, branch `antnet-redirect` (commit `6857a61`). `upstream` is GitLab; `origin` is the private GitHub repo DavidMc0/ant-webex, approved by the user, with `main` and the branch pushed. The fork is explained in `ANTNET.md` and the repo description; the README is unchanged.
+- **Built as planned:**
+  - The switch is in the popup's Settings and applies at once.
+  - The optional permissions are asked for on turning it on and given back on turning it off.
+  - The redirect rule applies to top-level pages only.
+  - The popup shows whether the app is running, plus the saved-data note.
+- **One difference from the plan:** the check calls `http://antnet.localhost:47114/_autonomi/local/status`, not `127.0.0.1`, because the gateway only answers its own host names. The redirect also needs antd to answer, not just the gateway.
+- **A gateway change was needed** (`antnet-gateway` `e629337`, committed but **not pushed**): the status endpoint now answers any caller. The extension's `chrome-extension://` Origin was refused before. Status starts no download. The fork builds the gateway from its path, so it gets the change on its next build.
+- **Tests:**
+  - 32 unit tests, typecheck and lint pass.
+  - An end-to-end run in Playwright Chromium, with the optional permissions granted up front because a script can't click the prompt. With the gateway up, start and the root opened locally, keeping the query and fragment. With it down, both stayed hosted. Turning the switch off removed the rule.
+- **Still to do:**
+  - The user tries it unpacked in Chrome and Edge: run `npm run build` in `C:nt-webex`, then load `dist/` unpacked with the app running.
+  - Firefox is untried.
+
+**Next:** the Websites page in the fork (Fable), then the video.
+
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
 Section 3.6 adds **Download Button**: Autonomirror's download page and button generator as an Antnet site named `download`, with links of the form `/f/ant/<address>?n=&s=`. It makes six sites, adds a step to the script, and is built after Cinema in section 10. Notes for building it:
