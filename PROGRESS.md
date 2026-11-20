@@ -979,7 +979,27 @@ The user agreed to go ahead (DEMO.md 12.11, "Changes to request from ant-webex",
     - Checked with the service worker installed: the query and fragment are kept, Back doesn't bounce, and turning the switch off removes the script.
   - **Lesson:** test with a profile that has visited the hosted sites, not only a fresh one.
 
-**Next:** the Websites page in the fork (Fable), then the video.
+**Next:** the Websites page in the fork, then the video.
+
+## The Websites page in the fork (2026-11-20)
+
+Built in Opus, since Fable is no longer in the user's plan. It's ant-ui commit `735765a` on `antnet-sites`, committed locally.
+
+- **`pages/websites.vue`, in the sidebar under Wallet** (icon ◇, header title "Websites").
+- **With the setting off:** an intro covering Browse, Publish, and "Reads only, until you publish", with a "Turn on Websites" button.
+  - An `ant://` link that arrives while it's off now comes here, not to Settings.
+  - A banner shows the link, and the button becomes "Turn on and open the link".
+- **With it on**, from top to bottom:
+  - A status card: a dot, the gateway's address and antd's state, with the switch.
+  - Open a site, with a "Try start" hint.
+  - Your sites: Open, Copy link and Update…, which fills in the publish form. Sites whose link isn't published yet are marked.
+  - Publish a folder: the folder, "Publish as" and a name, a note that it takes two wallet payments, the steps, the retry button, and the key backup note.
+- **Settings** keeps only the switch, with "Go to Websites →".
+- **Strings:** moved to a `websites` section of `en.json`. Other languages fall back to English.
+- **Checked:**
+  - 101 unit tests pass and vue-tsc reports no errors in these files.
+  - Screenshots on the Nuxt dev server, with Tauri's invoke faked: off, off with a link, on, on with no sites and no antd, light mode, and Settings.
+- **To do:** the user tries it in the app (`npm run tauri dev`), then push.
 
 ## DEMO.md: the Download Button site (added by the user, 2026-11-11, late)
 
